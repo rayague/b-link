@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1086266729781",
+    "project_id": "b-link-3b2d5",
+    "storage_bucket": "b-link-3b2d5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1086266729781:android:2e7fc325e2eb6e845b187c",
+        "android_client_info": {
+          "package_name": "com.rayague.b_link"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDB_CyvzsHqXpVxr9Q5GNYfaNekgJCehYA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
