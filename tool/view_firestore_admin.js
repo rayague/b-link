@@ -7,12 +7,14 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 
 function parseArgs() {
-  const out = { key: process.env.GOOGLE_APPLICATION_CREDENTIALS, limit: 100 };
+  const out = { key: process.env.GOOGLE_APPLICATION_CREDENTIALS, limit: 100, writeSmoke: false, smokeId: null };
   const args = process.argv.slice(2);
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--key' && args[i+1]) { out.key = args[++i]; }
     else if (a === '--limit' && args[i+1]) { out.limit = parseInt(args[++i], 10) || out.limit; }
+    else if (a === '--writeSmoke') { out.writeSmoke = true; }
+    else if (a === '--smokeId' && args[i+1]) { out.smokeId = args[++i]; }
     else if (a === '--help' || a === '-h') { out.help = true; }
   }
   return out;
@@ -57,6 +59,26 @@ const db = admin.firestore();
       console.log('id:', doc.id);
       console.log(JSON.stringify(doc.data(), null, 2));
     });
+
+    // Optionally write a smoke document to validate writes (admin path)
+    if (opts.writeSmoke) {
+      const id = opts.smokeId || `smoke-${Date.now()}`;
+      console.log('Writing smoke document with id:', id);
+      const now = new Date().toISOString();
+      const data = {
+        name: 'Smoke Test Name',
+        birthDate: '1990-01-01',
+        displayName: 'Smoke Test',
+        lastSyncedAt: now
+      };
+      try {
+        await db.collection('profiles').doc(id).set(data);
+        console.log('Smoke document written:', id);
+      } catch (e) {
+        console.error('Failed to write smoke document:', e && e.stack ? e.stack : e);
+        process.exit(4);
+      }
+    }
     process.exit(0);
   } catch (err) {
     console.error('Failed to read profiles:', err && err.stack ? err.stack : err);

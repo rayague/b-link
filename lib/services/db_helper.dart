@@ -258,6 +258,31 @@ class DBHelper implements DBInterface {
   }
 
   @override
+  Future<void> markSyncItemProcessing(int id) async {
+    final db = await database;
+    await db.update('sync_queue', {'status': 'processing'}, where: 'id = ? AND status = ?', whereArgs: [id, 'pending']);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> claimPendingSyncItems({int limit = 50}) async {
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+    final claimed = <Map<String, dynamic>>[];
+    await db.transaction((txn) async {
+      final res = await txn.rawQuery("SELECT id FROM sync_queue WHERE status = ? AND (nextRetryAt IS NULL OR nextRetryAt <= ?) ORDER BY createdAt ASC LIMIT ?", ['pending', now, limit]);
+      for (final row in res) {
+        final id = row['id'] as int;
+        final updated = await txn.rawUpdate('UPDATE sync_queue SET status = ? WHERE id = ? AND status = ?', ['processing', id, 'pending']);
+        if (updated == 1) {
+          final itemRows = await txn.rawQuery('SELECT * FROM sync_queue WHERE id = ?', [id]);
+          if (itemRows.isNotEmpty) claimed.add(Map<String, dynamic>.from(itemRows.first));
+        }
+      }
+    });
+    return claimed;
+  }
+
+  @override
   Future<void> markSyncItemDone(int id) async {
     final db = await database;
     await db.update('sync_queue', {'status': 'done'}, where: 'id = ?', whereArgs: [id]);

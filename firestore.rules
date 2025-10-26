@@ -1,17 +1,70 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Profiles collection: only owner may read/write their profile
+
+    // Production rules for `profiles` collection.
+    // Strategy:
+    // - Owner (request.auth.uid) can create/update/delete their own profile.
+    // - Reads allowed to owner or when document exposes `isPublic == true`.
+    // - Prevent clients from setting server-only fields (eg. isAdmin).
+    // - Validate types and reasonable sizes for important fields.
+
     match /profiles/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId
-        && request.resource.data.keys().hasAll(['name','birthDate'])
-        && request.resource.data.size() < 8192; // limit doc size (~8KB)
+      // Allow read to owner or if profile marked public
+      allow read: if request.auth != null && (
+        request.auth.uid == userId
+        || (resource.data.keys().hasAny(['isPublic']) && resource.data.isPublic == true)
+      );
+
+      // Create: allow owner to create if keys are within allowed set (simpler check for create)
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'displayName', 'name', 'birthDate', 'birthDayKey', 'photoUrl',
+          'isPublic', 'visibility', 'updatedAt', 'createdAt', 'lastSyncedAt'
+        ]);
+
+      // Update: only owner and must pass full validation
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && validateProfile(request.resource.data, false);
+
+      // Delete only allowed by owner
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Deny all other accesses by default
+    // Deny everything else by default
     match /{document=**} {
       allow read, write: if false;
     }
   }
+}
+
+// Validate profile shape and content. Adjust the allowed keys to match your model.
+function validateProfile(newData, isCreate) {
+  return (
+    // allowed keys only
+    newData.keys().hasOnly([
+      'displayName', 'name', 'birthDate', 'birthDayKey', 'photoUrl',
+      'isPublic', 'visibility', 'updatedAt', 'createdAt', 'lastSyncedAt'
+    ])
+    // displayName/name: optional string, limited length
+    && (newData.displayName == null || (newData.displayName is string && newData.displayName.size() <= 100))
+    && (newData.name == null || (newData.name is string && newData.name.size() <= 100))
+    // photoUrl: optional string url, limited length
+    && (newData.photoUrl == null || (newData.photoUrl is string && newData.photoUrl.size() <= 1000))
+    // birthDayKey or birthDate: optional
+    && (newData.birthDayKey == null || (newData.birthDayKey is int))
+    && (newData.birthDate == null || (newData.birthDate is string && newData.birthDate.size() <= 64))
+    // isPublic/visibility: optional booleans/strings
+    && (newData.isPublic == null || (newData.isPublic is bool))
+    && (newData.visibility == null || (newData.visibility is string && newData.visibility.size() <= 32))
+    // timestamps: optional strings (ISO) or numbers; prefer server timestamps via Cloud Functions when needed
+    && (newData.updatedAt == null || (newData.updatedAt is string && newData.updatedAt.size() <= 64))
+    && (newData.createdAt == null || (newData.createdAt is string && newData.createdAt.size() <= 64))
+    // lastSyncedAt: optional
+    && (newData.lastSyncedAt == null || (newData.lastSyncedAt is string && newData.lastSyncedAt.size() <= 64))
+    // forbid clients from setting admin flags
+    && !newData.keys().hasAny(['isAdmin', 'role', 'admin'])
+  );
 }

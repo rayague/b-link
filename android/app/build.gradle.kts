@@ -47,3 +47,16 @@ android {
 flutter {
     source = "../.."
 }
+
+// Firebase SDKs via BoM
+dependencies {
+    // Import the Firebase BoM to manage versions
+    implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
+
+    // Add the Firebase products you want to use. When using the BoM, don't specify versions.
+    implementation("com.google.firebase:firebase-analytics")
+
+    // Add other Firebase SDKs as needed, for example:
+    // implementation("com.google.firebase:firebase-auth")
+    // implementation("com.google.firebase:firebase-firestore")
+}

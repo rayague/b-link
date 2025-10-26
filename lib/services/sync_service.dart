@@ -35,7 +35,7 @@ class SyncService {
   /// Process up to [limit] pending items once.
   /// Returns number of items processed (succeeded or permanently failed).
   Future<int> processPending({int limit = 50, int maxAttempts = 8}) async {
-    final items = await _db.getPendingSyncItems(limit: limit);
+    final items = await _db.claimPendingSyncItems(limit: limit);
     if (items.isEmpty) return 0;
     var processed = 0;
     for (final item in items) {
@@ -69,18 +69,31 @@ class SyncService {
           debugPrint('SyncService: item $id action=$action failed attempt=$nextAttempts error=$e');
           debugPrint('$st');
         }
-        if (nextAttempts >= maxAttempts) {
-          await _db.markSyncItemPermanentlyFailed(id, e.toString());
+        // classify permanent vs transient
+        final errStr = e?.toString() ?? '';
+        final isPermanent = _isPermanentError(errStr);
+        if (isPermanent || nextAttempts >= maxAttempts) {
+          await _db.markSyncItemPermanentlyFailed(id, errStr);
           processed++;
         } else {
           final backoff = _computeBackoff(nextAttempts);
-          await _db.markSyncItemFailed(id, e.toString(), attempts: nextAttempts, backoff: backoff);
+          await _db.markSyncItemFailed(id, errStr, attempts: nextAttempts, backoff: backoff);
         }
         // continue with next item
         continue;
       }
     }
     return processed;
+  }
+
+  /// Heuristic to determine if an error should be treated as permanent.
+  /// Looks for common permission/configuration issues which retries won't fix.
+  bool _isPermanentError(String err) {
+    final lower = err.toLowerCase();
+    if (lower.contains('permission_denied') || lower.contains('missing or insufficient permissions') || lower.contains('configuration_not_found')) return true;
+    if (lower.contains('unauthorized') || lower.contains('forbidden') || lower.contains('not found')) return true;
+    // network/timeouts should be retried
+    return false;
   }
 }
 
