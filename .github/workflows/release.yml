@@ -1,0 +1,67 @@
+name: Release Build (Android AAB)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  android-aab:
+    name: Build Android AAB
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android App Bundle (AAB)
+        run: flutter build appbundle --release --no-sound-null-safety
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: appbundle
+          path: build/app/outputs/bundle/release/*.aab
+
+      # Optional signing step if keystore is provided via secrets
+      - name: Decode keystore
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android_keystore.jks
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+
+      - name: Sign AAB (optional)
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          set -e
+          AAB_FILE=$(ls build/app/outputs/bundle/release/*.aab | head -n 1)
+          if [ -z "$AAB_FILE" ]; then echo "No AAB found"; exit 2; fi
+          echo "Signing $AAB_FILE"
+          # Use jarsigner for demonstration (for AAB you normally use bundletool for install or let Play sign it)
+          jarsigner -keystore android_keystore.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -keypass "$ANDROID_KEY_PASSWORD" "$AAB_FILE" "$ANDROID_KEY_ALIAS"
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Upload Signed AAB (optional)
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: appbundle-signed
+          path: build/app/outputs/bundle/release/*.aab

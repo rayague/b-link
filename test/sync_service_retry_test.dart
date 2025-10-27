@@ -38,6 +38,21 @@ class FakeDB implements DBInterface {
     final idx = items.indexWhere((i) => i['id'] == id);
     if (idx >= 0) items[idx]['status'] = 'failed';
   }
+
+  @override
+  Future<void> markSyncItemProcessing(int id) async {
+    final idx = items.indexWhere((i) => i['id'] == id);
+    if (idx >= 0) items[idx]['status'] = 'processing';
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> claimPendingSyncItems({int limit = 50}) async {
+    final pending = items.where((i) => i['status'] == 'pending').take(limit).toList();
+    for (final e in pending) {
+      e['status'] = 'processing';
+    }
+    return pending.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
 }
 
 class FakeProfileService extends ProfileService {

@@ -1,15 +1,15 @@
 import puppeteer from 'puppeteer';
 
-// Emulator endpoints
-const AUTH_HOST = '127.0.0.1';
-const AUTH_PORT = 9099;
-const FIRESTORE_HOST = '127.0.0.1';
-const FIRESTORE_PORT = 8080;
+// Allow overriding via env for flexibility in CI
+const AUTH_HOST = process.env.EMULATOR_AUTH_HOST || '127.0.0.1';
+const AUTH_PORT = process.env.EMULATOR_AUTH_PORT || 9099;
+const FIRESTORE_HOST = process.env.EMULATOR_FIRESTORE_HOST || '127.0.0.1';
+const FIRESTORE_PORT = process.env.EMULATOR_FIRESTORE_PORT || 8080;
 
 const firebaseConfig = {
-  apiKey: "fake",
-  authDomain: "localhost",
-  projectId: "b-link-local",
+  apiKey: 'fake',
+  authDomain: 'localhost',
+  projectId: process.env.EMULATOR_PROJECT_ID || 'b-link-local',
 };
 
 const html = `
@@ -27,7 +27,7 @@ const html = `
       try {
         const app = initializeApp(${JSON.stringify(firebaseConfig)});
         const auth = getAuth(app);
-        connectAuthEmulator(auth, 'http://${AUTH_HOST}:${AUTH_PORT}');
+        connectAuthEmulator(auth, 'http://${AUTH_HOST}:${AUTH_PORT}', { disableWarnings: true });
         const db = getFirestore(app);
         connectFirestoreEmulator(db, '${FIRESTORE_HOST}', ${FIRESTORE_PORT});
 
@@ -44,7 +44,9 @@ const html = `
         const got = await getDoc(ref);
         window.__SMOKE_RESULT = { ok: true, uid, data: got.exists() ? got.data() : null };
       } catch (err) {
-        window.__SMOKE_RESULT = { ok: false, error: (err && err.message) || String(err) };
+        const errObj = { message: err && err.message ? err.message : String(err), name: err && err.name, code: err && err.code };
+        console.error('CLIENT ERROR', errObj);
+        window.__SMOKE_RESULT = { ok: false, error: errObj };
       }
     })();
   </script>
@@ -55,11 +57,44 @@ const html = `
 </html>
 `;
 
+// Wait until the emulator ports are accepting connections to avoid race conditions
+import net from 'net';
+
+async function waitForPort(host, port, attempts = 20, delayMs = 300) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await new Promise((res, rej) => {
+        const s = net.createConnection({ host, port }, () => {
+          s.destroy();
+          res();
+        });
+        s.on('error', err => {
+          s.destroy();
+          rej(err);
+        });
+      });
+      return true;
+    } catch (e) {
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+  return false;
+}
+
 (async () => {
+  const authReady = await waitForPort(AUTH_HOST, AUTH_PORT, 30, 300);
+  const fsReady = await waitForPort(FIRESTORE_HOST, FIRESTORE_PORT, 30, 300);
+  if (!authReady || !fsReady) {
+    console.error('Emulator ports not ready: authReady=', authReady, 'firestoreReady=', fsReady);
+    process.exit(4);
+  }
+
   const browser = await puppeteer.launch({ args: ['--no-sandbox','--disable-setuid-sandbox'] });
   const page = await browser.newPage();
-  page.setDefaultTimeout(20000);
+  page.on('console', msg => console.log('PAGE LOG>', msg.text()));
+  page.setDefaultTimeout(30000);
   await page.goto(`data:text/html,${encodeURIComponent(html)}`);
+
   try {
     await page.waitForFunction(() => window.__SMOKE_RESULT !== undefined, { timeout: 20000 });
     const result = await page.evaluate(() => window.__SMOKE_RESULT);

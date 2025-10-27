@@ -7,7 +7,8 @@ To complete the setup you must perform these native steps per platform.
 Android (required for headless WorkManager tasks)
 
 1. Application class
-   - We added `android/app/src/main/kotlin/com/example/b_link/App.kt` and updated `AndroidManifest.xml` to reference it.
+   - The project now includes `android/app/src/main/kotlin/com/example/b_link/Application.kt` (a `FlutterApplication` subclass) and `AndroidManifest.xml` references it via `android:name=".Application"`.
+   - The `Application` class pre-warms a `FlutterEngine` and registers a plugin registrant callback for the `workmanager` plugin so headless tasks can register plugins.
 
 2. Permissions
    - Ensure the following permissions are present in `AndroidManifest.xml`:

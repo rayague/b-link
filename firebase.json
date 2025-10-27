@@ -13,6 +13,9 @@
       "port": 4000
     }
   },
+  "functions": {
+    "source": "functions"
+  },
   "firestore": {
     "rules": "firestore.rules"
   }
