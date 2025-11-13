@@ -31,7 +31,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
   /// Vérifier si l'utilisateur est autorisé (admin uniquement)
   Future<void> _checkAuthorization() async {
     final user = FirebaseAuth.instance.currentUser;
-    
+
     if (user == null || user.email?.toLowerCase() != 'rayague03@gmail.com') {
       setState(() {
         _isAuthorized = false;
@@ -39,14 +39,14 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
       });
       return;
     }
-    
+
     setState(() => _isAuthorized = true);
     await _loadData();
   }
 
   Future<void> _loadData() async {
     if (!_isAuthorized) return;
-    
+
     setState(() => _loading = true);
 
     try {
@@ -66,14 +66,16 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+
     // Écran d'accès refusé si non autorisé
     if (!_loading && !_isAuthorized) {
       return Scaffold(
         backgroundColor: const Color(0xFF0A0E21),
         appBar: AppBar(
-          title: const Text(
-            '🔒 Accès Refusé',
-            style: TextStyle(
+          title: Text(
+            loc.translate('accessDenied'),
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -92,9 +94,9 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                 color: Color(0xFFEB1555),
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Accès Réservé',
-                style: TextStyle(
+              Text(
+                loc.translate('restrictedAccess'),
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -102,7 +104,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Cette section est réservée\nà l\'administrateur uniquement.',
+                loc.translate('adminOnly'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
@@ -117,7 +119,8 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFEB1555),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -128,7 +131,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
         ),
       );
     }
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E21),
       appBar: AppBar(
@@ -228,7 +231,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
               Expanded(
                 child: _buildStatItem(
                   icon: Icons.people,
-                  label: 'Total Utilisateurs',
+                  label: AppLocalizations.of(context).translate('totalUsers'),
                   value: totalUsers.toString(),
                 ),
               ),
@@ -236,7 +239,9 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Dernière mise à jour: $formattedDate',
+            AppLocalizations.of(context)
+                .translate('lastUpdate')
+                .replaceAll('{date}', formattedDate),
             style: TextStyle(
               color: Colors.white.withOpacity(0.8),
               fontSize: 12,
@@ -354,8 +359,9 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
   }
 
   Widget _buildUserTile(Map<String, dynamic> user, int position) {
+    final loc = AppLocalizations.of(context);
     final name = user['name'] ?? 'Utilisateur sans nom';
-    final email = user['email'] ?? 'Email non renseigné';
+    final email = user['email'] ?? loc.translate('emailNotProvided');
     final birthDate = user['birthDate'] ?? '';
     final uid = user['uid'] ?? '';
     final birthplace = user['birthplace'] ?? '';

@@ -2,35 +2,60 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Production rules for `profiles` collection.
-    // Strategy:
-    // - Owner (request.auth.uid) can create/update/delete their own profile.
-    // - Reads allowed to owner or when document exposes `isPublic == true`.
-    // - Prevent clients from setting server-only fields (eg. isAdmin).
-    // - Validate types and reasonable sizes for important fields.
-
-    match /profiles/{userId} {
-      // Allow read to owner or if profile marked public
+    // ==================== USERS COLLECTION ====================
+    // Chaque utilisateur peut lire/écrire son propre profil
+    match /users/{userId} {
+      // Lecture : propriétaire ou si profil public
       allow read: if request.auth != null && (
         request.auth.uid == userId
         || (resource.data.keys().hasAny(['isPublic']) && resource.data.isPublic == true)
       );
 
-      // Create: allow owner to create if keys are within allowed set (simpler check for create)
-      allow create: if request.auth != null
-        && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly([
-          'displayName', 'name', 'birthDate', 'birthDayKey', 'photoUrl',
-          'isPublic', 'visibility', 'updatedAt', 'createdAt', 'lastSyncedAt'
-        ]);
+      // Création : propriétaire uniquement
+      allow create: if request.auth != null && request.auth.uid == userId;
 
-      // Update: only owner and must pass full validation
-      allow update: if request.auth != null
-        && request.auth.uid == userId
-        && validateProfile(request.resource.data, false);
+      // Mise à jour : propriétaire uniquement
+      allow update: if request.auth != null && request.auth.uid == userId;
 
-      // Delete only allowed by owner
+      // Suppression : propriétaire uniquement
       allow delete: if request.auth != null && request.auth.uid == userId;
+
+      // ==================== CONTACTS SUBCOLLECTION ====================
+      // Les contacts sont privés à chaque utilisateur
+      match /contacts/{contactId} {
+        // Lecture : propriétaire uniquement
+        allow read: if request.auth != null && request.auth.uid == userId;
+
+        // Création : propriétaire uniquement
+        allow create: if request.auth != null && request.auth.uid == userId;
+
+        // Mise à jour : propriétaire uniquement
+        allow update: if request.auth != null && request.auth.uid == userId;
+
+        // Suppression : propriétaire uniquement
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // ==================== APP STATS (ADMIN ONLY) ====================
+    // Collection pour les statistiques globales
+    match /app_stats/{document} {
+      // Lecture : tous les utilisateurs authentifiés
+      allow read: if request.auth != null;
+
+      // Écriture : seulement pour le système (via Cloud Functions)
+      // Pour l'instant, on permet à tous les utilisateurs authentifiés
+      allow write: if request.auth != null;
+    }
+
+    // ==================== SYNC QUEUE (Legacy) ====================
+    // Pour compatibilité avec l'ancien système
+    match /sync_queue/{entry} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /profiles/{userId} {
+      allow read, write: if request.auth != null;
     }
 
     // Deny everything else by default
@@ -38,33 +63,4 @@ service cloud.firestore {
       allow read, write: if false;
     }
   }
-}
-
-// Validate profile shape and content. Adjust the allowed keys to match your model.
-function validateProfile(newData, isCreate) {
-  return (
-    // allowed keys only
-    newData.keys().hasOnly([
-      'displayName', 'name', 'birthDate', 'birthDayKey', 'photoUrl',
-      'isPublic', 'visibility', 'updatedAt', 'createdAt', 'lastSyncedAt'
-    ])
-    // displayName/name: optional string, limited length
-    && (newData.displayName == null || (newData.displayName is string && newData.displayName.size() <= 100))
-    && (newData.name == null || (newData.name is string && newData.name.size() <= 100))
-    // photoUrl: optional string url, limited length
-    && (newData.photoUrl == null || (newData.photoUrl is string && newData.photoUrl.size() <= 1000))
-    // birthDayKey or birthDate: optional
-    && (newData.birthDayKey == null || (newData.birthDayKey is int))
-    && (newData.birthDate == null || (newData.birthDate is string && newData.birthDate.size() <= 64))
-    // isPublic/visibility: optional booleans/strings
-    && (newData.isPublic == null || (newData.isPublic is bool))
-    && (newData.visibility == null || (newData.visibility is string && newData.visibility.size() <= 32))
-    // timestamps: optional strings (ISO) or numbers; prefer server timestamps via Cloud Functions when needed
-    && (newData.updatedAt == null || (newData.updatedAt is string && newData.updatedAt.size() <= 64))
-    && (newData.createdAt == null || (newData.createdAt is string && newData.createdAt.size() <= 64))
-    // lastSyncedAt: optional
-    && (newData.lastSyncedAt == null || (newData.lastSyncedAt is string && newData.lastSyncedAt.size() <= 64))
-    // forbid clients from setting admin flags
-    && !newData.keys().hasAny(['isAdmin', 'role', 'admin'])
-  );
 }

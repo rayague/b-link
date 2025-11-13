@@ -44,6 +44,16 @@ class AppLocalizations {
       'search': 'Search',
       'noResults': 'No results',
 
+      // Home Screen
+      'yourContacts': 'Your Contacts',
+      'contactsCount': 'contacts',
+      'birthdaysLabel': 'Birthdays',
+      'activeLabel': 'Active',
+      'quickActions': 'Quick Actions',
+      'today': 'Today! 🎉',
+      'inDays': 'In {count} day',
+      'inDaysPlural': 'In {count} days',
+
       // Profile
       'myProfile': 'My Profile',
       'profileSaved': '✅ Profile saved successfully',
@@ -51,11 +61,16 @@ class AppLocalizations {
       'fullName': 'Full name',
       'birthDate': 'Birth date',
       'birthTime': 'Birth time (optional)',
+      'birthCountry': 'Country of birth *',
+      'birthCity': 'City of birth *',
+      'currentCity': 'Current city',
       'socialLink': 'Social network link',
       'recommendApp': 'Recommend the app',
       'shareWithFriends': 'Share B-Link with your friends',
       'selectDate': 'Select a date',
       'selectTime': 'Select a time',
+      'visibleInfo': 'Visible information',
+      'name': 'Name',
 
       // Contacts
       'myContacts': 'My Contacts',
@@ -87,6 +102,20 @@ class AppLocalizations {
       'beTheFirst': 'Be the first to share!',
       'viewProfile': 'View profile',
       'contactPerson': 'Contact',
+
+      // Quick Actions
+      'addContactAction': 'Add contact',
+      'myZodiac': 'My Zodiac',
+      'sameDayAction': 'Same Day',
+      'myProfileAction': 'My profile',
+
+      // Admin
+      'totalUsers': 'Total Users',
+      'accessDenied': '🔒 Access Denied',
+      'restrictedAccess': 'Restricted Access',
+      'adminOnly': 'This section is reserved\nfor administrators only.',
+      'lastUpdate': 'Last update: {date}',
+      'emailNotProvided': 'Email not provided',
 
       // Zodiac
       'yourZodiacSign': 'Your Zodiac Sign',
@@ -158,6 +187,16 @@ class AppLocalizations {
       'search': 'Rechercher',
       'noResults': 'Aucun résultat',
 
+      // Home Screen
+      'yourContacts': 'Vos Contacts',
+      'contactsCount': 'contacts',
+      'birthdaysLabel': 'Anniversaires',
+      'activeLabel': 'Actifs',
+      'quickActions': 'Actions rapides',
+      'today': 'Aujourd\'hui! 🎉',
+      'inDays': 'Dans {count} jour',
+      'inDaysPlural': 'Dans {count} jours',
+
       // Profile
       'myProfile': 'Mon Profil',
       'profileSaved': '✅ Profil sauvegardé avec succès',
@@ -165,11 +204,16 @@ class AppLocalizations {
       'fullName': 'Nom complet',
       'birthDate': 'Date de naissance',
       'birthTime': 'Heure de naissance (optionnel)',
+      'birthCountry': 'Pays de naissance *',
+      'birthCity': 'Ville de naissance *',
+      'currentCity': 'Ville actuelle',
       'socialLink': 'Lien réseau social',
       'recommendApp': 'Recommander l\'application',
       'shareWithFriends': 'Partagez B-Link avec vos amis',
       'selectDate': 'Sélectionner une date',
       'selectTime': 'Sélectionner une heure',
+      'visibleInfo': 'Informations visibles',
+      'name': 'Nom',
 
       // Contacts
       'myContacts': 'Mes Contacts',
@@ -201,6 +245,21 @@ class AppLocalizations {
       'beTheFirst': 'Soyez le premier à partager !',
       'viewProfile': 'Voir le profil',
       'contactPerson': 'Contacter',
+
+      // Quick Actions
+      'addContactAction': 'Ajouter contact',
+      'myZodiac': 'Mon Zodiac',
+      'sameDayAction': 'Même Jour',
+      'myProfileAction': 'Mon profil',
+
+      // Admin
+      'totalUsers': 'Total Utilisateurs',
+      'accessDenied': '🔒 Accès Refusé',
+      'restrictedAccess': 'Accès Réservé',
+      'adminOnly':
+          'Cette section est réservée\nà l\'administrateur uniquement.',
+      'lastUpdate': 'Dernière mise à jour: {date}',
+      'emailNotProvided': 'Email non renseigné',
 
       // Zodiac
       'yourZodiacSign': 'Votre Signe Astrologique',

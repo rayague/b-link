@@ -194,7 +194,8 @@ class _ListScreenState extends State<ListScreen> {
                         // Name
                         _buildModernTextField(
                           controller: _name,
-                          label: AppLocalizations.of(dialogCtx).translate('fullName'),
+                          label: AppLocalizations.of(dialogCtx)
+                              .translate('fullName'),
                           hint: 'Ex: Jean Dupont',
                           icon: Icons.person_outline,
                           isDark: isDark,
@@ -204,8 +205,10 @@ class _ListScreenState extends State<ListScreen> {
                         // Date
                         _buildModernTextField(
                           controller: _date,
-                          label: AppLocalizations.of(dialogCtx).translate('birthDate'),
-                          hint: AppLocalizations.of(dialogCtx).translate('selectDate'),
+                          label: AppLocalizations.of(dialogCtx)
+                              .translate('birthDate'),
+                          hint: AppLocalizations.of(dialogCtx)
+                              .translate('selectDate'),
                           icon: Icons.cake_outlined,
                           isDark: isDark,
                           readOnly: true,
@@ -273,7 +276,8 @@ class _ListScreenState extends State<ListScreen> {
                                   horizontal: 16, vertical: 16),
                             ),
                             hint: Text(
-                              AppLocalizations.of(dialogCtx).translate('selectRelation'),
+                              AppLocalizations.of(dialogCtx)
+                                  .translate('selectRelation'),
                               style: TextStyle(
                                 color: isDark
                                     ? Colors.grey[600]
@@ -299,7 +303,8 @@ class _ListScreenState extends State<ListScreen> {
                         // Phone (optional)
                         _buildModernTextField(
                           controller: _phone,
-                          label: AppLocalizations.of(dialogCtx).translate('phone'),
+                          label:
+                              AppLocalizations.of(dialogCtx).translate('phone'),
                           hint: 'Ex: +33 6 12 34 56 78',
                           icon: Icons.phone_outlined,
                           isDark: isDark,
@@ -364,7 +369,9 @@ class _ListScreenState extends State<ListScreen> {
                               if (name.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                      content: Text(AppLocalizations.of(dialogCtx).translate('enterName'))),
+                                      content: Text(
+                                          AppLocalizations.of(dialogCtx)
+                                              .translate('enterName'))),
                                 );
                                 return;
                               }
@@ -373,7 +380,8 @@ class _ListScreenState extends State<ListScreen> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                       content: Text(
-                                          AppLocalizations.of(dialogCtx).translate('selectBirthDate'))),
+                                          AppLocalizations.of(dialogCtx)
+                                              .translate('selectBirthDate'))),
                                 );
                                 return;
                               }
@@ -401,7 +409,8 @@ class _ListScreenState extends State<ListScreen> {
 
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('✅ ${AppLocalizations.of(dialogCtx).translate('contactAdded').replaceAll('{name}', name)}'),
+                                  content: Text(
+                                      '✅ ${AppLocalizations.of(dialogCtx).translate('contactAdded').replaceAll('{name}', name)}'),
                                   backgroundColor: const Color(0xFF10B981),
                                 ),
                               );
@@ -418,10 +427,12 @@ class _ListScreenState extends State<ListScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.check_circle_outline, size: 20),
+                                const Icon(Icons.check_circle_outline,
+                                    size: 20),
                                 const SizedBox(width: 8),
                                 Text(
-                                  AppLocalizations.of(dialogCtx).translate('save'),
+                                  AppLocalizations.of(dialogCtx)
+                                      .translate('save'),
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -598,7 +609,8 @@ class _ListScreenState extends State<ListScreen> {
                         onChanged: (value) =>
                             setState(() => _searchQuery = value),
                         decoration: InputDecoration(
-                          hintText: AppLocalizations.of(context).translate('searchContact'),
+                          hintText: AppLocalizations.of(context)
+                              .translate('searchContact'),
                           hintStyle: TextStyle(
                             color: isDark ? Colors.grey[600] : Colors.grey[400],
                           ),
@@ -646,8 +658,10 @@ class _ListScreenState extends State<ListScreen> {
                                 const SizedBox(height: 16),
                                 Text(
                                   _searchQuery.isEmpty
-                                      ? AppLocalizations.of(context).translate('noContact')
-                                      : AppLocalizations.of(context).translate('noResults'),
+                                      ? AppLocalizations.of(context)
+                                          .translate('noContact')
+                                      : AppLocalizations.of(context)
+                                          .translate('noResults'),
                                   style: TextStyle(
                                     fontSize: 18,
                                     color: Colors.grey[600],
@@ -657,8 +671,10 @@ class _ListScreenState extends State<ListScreen> {
                                 const SizedBox(height: 8),
                                 Text(
                                   _searchQuery.isEmpty
-                                      ? AppLocalizations.of(context).translate('pressToAdd')
-                                      : AppLocalizations.of(context).translate('tryAnotherSearch'),
+                                      ? AppLocalizations.of(context)
+                                          .translate('pressToAdd')
+                                      : AppLocalizations.of(context)
+                                          .translate('tryAnotherSearch'),
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey[500],
@@ -803,7 +819,9 @@ class _ListScreenState extends State<ListScreen> {
                                                 await showDialog<bool>(
                                               context: context,
                                               builder: (ctx) => AlertDialog(
-                                                title: Text(AppLocalizations.of(context).translate('confirm')),
+                                                title: Text(
+                                                    AppLocalizations.of(context)
+                                                        .translate('confirm')),
                                                 content: Text(
                                                     '${AppLocalizations.of(context).translate('delete')} ${c.name}?'),
                                                 actions: [
@@ -811,8 +829,9 @@ class _ListScreenState extends State<ListScreen> {
                                                     onPressed: () =>
                                                         Navigator.pop(
                                                             ctx, false),
-                                                    child:
-                                                        Text(AppLocalizations.of(context).translate('cancel')),
+                                                    child: Text(AppLocalizations
+                                                            .of(context)
+                                                        .translate('cancel')),
                                                   ),
                                                   ElevatedButton(
                                                     onPressed: () =>
@@ -823,8 +842,9 @@ class _ListScreenState extends State<ListScreen> {
                                                       backgroundColor:
                                                           Colors.red,
                                                     ),
-                                                    child:
-                                                        Text(AppLocalizations.of(context).translate('delete')),
+                                                    child: Text(AppLocalizations
+                                                            .of(context)
+                                                        .translate('delete')),
                                                   ),
                                                 ],
                                               ),
@@ -838,7 +858,7 @@ class _ListScreenState extends State<ListScreen> {
                                                     .showSnackBar(
                                                   SnackBar(
                                                     content: Text(
-                                                        '${c.name} supprimé'),
+                                                        '${c.name} ${AppLocalizations.of(context).translate("contactDeleted")}'),
                                                     backgroundColor:
                                                         Colors.red[400],
                                                   ),

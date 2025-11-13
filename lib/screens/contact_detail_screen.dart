@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/contact.dart';
 import '../providers/contact_provider.dart';
 import '../providers/locale_provider.dart';
+import '../l10n/app_localizations.dart';
 
 class ContactDetailScreen extends StatefulWidget {
   const ContactDetailScreen({super.key});
@@ -125,11 +126,11 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 8),
-            Text('✅ Contact mis à jour'),
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(AppLocalizations.of(context).translate('contactUpdated')),
           ],
         ),
         backgroundColor: const Color(0xFF10B981),
@@ -398,7 +399,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
           // Name Field
           _buildModernTextField(
             controller: _name,
-            label: 'Nom complet',
+            label: AppLocalizations.of(context).translate('fullName'),
             hint: 'Ex: Marie Dupont',
             icon: Icons.badge_outlined,
             isDark: isDark,
@@ -418,7 +419,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
           // Phone
           _buildModernTextField(
             controller: _phone,
-            label: 'Téléphone (optionnel)',
+            label: AppLocalizations.of(context).translate('phone'),
             hint: 'Ex: +33 6 12 34 56 78',
             icon: Icons.phone_outlined,
             isDark: isDark,
@@ -570,7 +571,9 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  _date.text.isEmpty ? 'Sélectionner une date' : _date.text,
+                  _date.text.isEmpty
+                      ? AppLocalizations.of(context).translate('selectDate')
+                      : _date.text,
                   style: TextStyle(
                     fontSize: 16,
                     color: _date.text.isEmpty
@@ -629,7 +632,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             hint: Text(
-              'Sélectionner une relation',
+              AppLocalizations.of(context).translate('selectRelation'),
               style: TextStyle(
                 color: isDark ? Colors.grey[600] : Colors.grey[400],
               ),
@@ -681,14 +684,14 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.save_rounded, color: Colors.white),
-              SizedBox(width: 8),
+              const Icon(Icons.save_rounded, color: Colors.white),
+              const SizedBox(width: 8),
               Text(
-                'Mettre à jour',
-                style: TextStyle(
+                AppLocalizations.of(context).translate('update'),
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,

@@ -147,11 +147,11 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 8),
-            Text('✅ Profil sauvegardé avec succès'),
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(AppLocalizations.of(context).translate('profileSaved')),
           ],
         ),
         backgroundColor: const Color(0xFF10B981),
@@ -408,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           // Name Field
           _buildModernTextField(
             controller: _nameController,
-            label: 'Nom complet',
+            label: AppLocalizations.of(context).translate('fullName'),
             hint: 'Ex: Marie Dupont',
             icon: Icons.badge_outlined,
             isDark: isDark,
@@ -428,19 +428,21 @@ class _ProfileScreenState extends State<ProfileScreen>
           // Birth Country (Required)
           _buildModernTextField(
             controller: _birthCountryController,
-            label: 'Pays de naissance *',
+            label: AppLocalizations.of(context).translate('birthCountry'),
             hint: 'Ex: France',
             icon: Icons.flag_outlined,
             isDark: isDark,
             enabled: _isEditing,
-            validator: (v) => v == null || v.isEmpty ? 'Pays requis' : null,
+            validator: (v) => v == null || v.isEmpty
+                ? AppLocalizations.of(context).translate('enterName')
+                : null,
           ),
           const SizedBox(height: 16),
 
           // Birth Place/City (Required)
           _buildModernTextField(
             controller: _birthPlaceController,
-            label: 'Ville de naissance *',
+            label: AppLocalizations.of(context).translate('birthCity'),
             hint: 'Ex: Paris',
             icon: Icons.location_city_outlined,
             isDark: isDark,
@@ -453,7 +455,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           // Current City
           _buildModernTextField(
             controller: _birthCityController,
-            label: 'Ville actuelle',
+            label: AppLocalizations.of(context).translate('currentCity'),
             hint: 'Ex: Lyon',
             icon: Icons.home_outlined,
             isDark: isDark,
@@ -655,7 +657,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 const SizedBox(width: 12),
                 Text(
                   _birthDate == null
-                      ? 'Sélectionner une date'
+                      ? AppLocalizations.of(context).translate('selectDate')
                       : '${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}',
                   style: TextStyle(
                     fontSize: 16,
@@ -734,7 +736,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 const SizedBox(width: 12),
                 Text(
                   _birthTime == null
-                      ? 'Sélectionner une heure'
+                      ? AppLocalizations.of(context).translate('selectTime')
                       : _birthTime!.format(context),
                   style: TextStyle(
                     fontSize: 16,
@@ -1607,7 +1609,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           if (_isPublic) ...[
             const SizedBox(height: 16),
             Text(
-              'Informations visibles',
+              AppLocalizations.of(context).translate('visibleInfo'),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -1615,20 +1617,29 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
             const SizedBox(height: 12),
-            _buildPrivacySwitch(
-                'Nom', _publicName, Icons.badge_outlined, isDark, (val) {
+            _buildPrivacySwitch(AppLocalizations.of(context).translate('name'),
+                _publicName, Icons.badge_outlined, isDark, (val) {
               setState(() => _publicName = val);
             }),
-            _buildPrivacySwitch('Date de naissance', _publicBirthDate,
-                Icons.cake_outlined, isDark, (val) {
+            _buildPrivacySwitch(
+                AppLocalizations.of(context).translate('birthDate'),
+                _publicBirthDate,
+                Icons.cake_outlined,
+                isDark, (val) {
               setState(() => _publicBirthDate = val);
             }),
-            _buildPrivacySwitch('Heure de naissance', _publicBirthTime,
-                Icons.access_time_outlined, isDark, (val) {
+            _buildPrivacySwitch(
+                AppLocalizations.of(context).translate('birthTime'),
+                _publicBirthTime,
+                Icons.access_time_outlined,
+                isDark, (val) {
               setState(() => _publicBirthTime = val);
             }),
-            _buildPrivacySwitch('Pays de naissance', _publicBirthCountry,
-                Icons.flag_outlined, isDark, (val) {
+            _buildPrivacySwitch(
+                AppLocalizations.of(context).translate('birthCountry'),
+                _publicBirthCountry,
+                Icons.flag_outlined,
+                isDark, (val) {
               setState(() => _publicBirthCountry = val);
             }),
             _buildPrivacySwitch('Ville de naissance', _publicBirthPlace,
@@ -1660,7 +1671,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _isAdminUser() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
-    
+
     // Vérifier si l'email correspond à l'administrateur
     return user.email?.toLowerCase() == 'rayague03@gmail.com';
   }

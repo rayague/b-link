@@ -180,7 +180,8 @@ class _HomeScreenState extends State<HomeScreen>
                       ],
 
                       // Quick Actions
-                      _buildSectionHeader(context, '⚡ Actions rapides', null),
+                      _buildSectionHeader(
+                          context, '⚡ ${loc.translate("quickActions")}', null),
                       const SizedBox(height: 12),
                       _buildQuickActions(context, loc, isDark),
 
@@ -243,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Vos Contacts',
+                      loc.translate('yourContacts'),
                       style: TextStyle(
                         fontSize: 14,
                         color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -252,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$totalContacts contacts',
+                      '$totalContacts ${loc.translate("contactsCount")}',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -270,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen>
               _buildStatItem(
                 Icons.cake_rounded,
                 '$contactsWithBirthday',
-                'Anniversaires',
+                loc.translate('birthdaysLabel'),
                 const Color(0xFFEC4899),
                 isDark,
               ),
@@ -278,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen>
               _buildStatItem(
                 Icons.notifications_active_rounded,
                 '${contacts.contacts.where((c) => c.date.isNotEmpty).length}',
-                'Actifs',
+                loc.translate('activeLabel'),
                 const Color(0xFF10B981),
                 isDark,
               ),
@@ -344,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen>
         if (onTap != null)
           TextButton(
             onPressed: onTap,
-            child: const Text('Voir tout'),
+            child: Text(AppLocalizations.of(context).translate('viewAll')),
           ),
       ],
     );
@@ -361,6 +362,18 @@ class _HomeScreenState extends State<HomeScreen>
     final now = DateTime.now();
     final thisYear = DateTime(now.year, bday.month, bday.day);
     final daysUntil = thisYear.difference(now).inDays;
+
+    final loc = AppLocalizations.of(context);
+    String subtitleText;
+    if (daysUntil == 0) {
+      subtitleText = loc.translate('today');
+    } else if (daysUntil == 1) {
+      subtitleText =
+          loc.translate('inDays').replaceAll('{count}', '$daysUntil');
+    } else {
+      subtitleText =
+          loc.translate('inDaysPlural').replaceAll('{count}', '$daysUntil');
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -411,9 +424,7 @@ class _HomeScreenState extends State<HomeScreen>
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
-          daysUntil == 0
-              ? "Aujourd'hui! 🎉"
-              : 'Dans $daysUntil jour${daysUntil > 1 ? 's' : ''}',
+          subtitleText,
           style: TextStyle(
             color: daysUntil == 0 ? const Color(0xFFEC4899) : null,
             fontWeight: daysUntil == 0 ? FontWeight.w600 : null,
@@ -442,25 +453,25 @@ class _HomeScreenState extends State<HomeScreen>
     final actions = [
       _QuickAction(
         icon: Icons.person_add_rounded,
-        label: 'Ajouter contact',
+        label: loc.translate('addContactAction'),
         gradient: const [Color(0xFF3B82F6), Color(0xFF60A5FA)],
         onTap: () => Navigator.of(context).pushNamed('/list'),
       ),
       _QuickAction(
         icon: Icons.stars_rounded,
-        label: 'Mon Zodiac',
+        label: loc.translate('myZodiac'),
         gradient: const [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
         onTap: () => Navigator.of(context).pushNamed('/zodiac'),
       ),
       _QuickAction(
         icon: Icons.cake_rounded,
-        label: 'Même Jour',
+        label: loc.translate('sameDayAction'),
         gradient: const [Color(0xFFEC4899), Color(0xFFF472B6)],
         onTap: () => Navigator.of(context).pushNamed('/same-day'),
       ),
       _QuickAction(
         icon: Icons.person_rounded,
-        label: 'Mon profil',
+        label: loc.translate('myProfileAction'),
         gradient: const [Color(0xFF10B981), Color(0xFF34D399)],
         onTap: () => Navigator.of(context).pushNamed('/profile'),
       ),
@@ -581,7 +592,7 @@ class CustomAppDrawer extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.person),
-              title: const Text('Mon profil'),
+              title: Text(loc.translate('myProfile')),
               onTap: () {
                 Navigator.of(context).pushNamed('/profile');
               },
