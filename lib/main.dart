@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
@@ -18,13 +19,16 @@ import 'screens/profile_screen.dart';
 import 'screens/profile_registration_screen.dart';
 import 'screens/same_day_screen.dart';
 import 'screens/sync_admin_screen.dart';
+import 'screens/zodiac_screen.dart';
+import 'screens/public_profile_screen.dart';
 import 'providers/profile_provider.dart';
 import 'services/background_sync.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform as dynamic);
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform as dynamic);
   } catch (_) {
     // If Firebase isn't configured yet (no firebase_options.dart), continue without it.
   }
@@ -61,36 +65,43 @@ class _App extends StatelessWidget {
 
     final lightTheme = ThemeData(
       brightness: Brightness.light,
-      colorScheme: ColorScheme.fromSeed(seedColor: dodgerBlue, brightness: Brightness.light),
+      colorScheme: ColorScheme.fromSeed(
+          seedColor: dodgerBlue, brightness: Brightness.light),
       useMaterial3: true,
     );
 
     final darkTheme = ThemeData(
       brightness: Brightness.dark,
-      colorScheme: ColorScheme.fromSeed(seedColor: dodgerBlue, brightness: Brightness.dark),
+      colorScheme: ColorScheme.fromSeed(
+          seedColor: dodgerBlue, brightness: Brightness.dark),
       useMaterial3: true,
     );
 
     return MaterialApp(
-      title: 'Birthgram',
+      title: 'B-Link',
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: themeProv.mode,
       locale: localeProv.locale,
       supportedLocales: const [Locale('en'), Locale('fr')],
-      localizationsDelegates: const [AppLocalizationsDelegate()],
+      localizationsDelegates: const [
+        AppLocalizationsDelegate(),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const EntryPointStateful(),
       routes: {
         '/onboarding': (_) => const OnboardingScreen(),
         '/auth': (_) => const AuthScreen(),
-        '/': (_) => const HomeScreen(),
-  '/same-day': (_) => const SameDayScreen(),
-  '/profile-register': (_) => const ProfileRegistrationScreen(),
+        '/same-day': (_) => const SameDayScreen(),
+        '/profile-register': (_) => const ProfileRegistrationScreen(),
         '/list': (_) => const ListScreen(),
         '/detail': (_) => const ContactDetailScreen(),
         '/celebration': (_) => const CelebrationScreen(),
         '/sync-admin': (_) => const SyncAdminScreen(),
         ProfileScreen.routeName: (_) => const ProfileScreen(),
+        ZodiacScreen.routeName: (_) => const ZodiacScreen(),
       },
     );
   }
@@ -111,7 +122,9 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
         appBar: AppBar(title: const Text('Test App')),
         body: Center(child: Text('$_count')),
-        floatingActionButton: FloatingActionButton(onPressed: () => setState(() => _count++), child: const Icon(Icons.add)),
+        floatingActionButton: FloatingActionButton(
+            onPressed: () => setState(() => _count++),
+            child: const Icon(Icons.add)),
       ),
     );
   }
@@ -136,6 +149,7 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
       initializeBackgroundSync();
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final contacts = Provider.of<ContactProvider>(context, listen: false);
+      final locale = Provider.of<LocaleProvider>(context, listen: false);
       // if not registered, navigate to onboarding immediately
       if (!auth.isRegistered) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -145,7 +159,7 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
       }
       // start loading contacts (this will import messages)
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await contacts.loadContacts();
+        await contacts.loadContacts(locale: locale.locale.languageCode);
       });
     }
   }

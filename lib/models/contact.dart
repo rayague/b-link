@@ -6,7 +6,13 @@ class Contact {
   final String? imageUri;
   final String? phone;
 
-  Contact({this.id, required this.name, required this.date, required this.relation, this.imageUri, this.phone});
+  Contact(
+      {this.id,
+      required this.name,
+      required this.date,
+      required this.relation,
+      this.imageUri,
+      this.phone});
 
   Map<String, dynamic> toMap() {
     return {
@@ -19,6 +25,9 @@ class Contact {
     };
   }
 
+  // Alias pour Firebase
+  Map<String, dynamic> toJson() => toMap();
+
   factory Contact.fromMap(Map<String, dynamic> map) {
     return Contact(
       id: map['id'] as int?,
@@ -29,5 +38,7 @@ class Contact {
       phone: map['phone'] as String?,
     );
   }
-}
 
+  // Alias pour Firebase
+  factory Contact.fromJson(Map<String, dynamic> json) => Contact.fromMap(json);
+}

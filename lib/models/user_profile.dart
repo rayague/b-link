@@ -9,15 +9,24 @@ class UserProfile {
   String? birthTime; // e.g. 14:30
   String? timezone;
   String? zodiac;
-  String? birthplace;
+  String? birthplace; // Ville de naissance
+  String? birthCountry; // Pays de naissance
+  String? birthCity; // Ville actuelle
   Map<String, String>? socialLinks; // platform -> url
   String? bio;
   DateTime? lastSyncedAt;
+
+  // Privacy settings
   bool isPublic;
   bool publicName;
   bool publicBirthDate;
+  bool publicBirthTime;
   bool publicBirthPlace;
+  bool publicBirthCountry;
+  bool publicBirthCity;
   bool publicSocials;
+  bool publicZodiac;
+
   String? birthDayKey; // MM-DD for indexing
 
   UserProfile({
@@ -30,61 +39,93 @@ class UserProfile {
     this.timezone,
     this.zodiac,
     this.birthplace,
+    this.birthCountry,
+    this.birthCity,
     this.socialLinks,
     this.bio,
     this.lastSyncedAt,
     this.isPublic = false,
     this.publicName = false,
     this.publicBirthDate = false,
+    this.publicBirthTime = false,
     this.publicBirthPlace = false,
+    this.publicBirthCountry = false,
+    this.publicBirthCity = false,
     this.publicSocials = false,
+    this.publicZodiac = false,
     this.birthDayKey,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
         uid: json['uid'] as String?,
-    name: json['name'] as String? ?? '',
-    givenName: json['givenName'] as String?,
-    familyName: json['familyName'] as String?,
-    birthDate: DateTime.parse(json['birthDate'] as String),
+        name: json['name'] as String? ?? '',
+        givenName: json['givenName'] as String?,
+        familyName: json['familyName'] as String?,
+        birthDate: DateTime.parse(json['birthDate'] as String),
         birthTime: json['birthTime'] as String?,
         timezone: json['timezone'] as String?,
         zodiac: json['zodiac'] as String?,
-    birthplace: json['birthplace'] as String?,
-    socialLinks: json['socialLinks'] == null
+        birthplace: json['birthplace'] as String?,
+        birthCountry: json['birthCountry'] as String?,
+        birthCity: json['birthCity'] as String?,
+        socialLinks: json['socialLinks'] == null
             ? null
             : Map<String, String>.from(json['socialLinks'] as Map),
         bio: json['bio'] as String?,
         lastSyncedAt: json['lastSyncedAt'] == null
             ? null
             : DateTime.parse(json['lastSyncedAt'] as String),
-    isPublic: json['isPublic'] == null ? false : json['isPublic'] as bool,
-    publicName: json['publicName'] == null ? false : json['publicName'] as bool,
-    publicBirthDate: json['publicBirthDate'] == null ? false : json['publicBirthDate'] as bool,
-    publicBirthPlace: json['publicBirthPlace'] == null ? false : json['publicBirthPlace'] as bool,
-    publicSocials: json['publicSocials'] == null ? false : json['publicSocials'] as bool,
-    birthDayKey: json['birthDayKey'] as String?,
+        isPublic: json['isPublic'] == null ? false : json['isPublic'] as bool,
+        publicName:
+            json['publicName'] == null ? false : json['publicName'] as bool,
+        publicBirthDate: json['publicBirthDate'] == null
+            ? false
+            : json['publicBirthDate'] as bool,
+        publicBirthTime: json['publicBirthTime'] == null
+            ? false
+            : json['publicBirthTime'] as bool,
+        publicBirthPlace: json['publicBirthPlace'] == null
+            ? false
+            : json['publicBirthPlace'] as bool,
+        publicBirthCountry: json['publicBirthCountry'] == null
+            ? false
+            : json['publicBirthCountry'] as bool,
+        publicBirthCity: json['publicBirthCity'] == null
+            ? false
+            : json['publicBirthCity'] as bool,
+        publicSocials: json['publicSocials'] == null
+            ? false
+            : json['publicSocials'] as bool,
+        publicZodiac:
+            json['publicZodiac'] == null ? false : json['publicZodiac'] as bool,
+        birthDayKey: json['birthDayKey'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
         'uid': uid,
         'name': name,
-    'givenName': givenName,
-    'familyName': familyName,
+        'givenName': givenName,
+        'familyName': familyName,
         'birthDate': birthDate.toIso8601String(),
         'birthTime': birthTime,
         'timezone': timezone,
         'zodiac': zodiac,
-    'birthplace': birthplace,
+        'birthplace': birthplace,
+        'birthCountry': birthCountry,
+        'birthCity': birthCity,
         'socialLinks': socialLinks,
         'bio': bio,
         'lastSyncedAt': lastSyncedAt?.toIso8601String(),
-    'isPublic': isPublic,
-    'publicName': publicName,
-    'publicBirthDate': publicBirthDate,
-    'publicBirthPlace': publicBirthPlace,
-    'publicSocials': publicSocials,
-    'birthDayKey': birthDayKey,
+        'isPublic': isPublic,
+        'publicName': publicName,
+        'publicBirthDate': publicBirthDate,
+        'publicBirthTime': publicBirthTime,
+        'publicBirthPlace': publicBirthPlace,
+        'publicBirthCountry': publicBirthCountry,
+        'publicBirthCity': publicBirthCity,
+        'publicSocials': publicSocials,
+        'publicZodiac': publicZodiac,
+        'birthDayKey': birthDayKey,
       };
 
   String toEncodedJson() => json.encode(toJson());

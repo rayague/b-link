@@ -89,7 +89,12 @@ async function waitForPort(host, port, attempts = 20, delayMs = 300) {
     process.exit(4);
   }
 
-  const browser = await puppeteer.launch({ args: ['--no-sandbox','--disable-setuid-sandbox'] });
+  const launchOptions = { headless: true, args: ['--no-sandbox','--disable-setuid-sandbox'] };
+  // Allow CI or local overrides to use an existing Chrome/Chromium instead of bundled Chromium
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  const browser = await puppeteer.launch(launchOptions);
   const page = await browser.newPage();
   page.on('console', msg => console.log('PAGE LOG>', msg.text()));
   page.setDefaultTimeout(30000);

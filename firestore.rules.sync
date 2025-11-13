@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Collection des utilisateurs
+    match /users/{userId} {
+      // Un utilisateur peut lire et écrire uniquement ses propres données
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Sous-collection des contacts
+      match /contacts/{contactId} {
+        // Un utilisateur peut lire et écrire uniquement ses propres contacts
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Collection des statistiques globales
+    match /app_stats/global {
+      // Tout utilisateur authentifié peut lire les stats
+      allow read: if request.auth != null;
+      // Seuls les utilisateurs peuvent écrire (incrémentation automatique)
+      allow write: if request.auth != null;
+    }
+    
+    // Profils publics (visible par tous les utilisateurs authentifiés)
+    match /public_profiles/{userId} {
+      // Tout utilisateur authentifié peut lire les profils publics
+      allow read: if request.auth != null;
+      // Seul le propriétaire peut écrire
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
