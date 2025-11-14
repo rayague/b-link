@@ -148,6 +148,9 @@ class AppLocalizations {
       'alreadyRegistered': 'Already registered?',
       'switchToSignup': 'Sign up',
       'switchToLogin': 'Sign in',
+      'enterEmailForReset': 'Please enter your email to reset password',
+      'resetEmailSent': '✅ Password reset email sent! Check your inbox.',
+      'emailNotFound': 'No account found with this email',
     },
     'fr': {
       'appTitle': 'B-Link',
@@ -292,6 +295,11 @@ class AppLocalizations {
       'alreadyRegistered': 'Déjà inscrit?',
       'switchToSignup': 'S\'inscrire',
       'switchToLogin': 'Se connecter',
+      'enterEmailForReset':
+          'Veuillez entrer votre email pour réinitialiser le mot de passe',
+      'resetEmailSent':
+          '✅ Email de réinitialisation envoyé! Vérifiez votre boîte mail.',
+      'emailNotFound': 'Aucun compte trouvé avec cet email',
     }
   };
 

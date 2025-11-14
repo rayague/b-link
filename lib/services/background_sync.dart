@@ -8,24 +8,23 @@ const String _taskName = "b_link_sync_task";
 Future<void> initializeBackgroundSync() async {
   // Workmanager (Android)
   try {
-    Workmanager().initialize(
-      (task, inputData) async {
-        // This function runs in a background isolate
-        final svc = SyncService();
-        await svc.processPending(limit: 50);
-        // Workmanager plugin handles completion; return true
-        return Future.value(true);
-      },
+    await Workmanager().initialize(
+      callbackDispatcher,
       isInDebugMode: false,
     );
-    Workmanager().registerPeriodicTask('sync-periodic', _taskName, frequency: const Duration(minutes: 15));
+    await Workmanager().registerPeriodicTask(
+      'sync-periodic',
+      _taskName,
+      frequency: const Duration(minutes: 15),
+    );
   } catch (e) {
+    print('⚠️ WorkManager initialization failed: $e');
     // ignore if not available
   }
 
   // background_fetch (iOS/Android alternative)
   try {
-    BackgroundFetch.configure(
+    await BackgroundFetch.configure(
       BackgroundFetchConfig(
         minimumFetchInterval: 15,
         stopOnTerminate: false,
@@ -41,11 +40,13 @@ Future<void> initializeBackgroundSync() async {
       },
     );
   } catch (e) {
+    print('⚠️ BackgroundFetch initialization failed: $e');
     // ignore
   }
 }
 
 // headless callback required by Android for Workmanager
+@pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     final svc = SyncService();

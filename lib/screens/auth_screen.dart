@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../providers/auth_provider.dart';
 import '../l10n/app_localizations.dart';
 
@@ -324,13 +325,351 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {
-                      // TODO: Implement forgot password
+                    onPressed: () async {
+                      // Afficher un dialogue pour entrer l'email
+                      final email = await showDialog<String>(
+                        context: context,
+                        builder: (context) => _ForgotPasswordDialog(
+                          initialEmail: _emailCtrl.text.trim(),
+                        ),
+                      );
+
+                      if (email == null || email.isEmpty) return;
+
+                      // Montrer un indicateur de chargement
+                      if (mounted) {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+
+                      try {
+                        print('🔄 Tentative d\'envoi email de réinitialisation à: $email');
+                        
+                        await FirebaseAuth.instance.sendPasswordResetEmail(
+                          email: email,
+                        );
+
+                        print('✅ Email de réinitialisation envoyé avec succès à: $email');
+
+                        // Fermer l'indicateur de chargement
+                        if (mounted) Navigator.of(context).pop();
+
+                        if (mounted) {
+                          // Afficher un dialogue de succès détaillé
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              title: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF10B981).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.mark_email_read_rounded,
+                                      color: Color(0xFF10B981),
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      AppLocalizations.of(context)
+                                          .locale
+                                          .languageCode == 'fr'
+                                          ? 'Email envoyé! ✅'
+                                          : 'Email sent! ✅',
+                                      style: const TextStyle(fontSize: 18),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              content: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      AppLocalizations.of(context).locale.languageCode == 'fr'
+                                          ? 'Un email de réinitialisation a été envoyé à:'
+                                          : 'A reset email has been sent to:',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.email_outlined, size: 18),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              email,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue[50],
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.blue[200]!,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(Icons.info_outline,
+                                                  color: Colors.blue[700], size: 18),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                AppLocalizations.of(context)
+                                                            .locale
+                                                            .languageCode ==
+                                                        'fr'
+                                                    ? 'Que faire maintenant?'
+                                                    : 'What to do next?',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.blue[700],
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            AppLocalizations.of(context)
+                                                        .locale
+                                                        .languageCode ==
+                                                    'fr'
+                                                ? '1. Vérifiez votre boîte mail\n2. Vérifiez aussi les SPAMS\n3. Cliquez sur le lien reçu\n4. Créez votre nouveau mot de passe'
+                                                : '1. Check your inbox\n2. Also check SPAM folder\n3. Click the link received\n4. Create your new password',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[700],
+                                              height: 1.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: Text(
+                                    AppLocalizations.of(context).translate('close'),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      } on FirebaseAuthException catch (e) {
+                        // Fermer l'indicateur de chargement
+                        if (mounted) Navigator.of(context).pop();
+                        
+                        print('❌ Erreur Firebase: ${e.code} - ${e.message}');
+                        String errorMessage;
+                        String errorDetails = '';
+                        
+                        switch (e.code) {
+                          case 'user-not-found':
+                            errorMessage = AppLocalizations.of(context)
+                                .translate('emailNotFound');
+                            errorDetails = AppLocalizations.of(context)
+                                        .locale
+                                        .languageCode ==
+                                    'fr'
+                                ? 'Aucun compte n\'existe avec cet email. Veuillez créer un compte d\'abord.'
+                                : 'No account exists with this email. Please create an account first.';
+                            break;
+                          case 'invalid-email':
+                            errorMessage = AppLocalizations.of(context)
+                                .translate('invalidEmail');
+                            errorDetails = AppLocalizations.of(context)
+                                        .locale
+                                        .languageCode ==
+                                    'fr'
+                                ? 'Le format de l\'email est invalide.'
+                                : 'The email format is invalid.';
+                            break;
+                          default:
+                            errorMessage = 'Error [${e.code}]';
+                            errorDetails = e.message ?? '';
+                        }
+
+                        if (mounted) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              title: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEF4444).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.error_outline,
+                                      color: Color(0xFFEF4444),
+                                      size: 28,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      errorMessage,
+                                      style: const TextStyle(fontSize: 18),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              content: Text(errorDetails),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: Text(
+                                    AppLocalizations.of(context).translate('close'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        // Fermer l'indicateur de chargement
+                        if (mounted) Navigator.of(context).pop();
+                        
+                        print('❌ Erreur inattendue: $e');
+                        
+                        // Détecter erreur réseau
+                        String errorMessage;
+                        String errorDetails;
+                        bool isNetworkError = e.toString().contains('connection') ||
+                            e.toString().contains('network') ||
+                            e.toString().contains('abort');
+                        
+                        if (isNetworkError) {
+                          errorMessage = AppLocalizations.of(context)
+                                      .locale
+                                      .languageCode ==
+                                  'fr'
+                              ? 'Erreur de connexion'
+                              : 'Connection Error';
+                          errorDetails = AppLocalizations.of(context)
+                                      .locale
+                                      .languageCode ==
+                                  'fr'
+                              ? 'Vérifiez votre connexion internet et réessayez.\n\nSi le problème persiste:\n• Essayez avec WiFi ou données mobiles\n• Redémarrez l\'application\n• Vérifiez que Firebase est accessible'
+                              : 'Check your internet connection and try again.\n\nIf the issue persists:\n• Try WiFi or mobile data\n• Restart the app\n• Verify Firebase is accessible';
+                        } else {
+                          errorMessage = AppLocalizations.of(context)
+                                      .locale
+                                      .languageCode ==
+                                  'fr'
+                              ? 'Erreur inattendue'
+                              : 'Unexpected Error';
+                          errorDetails = e.toString();
+                        }
+                        
+                        if (mounted) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              title: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEF4444).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(
+                                      isNetworkError ? Icons.wifi_off : Icons.error_outline,
+                                      color: const Color(0xFFEF4444),
+                                      size: 28,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      errorMessage,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              content: SingleChildScrollView(
+                                child: Text(
+                                  errorDetails,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: Text(
+                                    AppLocalizations.of(context).translate('close'),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      }
                     },
                     child: Text(
                       AppLocalizations.of(context).translate('forgotPassword'),
-                      style: TextStyle(
-                        color: const Color(0xFF3B82F6),
+                      style: const TextStyle(
+                        color: Color(0xFF3B82F6),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -562,6 +901,128 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
+    );
+  }
+}
+
+// Dialogue pour "Mot de passe oublié"
+class _ForgotPasswordDialog extends StatefulWidget {
+  final String initialEmail;
+
+  const _ForgotPasswordDialog({required this.initialEmail});
+
+  @override
+  State<_ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
+}
+
+class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
+  late TextEditingController _emailController;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.lock_reset, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              loc.translate('forgotPassword'),
+              style: const TextStyle(fontSize: 20),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            loc.locale.languageCode == 'fr'
+                ? 'Entrez votre adresse email pour recevoir un lien de réinitialisation.'
+                : 'Enter your email address to receive a reset link.',
+            style: TextStyle(
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: loc.translate('email'),
+              prefixIcon: const Icon(Icons.email_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: isDark ? Colors.grey[800] : Colors.grey[50],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(loc.translate('cancel')),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final email = _emailController.text.trim();
+            if (email.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(loc.translate('enterEmailForReset')),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              return;
+            }
+            Navigator.of(context).pop(email);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF3B82F6),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+          child: Text(
+            loc.locale.languageCode == 'fr'
+                ? 'Envoyer le lien'
+                : 'Send Link',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
     );
   }
 }
