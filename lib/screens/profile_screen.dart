@@ -9,6 +9,7 @@ import '../widgets/social_links_widget.dart';
 import '../widgets/birth_insights_widget.dart';
 import '../l10n/app_localizations.dart';
 import 'admin_stats_screen.dart';
+import '../services/admin_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
@@ -283,23 +284,30 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
                 actions: [
-                  // Bouton Admin - Visible uniquement pour rayague03@gmail.com
-                  if (_isAdminUser())
-                    IconButton(
-                      icon: const Icon(
-                        Icons.admin_panel_settings,
-                        color: Colors.white,
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AdminStatsScreen(),
+                  // Bouton Admin - Visible uniquement pour les admins
+                  FutureBuilder<bool>(
+                    future: _isAdminUser(),
+                    builder: (context, snapshot) {
+                      if (snapshot.data == true) {
+                        return IconButton(
+                          icon: const Icon(
+                            Icons.admin_panel_settings,
+                            color: Colors.orange,
                           ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AdminStatsScreen(),
+                              ),
+                            );
+                          },
+                          tooltip: 'Statistiques Admin',
                         );
-                      },
-                      tooltip: 'Statistiques Admin',
-                    ),
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                   IconButton(
                     icon: Icon(
                       _isEditing ? Icons.close : Icons.edit,
@@ -1668,12 +1676,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   /// Vérifier si l'utilisateur actuel est l'administrateur
-  bool _isAdminUser() {
+  Future<bool> _isAdminUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
 
-    // Vérifier si l'email correspond à l'administrateur
-    return user.email?.toLowerCase() == 'rayague03@gmail.com';
+    // Vérifier dans Firestore si l'utilisateur est admin
+    final adminService = AdminService();
+    return await adminService.isUserAdmin(user.uid);
   }
 
   Widget _buildPrivacySwitch(

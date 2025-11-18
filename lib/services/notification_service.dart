@@ -53,6 +53,12 @@ class NotificationService {
   Future<void> scheduleBirthdayReminders(Contact contact, String locale) async {
     if (!_initialized) await init();
 
+    // Vérifier que le contact a un ID
+    if (contact.id == null) {
+      print('⚠️ Cannot schedule reminders: contact ID is null for ${contact.name}');
+      return;
+    }
+
     DateTime? birthDate;
     try {
       birthDate = DateTime.parse(contact.date);

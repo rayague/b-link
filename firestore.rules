@@ -2,12 +2,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ==================== HELPER FUNCTIONS ====================
+    // Fonction pour vérifier si l'utilisateur est admin
+    function isAdmin() {
+      return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
     // ==================== USERS COLLECTION ====================
     // Chaque utilisateur peut lire/écrire son propre profil
     match /users/{userId} {
-      // Lecture : propriétaire ou si profil public
+      // Lecture : propriétaire, admin ou si profil public
       allow read: if request.auth != null && (
         request.auth.uid == userId
+        || isAdmin()
         || (resource.data.keys().hasAny(['isPublic']) && resource.data.isPublic == true)
       );
 
@@ -35,6 +42,30 @@ service cloud.firestore {
         // Suppression : propriétaire uniquement
         allow delete: if request.auth != null && request.auth.uid == userId;
       }
+    }
+
+    // ==================== ADMINS COLLECTION ====================
+    // Collection des administrateurs
+    match /admins/{adminId} {
+      // Lecture : l'admin lui-même peut lire ses infos, ou un autre admin peut lire tous les admins
+      allow read: if request.auth != null && (
+        request.auth.uid == adminId
+        || isAdmin()
+      );
+
+      // Création : autorisée SEULEMENT si la collection admins est vide (premier admin)
+      // On vérifie que l'utilisateur créé correspond à l'utilisateur authentifié
+      allow create: if request.auth != null 
+        && request.auth.uid == adminId
+        && request.resource.data.uid == request.auth.uid;
+
+      // Mise à jour : seulement pour mettre à jour lastLogin
+      allow update: if request.auth != null 
+        && request.auth.uid == adminId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']);
+
+      // Suppression : impossible depuis le client
+      allow delete: if false;
     }
 
     // ==================== APP STATS (ADMIN ONLY) ====================

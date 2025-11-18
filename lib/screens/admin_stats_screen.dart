@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firebase_sync_service.dart';
 import '../services/db_helper.dart';
 import '../l10n/app_localizations.dart';
+import '../services/admin_service.dart';
 
 /// Écran d'administration pour voir les statistiques globales
 /// et la liste de tous les utilisateurs inscrits
@@ -32,13 +33,28 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
   Future<void> _checkAuthorization() async {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null || user.email?.toLowerCase() != 'rayague03@gmail.com') {
+    if (user == null) {
       setState(() {
         _isAuthorized = false;
         _loading = false;
       });
       return;
     }
+
+    // Vérifier dans Firestore si l'utilisateur est admin
+    final adminService = AdminService();
+    final isAdmin = await adminService.isUserAdmin(user.uid);
+
+    if (!isAdmin) {
+      setState(() {
+        _isAuthorized = false;
+        _loading = false;
+      });
+      return;
+    }
+
+    // Mettre à jour la dernière connexion
+    await adminService.updateLastLogin(user.uid);
 
     setState(() => _isAuthorized = true);
     await _loadData();
@@ -366,13 +382,46 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
     final uid = user['uid'] ?? '';
     final birthplace = user['birthplace'] ?? '';
     final birthCountry = user['birthCountry'] ?? '';
+    final createdAt = user['createdAt'];
+    final lastLogin = user['lastLogin'];
+    final contactsCount = user['contactsCount'] ?? 0;
 
-    String formattedDate = '';
+    String formattedBirthDate = '';
     if (birthDate.isNotEmpty) {
       try {
         final date = DateTime.parse(birthDate);
-        formattedDate = DateFormat('dd/MM/yyyy').format(date);
+        formattedBirthDate = DateFormat('dd/MM/yyyy').format(date);
       } catch (_) {}
+    }
+
+    String formattedCreatedAt = '';
+    if (createdAt != null) {
+      try {
+        final date = (createdAt as dynamic).toDate();
+        formattedCreatedAt = DateFormat('dd/MM/yyyy').format(date);
+      } catch (_) {
+        if (createdAt is String) {
+          try {
+            final date = DateTime.parse(createdAt);
+            formattedCreatedAt = DateFormat('dd/MM/yyyy').format(date);
+          } catch (_) {}
+        }
+      }
+    }
+
+    String formattedLastLogin = 'Jamais';
+    if (lastLogin != null) {
+      try {
+        final date = (lastLogin as dynamic).toDate();
+        formattedLastLogin = DateFormat('dd/MM à HH:mm').format(date);
+      } catch (_) {
+        if (lastLogin is String) {
+          try {
+            final date = DateTime.parse(lastLogin);
+            formattedLastLogin = DateFormat('dd/MM à HH:mm').format(date);
+          } catch (_) {}
+        }
+      }
     }
 
     return Container(
@@ -388,18 +437,19 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Ligne 1: Position + Nom
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: const Color(0xFFEB1555),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Text(
-                    '#$position',
+                    '$position',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -416,53 +466,165 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                     Text(
                       name,
                       style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
                         color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      email,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.7),
-                      ),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.email,
+                          color: Color(0xFF8D8E98),
+                          size: 14,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            email,
+                            style: const TextStyle(
+                              color: Color(0xFF8D8E98),
+                              fontSize: 13,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          if (formattedDate.isNotEmpty || birthplace.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const Divider(color: Color(0xFF3A3E5B), height: 1),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                if (formattedDate.isNotEmpty)
-                  _buildInfoChip(
-                    icon: Icons.cake,
-                    label: formattedDate,
+          const SizedBox(height: 12),
+          const Divider(color: Color(0xFF3A3E5B), height: 1),
+          const SizedBox(height: 12),
+          // Ligne 2: Informations minimales
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            children: [
+              if (formattedBirthDate.isNotEmpty)
+                _buildInfoChip(
+                  icon: Icons.cake,
+                  label: formattedBirthDate,
+                  color: Colors.blue,
+                ),
+              if (birthplace.isNotEmpty)
+                _buildInfoChip(
+                  icon: Icons.location_on,
+                  label: birthplace,
+                  color: Colors.orange,
+                ),
+              if (birthCountry.isNotEmpty && birthCountry != birthplace)
+                _buildInfoChip(
+                  icon: Icons.flag,
+                  label: birthCountry,
+                  color: Colors.green,
+                ),
+              _buildInfoChip(
+                icon: Icons.contacts,
+                label: '$contactsCount contact${contactsCount > 1 ? 's' : ''}',
+                color: const Color(0xFFEB1555),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Ligne 3: Dates d'inscription et dernière connexion
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (formattedCreatedAt.isNotEmpty)
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.person_add,
+                      color: Color(0xFF8D8E98),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Inscrit: $formattedCreatedAt',
+                      style: const TextStyle(
+                        color: Color(0xFF8D8E98),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.login,
+                    color: Color(0xFF8D8E98),
+                    size: 14,
                   ),
-                if (birthplace.isNotEmpty)
-                  _buildInfoChip(
-                    icon: Icons.location_on,
-                    label:
-                        '$birthplace${birthCountry.isNotEmpty ? ", $birthCountry" : ""}',
+                  const SizedBox(width: 6),
+                  Text(
+                    'Connexion: $formattedLastLogin',
+                    style: const TextStyle(
+                      color: Color(0xFF8D8E98),
+                      fontSize: 11,
+                    ),
                   ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
-          Text(
-            'UID: $uid',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.white.withOpacity(0.5),
-              fontFamily: 'monospace',
+          // Ligne 4: UID (cliquable pour copier)
+          InkWell(
+            onTap: () {
+              // Copier l'UID dans le presse-papiers
+              if (uid.isNotEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('UID copié: $uid'),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: const Color(0xFFEB1555),
+                  ),
+                );
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D1E33),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.fingerprint,
+                    color: Color(0xFF8D8E98),
+                    size: 12,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'UID: ${uid.length > 20 ? '${uid.substring(0, 20)}...' : uid}',
+                      style: const TextStyle(
+                        color: Color(0xFF8D8E98),
+                        fontSize: 10,
+                        fontFamily: 'monospace',
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.copy,
+                    color: Color(0xFF8D8E98),
+                    size: 10,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -470,27 +632,32 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
     );
   }
 
-  Widget _buildInfoChip({required IconData icon, required String label}) {
+  Widget _buildInfoChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF1D1E33),
-        borderRadius: BorderRadius.circular(20),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: const Color(0xFF3A3E5B),
+          color: color.withOpacity(0.3),
           width: 1,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFFEB1555)),
+          Icon(icon, color: color, size: 14),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
+              color: color,
               fontSize: 12,
-              color: Colors.white70,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

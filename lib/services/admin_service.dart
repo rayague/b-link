@@ -1,47 +1,71 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/admin_user.dart';
+import 'admin_auth_service.dart';
 
+/// Service admin simplifié - Délègue à AdminAuthService
+/// Conservé pour compatibilité avec le code existant
 class AdminService {
   final FirebaseFirestore firestore;
-  final String _docPath = 'app_config/admin';
+  final AdminAuthService _authService = AdminAuthService();
 
-  AdminService({FirebaseFirestore? firestore}) : firestore = firestore ?? FirebaseFirestore.instance;
+  AdminService({FirebaseFirestore? firestore})
+      : firestore = firestore ?? FirebaseFirestore.instance;
 
-  /// Get configured admin UID from Firestore; returns null if not set.
-  Future<String?> getAdminUid() async {
+  /// Collection des admins dans Firestore
+  CollectionReference get _adminsCollection => firestore.collection('admins');
+
+  /// Vérifier si un utilisateur est admin
+  Future<bool> isUserAdmin(String uid) async {
+    return await _authService.isUserAdmin(uid);
+  }
+
+  /// Récupérer les infos admin d'un utilisateur
+  Future<AdminUser?> getAdminUser(String uid) async {
+    return await _authService.getAdminUser(uid);
+  }
+
+  /// Vérifier si l'utilisateur connecté est admin
+  Future<bool> isCurrentUserAdmin() async {
+    return await _authService.isCurrentUserAdmin();
+  }
+
+  /// Mettre à jour la dernière connexion admin
+  Future<void> updateLastLogin(String uid) async {
     try {
-      final doc = await firestore.doc(_docPath).get();
-      if (!doc.exists) return null;
-      final data = doc.data();
-      if (data == null) return null;
-      final v = data['uid'];
-      if (v is String && v.isNotEmpty) return v;
-      return null;
-    } catch (_) {
-      return null;
+      await _adminsCollection.doc(uid).update({
+        'lastLogin': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('⚠️ Erreur mise à jour lastLogin: $e');
     }
   }
 
-  /// Claim admin by writing the uid field. Will fail if write is denied by rules.
-  Future<void> claimAdmin(String uid) async {
-    await firestore.doc(_docPath).set({'uid': uid, 'claimedAt': FieldValue.serverTimestamp()});
+  /// Lister tous les admins
+  Future<List<AdminUser>> getAllAdmins() async {
+    return await _authService.getAllAdmins();
   }
 
-  /// Revoke admin (delete the doc)
-  Future<void> revokeAdmin() async {
-    await firestore.doc(_docPath).delete();
+  /// Stream pour écouter les changements admin
+  Stream<bool> adminStatusStream(String uid) {
+    return _authService.adminStatusStream(uid);
   }
 
-  /// Stream admin uid changes
-  Stream<String?> adminUidStream() async* {
-    yield await getAdminUid();
-    final snapStream = firestore.doc(_docPath).snapshots();
-    await for (final snap in snapStream) {
-      if (!snap.exists) {
-        yield null;
-      } else {
-        final d = snap.data();
-        yield d == null ? null : (d['uid'] as String?);
-      }
-    }
+  // Méthodes dépréciées - Utilisez AdminAuthService directement
+  @Deprecated('Utilisez AdminAuthService.createAdmin() à la place')
+  Future<void> createAdmin({
+    required String email,
+    required String password,
+    String role = 'admin',
+  }) async {
+    await _authService.createAdmin(
+      email: email,
+      password: password,
+      role: role,
+    );
+  }
+
+  @Deprecated('Utilisez AdminAuthService.deactivateAdmin() à la place')
+  Future<void> revokeAdmin(String uid) async {
+    await _authService.deactivateAdmin(uid);
   }
 }

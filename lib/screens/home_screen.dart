@@ -5,6 +5,7 @@ import '../providers/locale_provider.dart';
 import '../providers/contact_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../test_notifications.dart';
+import 'init_admin_screen.dart';
 import 'dart:math' as math;
 
 class HomeScreen extends StatefulWidget {
@@ -145,6 +146,19 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             actions: [
+              // Bouton temporaire pour initialiser le premier admin
+              IconButton(
+                icon: const Icon(Icons.admin_panel_settings, color: Colors.amber),
+                tooltip: 'Initialiser Admin (à utiliser une seule fois)',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const InitAdminScreen(),
+                    ),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.settings_outlined, color: Colors.white),
                 onPressed: () => _showSettingsSheet(context),

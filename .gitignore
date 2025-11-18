@@ -1,5 +1,7 @@
 # Ignore Node modules for tooling
 /tool/node_modules/
+/node_modules/
+/functions/node_modules/
 
 # Ignore service account keys and any JSON credentials
 tool/*.json
@@ -10,10 +12,22 @@ tool/*.json
 .packages
 build/
 pubspec.lock
+.flutter-plugins-dependencies
+
+# Firebase
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/
 
 # macOS / Windows generated files
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+hs_err_pid*.log
+replay_pid*.log
 # Miscellaneous
 *.class
 *.log
@@ -59,4 +73,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-b-link-3b2d5-firebase-adminsdk-fbsvc-eecbdb3897.json 
+b-link-3b2d5-firebase-adminsdk-fbsvc-eecbdb3897.json
+
+# Admin credentials (NEVER commit!)
+ADMIN_CREDENTIALS.txt
+**/admin_credentials.*
+**/ADMIN_CREDENTIALS.* 

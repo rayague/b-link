@@ -18,9 +18,9 @@ import 'screens/celebration_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/profile_registration_screen.dart';
 import 'screens/same_day_screen.dart';
-import 'screens/sync_admin_screen.dart';
+// import 'screens/sync_admin_screen.dart'; // Déprécié - Utiliser AdminStatsScreen
 import 'screens/zodiac_screen.dart';
-import 'screens/public_profile_screen.dart';
+// import 'screens/public_profile_screen.dart'; // Unused
 import 'providers/profile_provider.dart';
 import 'services/background_sync.dart';
 
@@ -99,7 +99,7 @@ class _App extends StatelessWidget {
         '/list': (_) => const ListScreen(),
         '/detail': (_) => const ContactDetailScreen(),
         '/celebration': (_) => const CelebrationScreen(),
-        '/sync-admin': (_) => const SyncAdminScreen(),
+        // '/sync-admin': Déprécié - Utiliser AdminStatsScreen via ProfileScreen
         ProfileScreen.routeName: (_) => const ProfileScreen(),
         ZodiacScreen.routeName: (_) => const ZodiacScreen(),
       },
