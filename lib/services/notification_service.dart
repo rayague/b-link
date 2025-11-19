@@ -46,6 +46,124 @@ class NotificationService {
 
   void _onNotificationTapped(NotificationResponse response) {
     print('Notification tapped: ${response.payload}');
+    
+    // Si le payload contient un message, on le stocke pour que l'app puisse l'afficher
+    if (response.payload != null && response.payload!.startsWith('message::')) {
+      final message = response.payload!.substring(9); // Enlever "message::"
+      _lastTappedMessage = message;
+      print('📋 Message disponible pour copie: ${message.substring(0, message.length > 50 ? 50 : message.length)}...');
+    }
+  }
+
+  // Message de la dernière notification cliquée
+  String? _lastTappedMessage;
+  
+  /// Récupère le dernier message de notification cliquée
+  String? getLastTappedMessage() {
+    final msg = _lastTappedMessage;
+    _lastTappedMessage = null; // Réinitialiser après lecture
+    return msg;
+  }
+
+  /// Envoie une notification de test immédiate
+  Future<void> sendTestNotification() async {
+    if (!_initialized) await init();
+
+    const androidDetails = AndroidNotificationDetails(
+      'test_channel',
+      'Notifications de test',
+      channelDescription: 'Canal pour tester les notifications',
+      importance: Importance.high,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _plugin.show(
+      999999, // ID unique pour les tests
+      '🔔 Test de notification',
+      'Cette notification est un test. Le système fonctionne correctement ! ✅',
+      details,
+      payload: 'test_notification',
+    );
+
+    print('✅ Notification de test envoyée avec succès');
+  }
+
+  /// Envoie une notification de test avec un vrai message depuis la base de données
+  Future<void> sendTestNotificationWithMessage({
+    required Contact contact,
+    required String message,
+  }) async {
+    if (!_initialized) await init();
+
+    // Titre avec emoji selon la catégorie
+    final categoryEmoji = {
+      'son': '👦',
+      'daughter': '👧',
+      'friend': '👥',
+      'mother': '❤️',
+      'father': '👨',
+      'brother': '👬',
+      'sister': '👭',
+      'colleague': '💼',
+    };
+
+    final emoji = categoryEmoji[contact.relation.toLowerCase()] ?? '🎂';
+    final title = '$emoji Anniversaire de ${contact.name}';
+
+    // Style Big Text pour afficher le message complet
+    final androidDetails = AndroidNotificationDetails(
+      'birthday_reminders',
+      'Rappels d\'anniversaire',
+      channelDescription: 'Notifications pour les anniversaires à venir',
+      importance: Importance.high,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      icon: '@mipmap/ic_launcher',
+      // Style étendu pour afficher le message complet
+      styleInformation: BigTextStyleInformation(
+        message,
+        contentTitle: title,
+        summaryText: '📝 Appuyez pour copier le message',
+      ),
+      // Permettre l'expansion automatique
+      autoCancel: false,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _plugin.show(
+      999998, // ID unique pour les tests avec message
+      title,
+      message,
+      details,
+      payload: 'message::$message', // On stocke le message dans le payload
+    );
+
+    print('✅ Notification test envoyée pour ${contact.name} (${contact.relation})');
+    print('📝 Message complet: $message');
   }
 
   /// Schedule birthday reminders for a contact

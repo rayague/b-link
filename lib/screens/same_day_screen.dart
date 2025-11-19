@@ -6,6 +6,8 @@ import '../providers/profile_provider.dart';
 import '../models/user_profile.dart';
 import 'public_profile_screen.dart';
 import 'dart:math' as math;
+import '../services/message_repository.dart';
+import 'package:flutter/services.dart';
 
 class SameDayScreen extends StatefulWidget {
   const SameDayScreen({super.key});
@@ -381,107 +383,300 @@ class _SameDayScreenState extends State<SameDayScreen>
                                       ),
                                     ],
                                   ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 8),
-                                    onTap: () => _showProfileDetails(
-                                        context, it, isDark),
-                                    leading: Container(
-                                      width: 56,
-                                      height: 56,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Color((math.Random(name.hashCode)
-                                                            .nextDouble() *
-                                                        0xFFFFFF)
-                                                    .toInt())
-                                                .withOpacity(1.0),
-                                            Color((math.Random(name.hashCode +
-                                                                1)
-                                                            .nextDouble() *
-                                                        0xFFFFFF)
-                                                    .toInt())
-                                                .withOpacity(1.0),
+                                  child: Column(
+                                    children: [
+                                      ListTile(
+                                        contentPadding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 8),
+                                        onTap: () => _showProfileDetails(
+                                            context, it, isDark),
+                                        leading: Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Color((math.Random(name.hashCode)
+                                                                .nextDouble() *
+                                                            0xFFFFFF)
+                                                        .toInt())
+                                                    .withOpacity(1.0),
+                                                Color((math.Random(name.hashCode +
+                                                                    1)
+                                                                .nextDouble() *
+                                                            0xFFFFFF)
+                                                        .toInt())
+                                                    .withOpacity(1.0),
+                                              ],
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              name.isNotEmpty
+                                                  ? name[0].toUpperCase()
+                                                  : '?',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        title: Text(
+                                          name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        subtitle: place.isNotEmpty
+                                            ? Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.location_on_outlined,
+                                                    size: 14,
+                                                    color: isDark
+                                                        ? Colors.grey[500]
+                                                        : Colors.grey[600],
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Flexible(
+                                                    child: Text(
+                                                      place,
+                                                      style: TextStyle(
+                                                        color: isDark
+                                                            ? Colors.grey[400]
+                                                            : Colors.grey[600],
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              )
+                                            : null,
+                                        trailing: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (socials is Map &&
+                                                socials.isNotEmpty)
+                                              Icon(
+                                                Icons.link,
+                                                color: isDark
+                                                    ? Colors.grey[500]
+                                                    : const Color(0xFF6B7280),
+                                                size: 20,
+                                              ),
+                                            const SizedBox(width: 8),
+                                            Icon(
+                                              Icons.arrow_forward_ios_rounded,
+                                              size: 16,
+                                              color: isDark
+                                                  ? Colors.grey[600]
+                                                  : const Color(0xFF9CA3AF),
+                                            ),
                                           ],
                                         ),
                                       ),
-                                      child: Center(
-                                        child: Text(
-                                          name.isNotEmpty
-                                              ? name[0].toUpperCase()
-                                              : '?',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    title: Text(
-                                      name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    subtitle: place.isNotEmpty
-                                        ? Row(
-                                            children: [
-                                              Icon(
-                                                Icons.location_on_outlined,
-                                                size: 14,
-                                                color: isDark
-                                                    ? Colors.grey[500]
-                                                    : Colors.grey[600],
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Flexible(
-                                                child: Text(
-                                                  place,
-                                                  style: TextStyle(
-                                                    color: isDark
-                                                        ? Colors.grey[400]
-                                                        : Colors.grey[600],
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                            left: 16, right: 16, bottom: 12),
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: ElevatedButton.icon(
+                                            onPressed: () async {
+                                              final repo = MessageRepository();
+                                              final relation =
+                                                  it['relation'] ?? 'default';
+                                              final displayName = name;
+                                              final msg = await repo.getRandomForRelation(
+                                                  relation, displayName);
+                                              if (!context.mounted) return;
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) => AlertDialog(
+                                                  backgroundColor:
+                                                      const Color(0xFF1D1E33),
+                                                  title: Row(
+                                                    children: [
+                                                      const Text('🎂',
+                                                          style: TextStyle(
+                                                              fontSize: 28)),
+                                                      const SizedBox(width: 12),
+                                                      Expanded(
+                                                        child: Text(
+                                                          'Message pour $displayName',
+                                                          style: const TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                  content: SingleChildScrollView(
+                                                    child: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment.start,
+                                                      children: [
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets.all(
+                                                                  4),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: const Color(
+                                                                    0xFFEC4899)
+                                                                .withOpacity(0.2),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(8),
+                                                          ),
+                                                          child: Text(
+                                                            '📝 Catégorie: $relation',
+                                                            style:
+                                                                const TextStyle(
+                                                              color:
+                                                                  Color(0xFFEC4899),
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight.bold,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(height: 16),
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets.all(
+                                                                  16),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color:
+                                                                const Color(0xFF0A0E21),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(12),
+                                                            border: Border.all(
+                                                                color: Color(
+                                                                    0xFF3A3E5B)),
+                                                          ),
+                                                          child: SelectableText(
+                                                            msg,
+                                                            style:
+                                                                const TextStyle(
+                                                              color: Colors.white,
+                                                              fontSize: 14,
+                                                              height: 1.6,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(height: 12),
+                                                        const Text(
+                                                          '💡 Appuyez sur "Copier" puis collez le message dans WhatsApp, SMS ou email',
+                                                          style: TextStyle(
+                                                            color: Colors.white54,
+                                                            fontSize: 11,
+                                                            fontStyle:
+                                                                FontStyle.italic,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  actions: [
+                                                    TextButton.icon(
+                                                      onPressed: () async {
+                                                        await Clipboard.setData(
+                                                            ClipboardData(
+                                                                text: msg));
+                                                        if (context.mounted) {
+                                                          ScaffoldMessenger.of(context)
+                                                              .showSnackBar(
+                                                            const SnackBar(
+                                                              content: Row(
+                                                                children: [
+                                                                  Icon(Icons.check_circle,
+                                                                      color:
+                                                                          Colors.white),
+                                                                  SizedBox(width: 12),
+                                                                  Expanded(
+                                                                    child: Text(
+                                                                      '✅ Message copié ! Collez-le dans votre app de messagerie',
+                                                                      style: TextStyle(
+                                                                          fontSize: 13),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              backgroundColor:
+                                                                  Colors.green,
+                                                              duration:
+                                                                  Duration(seconds: 3),
+                                                              behavior:
+                                                                  SnackBarBehavior
+                                                                      .floating,
+                                                            ),
+                                                          );
+                                                          Navigator.pop(context);
+                                                        }
+                                                      },
+                                                      icon: const Icon(
+                                                          Icons.copy_all,
+                                                          color: Color(0xFFEC4899)),
+                                                      label: const Text(
+                                                        'Copier le message',
+                                                        style: TextStyle(
+                                                            color: Color(0xFFEC4899),
+                                                            fontWeight:
+                                                                FontWeight.bold),
+                                                      ),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(context),
+                                                      child: const Text(
+                                                        'Fermer',
+                                                        style: TextStyle(
+                                                            color: Colors.white70),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
+                                              );
+                                            },
+                                            icon: const Icon(Icons.card_giftcard,
+                                                size: 16),
+                                            label: const Text(
+                                                'Générer message 🎁',
+                                                style: TextStyle(fontSize: 12)),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color(0xFFEC4899),
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 12, vertical: 4),
+                                              minimumSize: const Size(0, 32),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
-                                            ],
-                                          )
-                                        : null,
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (socials is Map &&
-                                            socials.isNotEmpty)
-                                          Icon(
-                                            Icons.link,
-                                            color: isDark
-                                                ? Colors.grey[500]
-                                                : const Color(0xFF6B7280),
-                                            size: 20,
+                                            ),
                                           ),
-                                        const SizedBox(width: 8),
-                                        Icon(
-                                          Icons.arrow_forward_ios_rounded,
-                                          size: 16,
-                                          color: isDark
-                                              ? Colors.grey[600]
-                                              : const Color(0xFF9CA3AF),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 );
                               },
                               childCount: _items.length,
                             ),
                           ),
-                        ),
 
               const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
             ],

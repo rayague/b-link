@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/locale_provider.dart';
@@ -6,6 +7,7 @@ import '../providers/contact_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../test_notifications.dart';
 import 'init_admin_screen.dart';
+import '../services/message_repository.dart';
 import 'dart:math' as math;
 
 class HomeScreen extends StatefulWidget {
@@ -438,12 +440,34 @@ class _HomeScreenState extends State<HomeScreen>
           contact.name,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          subtitleText,
-          style: TextStyle(
-            color: daysUntil == 0 ? const Color(0xFFEC4899) : null,
-            fontWeight: daysUntil == 0 ? FontWeight.w600 : null,
-          ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              subtitleText,
+              style: TextStyle(
+                color: daysUntil == 0 ? const Color(0xFFEC4899) : null,
+                fontWeight: daysUntil == 0 ? FontWeight.w600 : null,
+              ),
+            ),
+            if (daysUntil == 0) ...[
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: () => _generateBirthdayMessage(context, contact),
+                icon: const Icon(Icons.card_giftcard, size: 16),
+                label: const Text('Générer message 🎁', style: TextStyle(fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEC4899),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  minimumSize: const Size(0, 32),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -461,6 +485,144 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
     );
+  }
+
+  /// Génère et affiche un message d'anniversaire depuis la base de données
+  Future<void> _generateBirthdayMessage(BuildContext context, dynamic contact) async {
+    try {
+      final messageRepo = MessageRepository();
+      final relation = contact.relation ?? 'default';
+      final name = contact.name ?? 'Contact';
+      
+      // Récupérer un message aléatoire selon la relation
+      final message = await messageRepo.getRandomForRelation(relation, name);
+
+      if (!context.mounted) return;
+
+      // Afficher le message dans un dialogue avec possibilité de copie
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1D1E33),
+          title: Row(
+            children: [
+              const Text('🎂', style: TextStyle(fontSize: 28)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Message pour $name',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEC4899).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '📝 Catégorie: $relation',
+                    style: const TextStyle(
+                      color: Color(0xFFEC4899),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0A0E21),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF3A3E5B)),
+                  ),
+                  child: SelectableText(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '💡 Appuyez sur "Copier" puis collez le message dans WhatsApp, SMS ou email',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: message));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '✅ Message copié ! Collez-le dans votre app de messagerie',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 3),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  Navigator.pop(context);
+                }
+              },
+              icon: const Icon(Icons.copy_all, color: Color(0xFFEC4899)),
+              label: const Text(
+                'Copier le message',
+                style: TextStyle(color: Color(0xFFEC4899), fontWeight: FontWeight.bold),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Fermer',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      print('❌ Erreur génération message: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildQuickActions(

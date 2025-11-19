@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firebase_sync_service.dart';
 import '../services/db_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../services/admin_service.dart';
+import '../services/notification_service.dart';
+import '../services/message_repository.dart';
+import '../models/contact.dart';
 
 /// Écran d'administration pour voir les statistiques globales
 /// et la liste de tous les utilisateurs inscrits
@@ -27,6 +31,207 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
   void initState() {
     super.initState();
     _checkAuthorization();
+  }
+
+  /// Tester les notifications avec un vrai message depuis la base de données
+  Future<void> _testNotification() async {
+    // Afficher un dialogue pour choisir la catégorie
+    final category = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1D1E33),
+        title: const Text(
+          '🔔 Test de notification',
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Choisissez une catégorie de contact pour voir un exemple de message d\'anniversaire :',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, 'son'),
+            icon: const Icon(Icons.child_care, color: Colors.blue),
+            label: const Text('Fils', style: TextStyle(color: Colors.white)),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, 'daughter'),
+            icon: const Icon(Icons.girl, color: Colors.pink),
+            label: const Text('Fille', style: TextStyle(color: Colors.white)),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, 'friend'),
+            icon: const Icon(Icons.people, color: Colors.green),
+            label: const Text('Ami(e)', style: TextStyle(color: Colors.white)),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, 'mother'),
+            icon: const Icon(Icons.favorite, color: Colors.red),
+            label: const Text('Mère', style: TextStyle(color: Colors.white)),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, 'father'),
+            icon: const Icon(Icons.handshake, color: Colors.orange),
+            label: const Text('Père', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (category == null) return;
+
+    try {
+      // Récupérer un message aléatoire depuis la base de données
+      final messageRepo = MessageRepository();
+      final message = await messageRepo.getRandomForRelation(category, 'Contact Test');
+
+      if (message.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.warning, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '⚠️ Aucun message trouvé pour la catégorie "$category"',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Créer un contact de test
+      final testContact = Contact(
+        name: 'Contact Test ($category)',
+        date: DateTime.now().toIso8601String(),
+        relation: category,
+      );
+
+      // Envoyer la notification avec le vrai message
+      final notificationService = NotificationService();
+      await notificationService.sendTestNotificationWithMessage(
+        contact: testContact,
+        message: message,
+      );
+
+      if (mounted) {
+        // Afficher un dialogue avec le message complet et option de copie
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1D1E33),
+            title: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '✅ Notification envoyée !',
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '📱 Vérifiez votre barre de notifications',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(color: Color(0xFF3A3E5B)),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '📝 Message envoyé :',
+                    style: TextStyle(color: Colors.amber, fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0A0E21),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF3A3E5B)),
+                    ),
+                    child: SelectableText(
+                      message,
+                      style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton.icon(
+                onPressed: () async {
+                  // Copier dans le presse-papiers
+                  await Clipboard.setData(ClipboardData(text: message));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.copy_all, color: Colors.white),
+                            SizedBox(width: 12),
+                            Text('📋 Message copié dans le presse-papiers !'),
+                          ],
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.copy, color: Colors.amber),
+                label: const Text('Copier', style: TextStyle(color: Colors.amber)),
+              ),
+              TextButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: Colors.white70),
+                label: const Text('Fermer', style: TextStyle(color: Colors.white70)),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Erreur test notification: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '❌ Erreur: $e',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   /// Vérifier si l'utilisateur est autorisé (admin uniquement)
@@ -162,6 +367,11 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
         backgroundColor: const Color(0xFF1D1E33),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active, color: Colors.amber),
+            onPressed: _testNotification,
+            tooltip: 'Test notification',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadData,
