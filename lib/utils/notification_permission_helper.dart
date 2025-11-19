@@ -5,18 +5,18 @@ class NotificationPermissionHelper {
   static Future<bool> checkAndRequestPermission(BuildContext context) async {
     // Vérifier si les permissions sont accordées
     final status = await Permission.notification.status;
-    
+
     if (status.isGranted) {
       print('✅ Permissions notifications: ACCORDÉES');
       return true;
     }
-    
+
     if (status.isDenied) {
       print('⚠️ Permissions notifications: REFUSÉES - Demande...');
       final result = await Permission.notification.request();
       return result.isGranted;
     }
-    
+
     if (status.isPermanentlyDenied) {
       print('❌ Permissions notifications: BLOQUÉES DÉFINITIVEMENT');
       // Afficher dialogue pour aller dans les paramètres
@@ -50,10 +50,10 @@ class NotificationPermissionHelper {
       }
       return false;
     }
-    
+
     return false;
   }
-  
+
   static Future<void> showPermissionDialog(BuildContext context) async {
     return showDialog(
       context: context,

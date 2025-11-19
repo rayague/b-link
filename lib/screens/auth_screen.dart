@@ -348,13 +348,15 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                       }
 
                       try {
-                        print('🔄 Tentative d\'envoi email de réinitialisation à: $email');
-                        
+                        print(
+                            '🔄 Tentative d\'envoi email de réinitialisation à: $email');
+
                         await FirebaseAuth.instance.sendPasswordResetEmail(
                           email: email,
                         );
 
-                        print('✅ Email de réinitialisation envoyé avec succès à: $email');
+                        print(
+                            '✅ Email de réinitialisation envoyé avec succès à: $email');
 
                         // Fermer l'indicateur de chargement
                         if (mounted) Navigator.of(context).pop();
@@ -372,7 +374,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF10B981).withOpacity(0.1),
+                                      color: const Color(0xFF10B981)
+                                          .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: const Icon(
@@ -385,8 +388,9 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                   Expanded(
                                     child: Text(
                                       AppLocalizations.of(context)
-                                          .locale
-                                          .languageCode == 'fr'
+                                                  .locale
+                                                  .languageCode ==
+                                              'fr'
                                           ? 'Email envoyé! ✅'
                                           : 'Email sent! ✅',
                                       style: const TextStyle(fontSize: 18),
@@ -400,7 +404,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      AppLocalizations.of(context).locale.languageCode == 'fr'
+                                      AppLocalizations.of(context)
+                                                  .locale
+                                                  .languageCode ==
+                                              'fr'
                                           ? 'Un email de réinitialisation a été envoyé à:'
                                           : 'A reset email has been sent to:',
                                       style: TextStyle(
@@ -417,7 +424,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                       ),
                                       child: Row(
                                         children: [
-                                          const Icon(Icons.email_outlined, size: 18),
+                                          const Icon(Icons.email_outlined,
+                                              size: 18),
                                           const SizedBox(width: 8),
                                           Expanded(
                                             child: Text(
@@ -442,12 +450,14 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                         ),
                                       ),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
                                               Icon(Icons.info_outline,
-                                                  color: Colors.blue[700], size: 18),
+                                                  color: Colors.blue[700],
+                                                  size: 18),
                                               const SizedBox(width: 6),
                                               Text(
                                                 AppLocalizations.of(context)
@@ -488,7 +498,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                 TextButton(
                                   onPressed: () => Navigator.of(context).pop(),
                                   child: Text(
-                                    AppLocalizations.of(context).translate('close'),
+                                    AppLocalizations.of(context)
+                                        .translate('close'),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -501,11 +512,11 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                       } on FirebaseAuthException catch (e) {
                         // Fermer l'indicateur de chargement
                         if (mounted) Navigator.of(context).pop();
-                        
+
                         print('❌ Erreur Firebase: ${e.code} - ${e.message}');
                         String errorMessage;
                         String errorDetails = '';
-                        
+
                         switch (e.code) {
                           case 'user-not-found':
                             errorMessage = AppLocalizations.of(context)
@@ -544,7 +555,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFEF4444).withOpacity(0.1),
+                                      color: const Color(0xFFEF4444)
+                                          .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: const Icon(
@@ -567,7 +579,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                 TextButton(
                                   onPressed: () => Navigator.of(context).pop(),
                                   child: Text(
-                                    AppLocalizations.of(context).translate('close'),
+                                    AppLocalizations.of(context)
+                                        .translate('close'),
                                   ),
                                 ),
                               ],
@@ -577,16 +590,17 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                       } catch (e) {
                         // Fermer l'indicateur de chargement
                         if (mounted) Navigator.of(context).pop();
-                        
+
                         print('❌ Erreur inattendue: $e');
-                        
+
                         // Détecter erreur réseau
                         String errorMessage;
                         String errorDetails;
-                        bool isNetworkError = e.toString().contains('connection') ||
-                            e.toString().contains('network') ||
-                            e.toString().contains('abort');
-                        
+                        bool isNetworkError =
+                            e.toString().contains('connection') ||
+                                e.toString().contains('network') ||
+                                e.toString().contains('abort');
+
                         if (isNetworkError) {
                           errorMessage = AppLocalizations.of(context)
                                       .locale
@@ -609,7 +623,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                               : 'Unexpected Error';
                           errorDetails = e.toString();
                         }
-                        
+
                         if (mounted) {
                           showDialog(
                             context: context,
@@ -622,11 +636,14 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFEF4444).withOpacity(0.1),
+                                      color: const Color(0xFFEF4444)
+                                          .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Icon(
-                                      isNetworkError ? Icons.wifi_off : Icons.error_outline,
+                                      isNetworkError
+                                          ? Icons.wifi_off
+                                          : Icons.error_outline,
                                       color: const Color(0xFFEF4444),
                                       size: 28,
                                     ),
@@ -654,7 +671,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                 TextButton(
                                   onPressed: () => Navigator.of(context).pop(),
                                   child: Text(
-                                    AppLocalizations.of(context).translate('close'),
+                                    AppLocalizations.of(context)
+                                        .translate('close'),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -1016,9 +1034,7 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
           child: Text(
-            loc.locale.languageCode == 'fr'
-                ? 'Envoyer le lien'
-                : 'Send Link',
+            loc.locale.languageCode == 'fr' ? 'Envoyer le lien' : 'Send Link',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),

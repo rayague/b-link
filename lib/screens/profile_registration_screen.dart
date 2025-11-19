@@ -9,7 +9,8 @@ class ProfileRegistrationScreen extends StatefulWidget {
   const ProfileRegistrationScreen({super.key});
 
   @override
-  State<ProfileRegistrationScreen> createState() => _ProfileRegistrationScreenState();
+  State<ProfileRegistrationScreen> createState() =>
+      _ProfileRegistrationScreenState();
 }
 
 class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
@@ -115,12 +116,18 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           // Given Name
                           _buildTextField(
                             controller: _givenCtrl,
-                            label: AppLocalizations.of(context).locale.languageCode == 'fr'
+                            label: AppLocalizations.of(context)
+                                        .locale
+                                        .languageCode ==
+                                    'fr'
                                 ? 'Prénom'
                                 : 'Given name (first)',
                             icon: Icons.person_outline,
                             validator: (v) => v == null || v.isEmpty
-                                ? (AppLocalizations.of(context).locale.languageCode == 'fr'
+                                ? (AppLocalizations.of(context)
+                                            .locale
+                                            .languageCode ==
+                                        'fr'
                                     ? 'Requis'
                                     : 'Required')
                                 : null,
@@ -130,12 +137,18 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           // Family Name
                           _buildTextField(
                             controller: _familyCtrl,
-                            label: AppLocalizations.of(context).locale.languageCode == 'fr'
+                            label: AppLocalizations.of(context)
+                                        .locale
+                                        .languageCode ==
+                                    'fr'
                                 ? 'Nom de famille'
                                 : 'Family name (last)',
                             icon: Icons.family_restroom_outlined,
                             validator: (v) => v == null || v.isEmpty
-                                ? (AppLocalizations.of(context).locale.languageCode == 'fr'
+                                ? (AppLocalizations.of(context)
+                                            .locale
+                                            .languageCode ==
+                                        'fr'
                                     ? 'Requis'
                                     : 'Required')
                                 : null,
@@ -153,7 +166,10 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           // Birth Place
                           _buildTextField(
                             controller: _birthPlaceCtrl,
-                            label: AppLocalizations.of(context).locale.languageCode == 'fr'
+                            label: AppLocalizations.of(context)
+                                        .locale
+                                        .languageCode ==
+                                    'fr'
                                 ? 'Lieu de naissance (ville, pays)'
                                 : 'Birth place (city, country)',
                             icon: Icons.location_on_outlined,
@@ -164,7 +180,10 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           // Social Link
                           _buildTextField(
                             controller: _socialCtrl,
-                            label: AppLocalizations.of(context).locale.languageCode == 'fr'
+                            label: AppLocalizations.of(context)
+                                        .locale
+                                        .languageCode ==
+                                    'fr'
                                 ? 'Lien social public (optionnel)'
                                 : 'Public social link (optional)',
                             icon: Icons.link_outlined,
@@ -174,12 +193,12 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
 
                           // Privacy Section
                           _buildPrivacySection(),
-                          
+
                           const SizedBox(height: 32),
 
                           // Save Button
                           _buildSaveButton(),
-                          
+
                           const SizedBox(height: 16),
                         ],
                       ),
@@ -256,11 +275,14 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     : _birthDate!.toLocal().toString().split(' ')[0],
                 style: TextStyle(
                   fontSize: 16,
-                  color: _birthDate == null ? Colors.grey.shade600 : Colors.black87,
+                  color: _birthDate == null
+                      ? Colors.grey.shade600
+                      : Colors.black87,
                 ),
               ),
             ),
-            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400),
+            Icon(Icons.arrow_forward_ios,
+                size: 16, color: Colors.grey.shade400),
           ],
         ),
       ),
@@ -296,11 +318,14 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     : _birthTime!.format(context),
                 style: TextStyle(
                   fontSize: 16,
-                  color: _birthTime == null ? Colors.grey.shade600 : Colors.black87,
+                  color: _birthTime == null
+                      ? Colors.grey.shade600
+                      : Colors.black87,
                 ),
               ),
             ),
-            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400),
+            Icon(Icons.arrow_forward_ios,
+                size: 16, color: Colors.grey.shade400),
           ],
         ),
       ),
@@ -442,7 +467,8 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_birthDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please pick your birth date')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please pick your birth date')));
       return;
     }
     final provider = Provider.of<ProfileProvider>(context, listen: false);
@@ -452,9 +478,12 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       givenName: _givenCtrl.text,
       familyName: _familyCtrl.text,
       birthDate: DateTime(_birthDate!.year, _birthDate!.month, _birthDate!.day),
-      birthTime: _birthTime == null ? null : '${_birthTime!.hour.toString().padLeft(2,'0')}:${_birthTime!.minute.toString().padLeft(2,'0')}',
+      birthTime: _birthTime == null
+          ? null
+          : '${_birthTime!.hour.toString().padLeft(2, '0')}:${_birthTime!.minute.toString().padLeft(2, '0')}',
       birthplace: _birthPlaceCtrl.text.isEmpty ? null : _birthPlaceCtrl.text,
-      socialLinks: _socialCtrl.text.isEmpty ? null : {'primary': _socialCtrl.text},
+      socialLinks:
+          _socialCtrl.text.isEmpty ? null : {'primary': _socialCtrl.text},
       zodiac: Zodiac.computeZodiac(_birthDate!),
       isPublic: _isPublic,
       publicName: _publicName,

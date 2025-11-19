@@ -42,7 +42,8 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
         backgroundColor: const Color(0xFF1D1E33),
         title: const Text(
           '🔔 Test de notification',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         ),
         content: const Text(
           'Choisissez une catégorie de contact pour voir un exemple de message d\'anniversaire :',
@@ -83,7 +84,8 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
     try {
       // Récupérer un message aléatoire depuis la base de données
       final messageRepo = MessageRepository();
-      final message = await messageRepo.getRandomForRelation(category, 'Contact Test');
+      final message =
+          await messageRepo.getRandomForRelation(category, 'Contact Test');
 
       if (message.isEmpty) {
         if (mounted) {
@@ -137,7 +139,10 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                 Expanded(
                   child: Text(
                     '✅ Notification envoyée !',
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -156,7 +161,10 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                   const SizedBox(height: 16),
                   const Text(
                     '📝 Message envoyé :',
-                    style: TextStyle(color: Colors.amber, fontSize: 14, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.amber,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -168,7 +176,8 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                     ),
                     child: SelectableText(
                       message,
-                      style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+                      style: const TextStyle(
+                          color: Colors.white, fontSize: 13, height: 1.5),
                     ),
                   ),
                 ],
@@ -197,12 +206,14 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                   }
                 },
                 icon: const Icon(Icons.copy, color: Colors.amber),
-                label: const Text('Copier', style: TextStyle(color: Colors.amber)),
+                label:
+                    const Text('Copier', style: TextStyle(color: Colors.amber)),
               ),
               TextButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close, color: Colors.white70),
-                label: const Text('Fermer', style: TextStyle(color: Colors.white70)),
+                label: const Text('Fermer',
+                    style: TextStyle(color: Colors.white70)),
               ),
             ],
           ),

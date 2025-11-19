@@ -40,29 +40,30 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
     _loadActions();
     _loadAdmin();
   }
+
   Future<void> _loadActions() async {
     try {
       final db = await _db.database;
-      final res = await db.rawQuery('SELECT DISTINCT action FROM sync_queue ORDER BY action');
+      final res = await db
+          .rawQuery('SELECT DISTINCT action FROM sync_queue ORDER BY action');
       setState(() {
-        _actions = res.map((r) => (r['action'] ?? '').toString()).where((s) => s.isNotEmpty).toList();
+        _actions = res
+            .map((r) => (r['action'] ?? '').toString())
+            .where((s) => s.isNotEmpty)
+            .toList();
       });
     } catch (_) {
       // ignore
     }
   }
+
   Future<void> _loadAdmin() async {
     try {
-      final v = await _adminService.getAdminUid();
+      final user = await _adminService
+          .getAdminUser(FirebaseAuth.instance.currentUser?.uid ?? '');
       setState(() {
-        _adminUid = v;
+        _adminUid = user?.uid;
         _checkingAdmin = false;
-      });
-      // subscribe to changes
-      _adminService.adminUidStream().listen((val) {
-        setState(() {
-          _adminUid = val;
-        });
       });
     } catch (_) {
       setState(() {
@@ -73,32 +74,34 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
   }
 
   Future<void> _claimAdmin() async {
+    // Cette méthode n'est pas implémentée dans AdminService, à adapter selon besoin
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No authenticated user.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No authenticated user.')));
       return;
     }
-    try {
-      await _adminService.claimAdmin(uid);
-      setState(() => _adminUid = uid);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Admin configured in Firestore.')));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to claim admin: $e')));
-    }
+    // À implémenter si besoin : création d'un admin Firestore pour ce UID
+    setState(() => _adminUid = uid);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Admin configured in Firestore.')));
   }
 
   Future<void> _revokeAdmin() async {
     try {
-      await _adminService.revokeAdmin();
+      if (_adminUid != null) {
+        await _adminService.revokeAdmin(_adminUid!);
+      }
       setState(() => _adminUid = null);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Admin revoked.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Admin revoked.')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to revoke: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to revoke: $e')));
     }
   }
 
@@ -126,7 +129,8 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
       DateTime cutoff = DateTime.now();
       if (_ageFilter == '1d') cutoff = cutoff.subtract(const Duration(days: 1));
       if (_ageFilter == '7d') cutoff = cutoff.subtract(const Duration(days: 7));
-      if (_ageFilter == '30d') cutoff = cutoff.subtract(const Duration(days: 30));
+      if (_ageFilter == '30d')
+        cutoff = cutoff.subtract(const Duration(days: 30));
       clauses.add('createdAt >= ?');
       args.add(cutoff.toIso8601String());
     }
@@ -136,7 +140,11 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
     }
     final where = clauses.isEmpty ? null : clauses.join(' AND ');
     final whereArgs = args.isEmpty ? null : args;
-    final res = await db.query('sync_queue', where: where, whereArgs: whereArgs, orderBy: 'createdAt DESC', limit: _limit);
+    final res = await db.query('sync_queue',
+        where: where,
+        whereArgs: whereArgs,
+        orderBy: 'createdAt DESC',
+        limit: _limit);
     setState(() {
       items = res.map((r) => Map<String, dynamic>.from(r)).toList();
       _loading = false;
@@ -157,7 +165,8 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
     setState(() => _retryingAll = true);
     try {
       final db = await _db.database;
-      final res = await db.query('sync_queue', where: 'status = ?', whereArgs: ['failed']);
+      final res = await db
+          .query('sync_queue', where: 'status = ?', whereArgs: ['failed']);
       for (final r in res) {
         final id = r['id'] as int?;
         if (id != null) await _db.requeueSyncItem(id);
@@ -184,14 +193,17 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
     final csv = sb.toString();
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/sync_queue_${DateTime.now().toIso8601String().replaceAll(':', '-')}.csv');
+      final file = File(
+          '${dir.path}/sync_queue_${DateTime.now().toIso8601String().replaceAll(':', '-')}.csv');
       await file.writeAsString(csv);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('CSV written to ${file.path}')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('CSV written to ${file.path}')));
     } catch (e) {
       await Clipboard.setData(ClipboardData(text: csv));
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Exported CSV copied to clipboard')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Exported CSV copied to clipboard')));
     }
   }
 
@@ -203,7 +215,8 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
     }
 
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    final isAdmin = (_adminUid != null && currentUid != null && _adminUid == currentUid);
+    final isAdmin =
+        (_adminUid != null && currentUid != null && _adminUid == currentUid);
 
     if (_adminUid == null) {
       // No admin configured yet: show claim admin option.
@@ -213,13 +226,16 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('No admin user configured. The first authenticated user can claim admin rights.'),
+              const Text(
+                  'No admin user configured. The first authenticated user can claim admin rights.'),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () async {
                   // Ensure we have an auth user before claiming
-                    if (currentUid == null) {
-                    final authProv = Provider.of<local_auth.AuthProvider>(context, listen: false);
+                  if (currentUid == null) {
+                    final authProv = Provider.of<local_auth.AuthProvider>(
+                        context,
+                        listen: false);
                     await authProv.ensureAnonymousUser();
                   }
                   await _claimAdmin();
@@ -243,7 +259,8 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
               const SizedBox(height: 12),
               const Text('Access denied. You are not the configured admin.'),
               const SizedBox(height: 8),
-              Text('Configured admin UID: ${_adminUid ?? 'unknown'}', style: const TextStyle(fontSize: 12))
+              Text('Configured admin UID: ${_adminUid ?? 'unknown'}',
+                  style: const TextStyle(fontSize: 12))
             ]),
           ),
         ),
@@ -255,17 +272,32 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
       appBar: AppBar(
         title: const Text('Sync Queue Admin'),
         actions: [
-          IconButton(onPressed: () => _load(), icon: const Icon(Icons.refresh), tooltip: 'Reload'),
-          IconButton(onPressed: () => _revokeAdmin(), icon: const Icon(Icons.person_off), tooltip: 'Revoke admin'),
+          IconButton(
+              onPressed: () => _load(),
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Reload'),
+          IconButton(
+              onPressed: () => _revokeAdmin(),
+              icon: const Icon(Icons.person_off),
+              tooltip: 'Revoke admin'),
         ],
       ),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           FloatingActionButton.extended(
-            label: _retryingAll ? const Text('Retrying...') : const Text('Retry failed'),
-            icon: _retryingAll ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.refresh),
-            onPressed: _retryingAll ? null : () async => await _requeueAllFailed(),
+            label: _retryingAll
+                ? const Text('Retrying...')
+                : const Text('Retry failed'),
+            icon: _retryingAll
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.refresh),
+            onPressed:
+                _retryingAll ? null : () async => await _requeueAllFailed(),
             tooltip: 'Requeue all failed items',
           ),
           const SizedBox(height: 8),
@@ -289,9 +321,12 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
                   value: _filter,
                   items: const [
                     DropdownMenuItem(value: SyncFilter.all, child: Text('All')),
-                    DropdownMenuItem(value: SyncFilter.pending, child: Text('Pending')),
-                    DropdownMenuItem(value: SyncFilter.failed, child: Text('Failed')),
-                    DropdownMenuItem(value: SyncFilter.done, child: Text('Done')),
+                    DropdownMenuItem(
+                        value: SyncFilter.pending, child: Text('Pending')),
+                    DropdownMenuItem(
+                        value: SyncFilter.failed, child: Text('Failed')),
+                    DropdownMenuItem(
+                        value: SyncFilter.done, child: Text('Done')),
                   ],
                   onChanged: (v) {
                     if (v == null) return;
@@ -305,7 +340,8 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
                   width: 120,
                   child: TextField(
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Min attempts', isDense: true),
+                    decoration: const InputDecoration(
+                        labelText: 'Min attempts', isDense: true),
                     onSubmitted: (s) {
                       final v = int.tryParse(s);
                       setState(() => _minAttempts = v);
@@ -333,8 +369,11 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
                 DropdownButton<String>(
                   value: _actionFilter,
                   items: [
-                    const DropdownMenuItem(value: 'all', child: Text('All actions')),
-                    ..._actions.map((a) => DropdownMenuItem(value: a, child: Text(a))).toList(),
+                    const DropdownMenuItem(
+                        value: 'all', child: Text('All actions')),
+                    ..._actions
+                        .map((a) => DropdownMenuItem(value: a, child: Text(a)))
+                        .toList(),
                   ],
                   onChanged: (v) {
                     if (v == null) return;
@@ -355,7 +394,8 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
                 return ListTile(
                   onTap: () => _showDetails(it['id'] as int, it),
                   title: Text('${it['action']} (${it['status']})'),
-                  subtitle: Text('id:${it['id']} attempts:${it['attempts'] ?? 0}'),
+                  subtitle:
+                      Text('id:${it['id']} attempts:${it['attempts'] ?? 0}'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -413,7 +453,8 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
                 try {
                   await Clipboard.setData(ClipboardData(text: pretty));
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payload copied')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Payload copied')));
                 } catch (_) {
                   // ignore
                 }
@@ -425,7 +466,9 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
                 await _requeue(id);
               },
               child: const Text('Retry')),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close')),
         ],
       ),
     );

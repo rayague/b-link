@@ -4,7 +4,7 @@ import 'models/contact.dart';
 import 'utils/notification_permission_helper.dart';
 
 /// Widget de test pour tester les notifications
-/// 
+///
 /// Pour tester:
 /// 1. Créer un contact avec anniversaire DEMAIN
 /// 2. Attendre 9h ou 18h le lendemain
@@ -32,7 +32,8 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
       id: 99999, // ID de test unique
       name: 'Test Birthday',
       relation: 'ami',
-      date: '${tomorrow.year}-${tomorrow.month.toString().padLeft(2, '0')}-${tomorrow.day.toString().padLeft(2, '0')}',
+      date:
+          '${tomorrow.year}-${tomorrow.month.toString().padLeft(2, '0')}-${tomorrow.day.toString().padLeft(2, '0')}',
     );
 
     await service.scheduleBirthdayReminders(testContact, 'fr');
@@ -62,7 +63,8 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.notifications_active, size: 80, color: Colors.blue),
+            const Icon(Icons.notifications_active,
+                size: 80, color: Colors.blue),
             const SizedBox(height: 20),
             const Text(
               'Test des notifications d\'anniversaire',
@@ -72,7 +74,8 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
             const SizedBox(height: 40),
             ElevatedButton.icon(
               onPressed: () async {
-                await NotificationPermissionHelper.checkAndRequestPermission(context);
+                await NotificationPermissionHelper.checkAndRequestPermission(
+                    context);
               },
               icon: const Icon(Icons.check_circle),
               label: const Text('Vérifier les permissions'),

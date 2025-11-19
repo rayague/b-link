@@ -56,50 +56,51 @@ class UserProfile {
     this.birthDayKey,
   });
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-        uid: json['uid'] as String?,
-        name: json['name'] as String? ?? '',
-        givenName: json['givenName'] as String?,
-        familyName: json['familyName'] as String?,
-        birthDate: DateTime.parse(json['birthDate'] as String),
-        birthTime: json['birthTime'] as String?,
-        timezone: json['timezone'] as String?,
-        zodiac: json['zodiac'] as String?,
-        birthplace: json['birthplace'] as String?,
-        birthCountry: json['birthCountry'] as String?,
-        birthCity: json['birthCity'] as String?,
-        socialLinks: json['socialLinks'] == null
-            ? null
-            : Map<String, String>.from(json['socialLinks'] as Map),
-        bio: json['bio'] as String?,
-        lastSyncedAt: json['lastSyncedAt'] == null
-            ? null
-            : DateTime.parse(json['lastSyncedAt'] as String),
-        isPublic: json['isPublic'] == null ? false : json['isPublic'] as bool,
-        publicName:
-            json['publicName'] == null ? false : json['publicName'] as bool,
-        publicBirthDate: json['publicBirthDate'] == null
-            ? false
-            : json['publicBirthDate'] as bool,
-        publicBirthTime: json['publicBirthTime'] == null
-            ? false
-            : json['publicBirthTime'] as bool,
-        publicBirthPlace: json['publicBirthPlace'] == null
-            ? false
-            : json['publicBirthPlace'] as bool,
-        publicBirthCountry: json['publicBirthCountry'] == null
-            ? false
-            : json['publicBirthCountry'] as bool,
-        publicBirthCity: json['publicBirthCity'] == null
-            ? false
-            : json['publicBirthCity'] as bool,
-        publicSocials: json['publicSocials'] == null
-            ? false
-            : json['publicSocials'] as bool,
-        publicZodiac:
-            json['publicZodiac'] == null ? false : json['publicZodiac'] as bool,
-        birthDayKey: json['birthDayKey'] as String?,
-      );
+  // ✅ UNE SEULE méthode fromMap avec TOUS les champs
+  factory UserProfile.fromMap(Map<String, dynamic> map) {
+    // Helper pour conversion booléenne
+    bool toBool(dynamic value) {
+      if (value is bool) return value;
+      if (value is int) return value == 1;
+      return false;
+    }
+
+    return UserProfile(
+      uid: map['uid'] as String?,
+      name: map['name'] as String? ?? 'Anonymous',
+      givenName: map['givenName'] as String?,
+      familyName: map['familyName'] as String?,
+      birthDate: DateTime.parse(map['birthDate'] as String),
+      birthTime: map['birthTime'] as String?,
+      timezone: map['timezone'] as String?,
+      zodiac: map['zodiac'] as String?,
+      birthplace: map['birthplace'] as String?,
+      birthCountry: map['birthCountry'] as String?,
+      birthCity: map['birthCity'] as String?,
+      socialLinks: map['socialLinks'] == null
+          ? null
+          : Map<String, String>.from(map['socialLinks'] as Map),
+      bio: map['bio'] as String?,
+      lastSyncedAt: map['lastSyncedAt'] == null
+          ? null
+          : DateTime.tryParse(map['lastSyncedAt'] as String),
+      isPublic: toBool(map['isPublic']),
+      publicName: toBool(map['publicName']),
+      publicBirthDate: toBool(map['publicBirthDate']),
+      publicBirthTime: toBool(map['publicBirthTime']),
+      publicBirthPlace: toBool(map['publicBirthPlace']),
+      publicBirthCountry: toBool(map['publicBirthCountry']),
+      publicBirthCity: toBool(map['publicBirthCity']),
+      publicSocials: toBool(map['publicSocials']),
+      publicZodiac: toBool(map['publicZodiac']),
+      birthDayKey: map['birthDayKey'] as String?,
+    );
+  }
+
+  // fromJson utilise maintenant fromMap pour éviter la duplication
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile.fromMap(json);
+  }
 
   Map<String, dynamic> toJson() => {
         'uid': uid,
@@ -127,6 +128,9 @@ class UserProfile {
         'publicZodiac': publicZodiac,
         'birthDayKey': birthDayKey,
       };
+
+  // Alias de toJson pour compatibilité
+  Map<String, dynamic> toMap() => toJson();
 
   String toEncodedJson() => json.encode(toJson());
 }

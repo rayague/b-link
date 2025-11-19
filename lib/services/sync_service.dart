@@ -47,18 +47,24 @@ class SyncService {
 
       try {
         if (action == 'upsert_profile') {
-          final Map<String, dynamic> jsonMap = jsonDecode(payload) as Map<String, dynamic>;
+          final Map<String, dynamic> jsonMap =
+              jsonDecode(payload) as Map<String, dynamic>;
           final profile = UserProfile.fromJson(jsonMap);
-          if ((profile.uid == null || profile.uid!.isEmpty) && uid != null && uid.isNotEmpty) {
+          if ((profile.uid == null || profile.uid!.isEmpty) &&
+              uid != null &&
+              uid.isNotEmpty) {
             profile.uid = uid;
           }
-          if (kDebugMode) debugPrint('SyncService: pushing profile uid=${profile.uid}');
+          if (kDebugMode)
+            debugPrint('SyncService: pushing profile uid=${profile.uid}');
           await _profileService.pushToFirestore(profile);
           await _db.markSyncItemDone(id);
           processed++;
         } else {
           // Unknown action: mark done to avoid endless retries.
-          if (kDebugMode) debugPrint('SyncService: unknown action [$action] id=$id — marking done');
+          if (kDebugMode)
+            debugPrint(
+                'SyncService: unknown action [$action] id=$id — marking done');
           await _db.markSyncItemDone(id);
           processed++;
         }
@@ -66,18 +72,20 @@ class SyncService {
         // Transient failure handling
         final nextAttempts = attempts + 1;
         if (kDebugMode) {
-          debugPrint('SyncService: item $id action=$action failed attempt=$nextAttempts error=$e');
+          debugPrint(
+              'SyncService: item $id action=$action failed attempt=$nextAttempts error=$e');
           debugPrint('$st');
         }
         // classify permanent vs transient
-        final errStr = e?.toString() ?? '';
+        final errStr = e.toString();
         final isPermanent = _isPermanentError(errStr);
         if (isPermanent || nextAttempts >= maxAttempts) {
           await _db.markSyncItemPermanentlyFailed(id, errStr);
           processed++;
         } else {
           final backoff = _computeBackoff(nextAttempts);
-          await _db.markSyncItemFailed(id, errStr, attempts: nextAttempts, backoff: backoff);
+          await _db.markSyncItemFailed(id, errStr,
+              attempts: nextAttempts, backoff: backoff);
         }
         // continue with next item
         continue;
@@ -90,10 +98,13 @@ class SyncService {
   /// Looks for common permission/configuration issues which retries won't fix.
   bool _isPermanentError(String err) {
     final lower = err.toLowerCase();
-    if (lower.contains('permission_denied') || lower.contains('missing or insufficient permissions') || lower.contains('configuration_not_found')) return true;
-    if (lower.contains('unauthorized') || lower.contains('forbidden') || lower.contains('not found')) return true;
+    if (lower.contains('permission_denied') ||
+        lower.contains('missing or insufficient permissions') ||
+        lower.contains('configuration_not_found')) return true;
+    if (lower.contains('unauthorized') ||
+        lower.contains('forbidden') ||
+        lower.contains('not found')) return true;
     // network/timeouts should be retried
     return false;
   }
 }
-

@@ -150,7 +150,8 @@ class _HomeScreenState extends State<HomeScreen>
             actions: [
               // Bouton temporaire pour initialiser le premier admin
               IconButton(
-                icon: const Icon(Icons.admin_panel_settings, color: Colors.amber),
+                icon:
+                    const Icon(Icons.admin_panel_settings, color: Colors.amber),
                 tooltip: 'Initialiser Admin (à utiliser une seule fois)',
                 onPressed: () {
                   Navigator.push(
@@ -455,11 +456,13 @@ class _HomeScreenState extends State<HomeScreen>
               ElevatedButton.icon(
                 onPressed: () => _generateBirthdayMessage(context, contact),
                 icon: const Icon(Icons.card_giftcard, size: 16),
-                label: const Text('Générer message 🎁', style: TextStyle(fontSize: 12)),
+                label: const Text('Générer message 🎁',
+                    style: TextStyle(fontSize: 12)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFEC4899),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   minimumSize: const Size(0, 32),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -488,12 +491,13 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   /// Génère et affiche un message d'anniversaire depuis la base de données
-  Future<void> _generateBirthdayMessage(BuildContext context, dynamic contact) async {
+  Future<void> _generateBirthdayMessage(
+      BuildContext context, dynamic contact) async {
     try {
       final messageRepo = MessageRepository();
       final relation = contact.relation ?? 'default';
       final name = contact.name ?? 'Contact';
-      
+
       // Récupérer un message aléatoire selon la relation
       final message = await messageRepo.getRandomForRelation(relation, name);
 
@@ -599,7 +603,8 @@ class _HomeScreenState extends State<HomeScreen>
               icon: const Icon(Icons.copy_all, color: Color(0xFFEC4899)),
               label: const Text(
                 'Copier le message',
-                style: TextStyle(color: Color(0xFFEC4899), fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Color(0xFFEC4899), fontWeight: FontWeight.bold),
               ),
             ),
             TextButton(
@@ -783,9 +788,12 @@ class CustomAppDrawer extends StatelessWidget {
             ),
             // DEBUG: Test notifications
             ListTile(
-              leading: const Icon(Icons.notifications_active, color: Colors.orange),
-              title: const Text('🔔 Test Notifications', style: TextStyle(color: Colors.orange)),
-              subtitle: const Text('Debug only', style: TextStyle(fontSize: 11)),
+              leading:
+                  const Icon(Icons.notifications_active, color: Colors.orange),
+              title: const Text('🔔 Test Notifications',
+                  style: TextStyle(color: Colors.orange)),
+              subtitle:
+                  const Text('Debug only', style: TextStyle(fontSize: 11)),
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(

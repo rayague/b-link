@@ -28,8 +28,7 @@ class DBHelper implements DBInterface {
     return await openDatabase(path,
         version: 2,
         onCreate: _onCreate,
-        onUpgrade: _onUpgrade,
-        onOpen: (db) async {
+        onUpgrade: _onUpgrade, onOpen: (db) async {
       // ensure a small meta table exists for fast flags
       await db.execute('''
         CREATE TABLE IF NOT EXISTS meta (
@@ -127,18 +126,37 @@ class DBHelper implements DBInterface {
     ''');
     // seed some default messages
     final seed = [
-      {'relation': 'default', 'text': 'Happy birthday, {name}! Wishing you a wonderful day.'},
-      {'relation': 'default', 'text': 'Happy birthday {name}! Hope you have an amazing day ahead.'},
-      {'relation': 'friend', 'text': 'Hey {name}, happy birthday! Let’s celebrate soon 🎉'},
-      {'relation': 'friend', 'text': 'Happy birthday to my dear friend {name} — have a blast!'},
-      {'relation': 'father', 'text': 'Happy birthday, Dad ({name}). Thank you for everything.'},
-      {'relation': 'father', 'text': 'Wishing you a wonderful birthday, Father. Love you.'}
+      {
+        'relation': 'default',
+        'text': 'Happy birthday, {name}! Wishing you a wonderful day.'
+      },
+      {
+        'relation': 'default',
+        'text': 'Happy birthday {name}! Hope you have an amazing day ahead.'
+      },
+      {
+        'relation': 'friend',
+        'text': 'Hey {name}, happy birthday! Let’s celebrate soon 🎉'
+      },
+      {
+        'relation': 'friend',
+        'text': 'Happy birthday to my dear friend {name} — have a blast!'
+      },
+      {
+        'relation': 'father',
+        'text': 'Happy birthday, Dad ({name}). Thank you for everything.'
+      },
+      {
+        'relation': 'father',
+        'text': 'Wishing you a wonderful birthday, Father. Love you.'
+      }
     ];
     for (final row in seed) {
       await db.insert('messages', row as Map<String, Object?>);
     }
     // create index to speed up lookups by relation
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_messages_relation ON messages(relation)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_messages_relation ON messages(relation)');
   }
 
   // Simple migration helper: if phone column missing, add it
@@ -168,7 +186,11 @@ class DBHelper implements DBInterface {
       'timezone': p.timezone,
       'zodiac': p.zodiac,
       'birthplace': p.birthplace,
-      'socialLinks': p.socialLinks == null ? null : p.toJson()['socialLinks'] == null ? null : p.toEncodedJson(),
+      'socialLinks': p.socialLinks == null
+          ? null
+          : p.toJson()['socialLinks'] == null
+              ? null
+              : p.toEncodedJson(),
       'bio': p.bio,
       'isPublic': p.isPublic ? 1 : 0,
       'publicName': p.publicName ? 1 : 0,
@@ -179,9 +201,11 @@ class DBHelper implements DBInterface {
       'lastSyncedAt': p.lastSyncedAt?.toIso8601String(),
     };
     if (p.uid != null && p.uid!.isNotEmpty) {
-      final existing = await db.query('profiles', where: 'uid = ?', whereArgs: [p.uid], limit: 1);
+      final existing = await db.query('profiles',
+          where: 'uid = ?', whereArgs: [p.uid], limit: 1);
       if (existing.isNotEmpty) {
-        return await db.update('profiles', row, where: 'uid = ?', whereArgs: [p.uid]);
+        return await db
+            .update('profiles', row, where: 'uid = ?', whereArgs: [p.uid]);
       }
     }
     return await db.insert('profiles', row);
@@ -189,48 +213,58 @@ class DBHelper implements DBInterface {
 
   Future<UserProfile?> getProfileByUid(String uid) async {
     final db = await database;
-    final res = await db.query('profiles', where: 'uid = ?', whereArgs: [uid], limit: 1);
+    final res = await db.query('profiles',
+        where: 'uid = ?', whereArgs: [uid], limit: 1);
     if (res.isEmpty) return null;
     final r = res.first;
-      try {
-        final socialRaw = r['socialLinks'] as String?;
-        Map<String, String>? social;
-        if (socialRaw != null) {
-          try {
-            final parsed = jsonDecode(socialRaw);
-            if (parsed is Map) social = Map<String, String>.from(parsed.map((k, v) => MapEntry(k.toString(), v.toString())));
-          } catch (_) {}
-        }
-        return UserProfile(
-          uid: r['uid'] as String?,
-          name: r['name'] as String? ?? '',
-          birthDate: DateTime.parse(r['birthDate'] as String),
-          birthTime: r['birthTime'] as String?,
-          timezone: r['timezone'] as String?,
-          zodiac: r['zodiac'] as String?,
-          birthplace: r['birthplace'] as String?,
-          socialLinks: social,
-          bio: r['bio'] as String?,
-          lastSyncedAt: r['lastSyncedAt'] == null ? null : DateTime.parse(r['lastSyncedAt'] as String),
-          isPublic: (r['isPublic'] as int? ?? 0) == 1,
-          publicName: (r['publicName'] as int? ?? 0) == 1,
-          publicBirthDate: (r['publicBirthDate'] as int? ?? 0) == 1,
-          publicBirthPlace: (r['publicBirthPlace'] as int? ?? 0) == 1,
-          publicSocials: (r['publicSocials'] as int? ?? 0) == 1,
-          birthDayKey: r['birthDayKey'] as String?,
-        );
-      } catch (e) {
-        return null;
+    try {
+      final socialRaw = r['socialLinks'] as String?;
+      Map<String, String>? social;
+      if (socialRaw != null) {
+        try {
+          final parsed = jsonDecode(socialRaw);
+          if (parsed is Map)
+            social = Map<String, String>.from(
+                parsed.map((k, v) => MapEntry(k.toString(), v.toString())));
+        } catch (_) {}
       }
+      return UserProfile(
+        uid: r['uid'] as String?,
+        name: r['name'] as String? ?? '',
+        birthDate: DateTime.parse(r['birthDate'] as String),
+        birthTime: r['birthTime'] as String?,
+        timezone: r['timezone'] as String?,
+        zodiac: r['zodiac'] as String?,
+        birthplace: r['birthplace'] as String?,
+        socialLinks: social,
+        bio: r['bio'] as String?,
+        lastSyncedAt: r['lastSyncedAt'] == null
+            ? null
+            : DateTime.parse(r['lastSyncedAt'] as String),
+        isPublic: (r['isPublic'] as int? ?? 0) == 1,
+        publicName: (r['publicName'] as int? ?? 0) == 1,
+        publicBirthDate: (r['publicBirthDate'] as int? ?? 0) == 1,
+        publicBirthPlace: (r['publicBirthPlace'] as int? ?? 0) == 1,
+        publicSocials: (r['publicSocials'] as int? ?? 0) == 1,
+        birthDayKey: r['birthDayKey'] as String?,
+      );
+    } catch (e) {
+      return null;
+    }
   }
-
 
   /// Query public profiles by birthDayKey (format MM-DD)
-  Future<List<Map<String, dynamic>>> queryPublicProfilesByDay(String birthDayKey, {int limit = 50}) async {
+  Future<List<Map<String, dynamic>>> queryPublicProfilesByDay(
+      String birthDayKey,
+      {int limit = 50}) async {
     final db = await database;
-    final res = await db.query('profiles', where: 'isPublic = ? AND birthDayKey = ?', whereArgs: [1, birthDayKey], limit: limit);
+    final res = await db.query('profiles',
+        where: 'isPublic = ? AND birthDayKey = ?',
+        whereArgs: [1, birthDayKey],
+        limit: limit);
     return res.map((r) => Map<String, dynamic>.from(r)).toList();
   }
+
   @override
   Future<int> enqueueSync(String action, String? uid, String payload) async {
     final db = await database;
@@ -247,7 +281,8 @@ class DBHelper implements DBInterface {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getPendingSyncItems({int limit = 50}) async {
+  Future<List<Map<String, dynamic>>> getPendingSyncItems(
+      {int limit = 50}) async {
     final db = await database;
     // Only select items that are pending and either have no nextRetryAt or nextRetryAt <= now
     final now = DateTime.now().toIso8601String();
@@ -260,22 +295,30 @@ class DBHelper implements DBInterface {
   @override
   Future<void> markSyncItemProcessing(int id) async {
     final db = await database;
-    await db.update('sync_queue', {'status': 'processing'}, where: 'id = ? AND status = ?', whereArgs: [id, 'pending']);
+    await db.update('sync_queue', {'status': 'processing'},
+        where: 'id = ? AND status = ?', whereArgs: [id, 'pending']);
   }
 
   @override
-  Future<List<Map<String, dynamic>>> claimPendingSyncItems({int limit = 50}) async {
+  Future<List<Map<String, dynamic>>> claimPendingSyncItems(
+      {int limit = 50}) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
     final claimed = <Map<String, dynamic>>[];
     await db.transaction((txn) async {
-      final res = await txn.rawQuery("SELECT id FROM sync_queue WHERE status = ? AND (nextRetryAt IS NULL OR nextRetryAt <= ?) ORDER BY createdAt ASC LIMIT ?", ['pending', now, limit]);
+      final res = await txn.rawQuery(
+          "SELECT id FROM sync_queue WHERE status = ? AND (nextRetryAt IS NULL OR nextRetryAt <= ?) ORDER BY createdAt ASC LIMIT ?",
+          ['pending', now, limit]);
       for (final row in res) {
         final id = row['id'] as int;
-        final updated = await txn.rawUpdate('UPDATE sync_queue SET status = ? WHERE id = ? AND status = ?', ['processing', id, 'pending']);
+        final updated = await txn.rawUpdate(
+            'UPDATE sync_queue SET status = ? WHERE id = ? AND status = ?',
+            ['processing', id, 'pending']);
         if (updated == 1) {
-          final itemRows = await txn.rawQuery('SELECT * FROM sync_queue WHERE id = ?', [id]);
-          if (itemRows.isNotEmpty) claimed.add(Map<String, dynamic>.from(itemRows.first));
+          final itemRows =
+              await txn.rawQuery('SELECT * FROM sync_queue WHERE id = ?', [id]);
+          if (itemRows.isNotEmpty)
+            claimed.add(Map<String, dynamic>.from(itemRows.first));
         }
       }
     });
@@ -285,25 +328,40 @@ class DBHelper implements DBInterface {
   @override
   Future<void> markSyncItemDone(int id) async {
     final db = await database;
-    await db.update('sync_queue', {'status': 'done'}, where: 'id = ?', whereArgs: [id]);
+    await db.update('sync_queue', {'status': 'done'},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   @override
-  Future<void> markSyncItemFailed(int id, String error, {int attempts = 1, Duration? backoff}) async {
+  Future<void> markSyncItemFailed(int id, String error,
+      {int attempts = 1, Duration? backoff}) async {
     final db = await database;
-    final nextRetry = backoff == null ? null : DateTime.now().add(backoff).toIso8601String();
-    await db.update('sync_queue', {'attempts': attempts, 'lastError': error, 'nextRetryAt': nextRetry}, where: 'id = ?', whereArgs: [id]);
+    final nextRetry =
+        backoff == null ? null : DateTime.now().add(backoff).toIso8601String();
+    await db.update('sync_queue',
+        {'attempts': attempts, 'lastError': error, 'nextRetryAt': nextRetry},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   @override
   Future<void> markSyncItemPermanentlyFailed(int id, String error) async {
     final db = await database;
-    await db.update('sync_queue', {'status': 'failed', 'lastError': error}, where: 'id = ?', whereArgs: [id]);
+    await db.update('sync_queue', {'status': 'failed', 'lastError': error},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> requeueSyncItem(int id) async {
     final db = await database;
-    await db.update('sync_queue', {'status': 'pending', 'attempts': 0, 'lastError': null, 'nextRetryAt': null}, where: 'id = ?', whereArgs: [id]);
+    await db.update(
+        'sync_queue',
+        {
+          'status': 'pending',
+          'attempts': 0,
+          'lastError': null,
+          'nextRetryAt': null
+        },
+        where: 'id = ?',
+        whereArgs: [id]);
   }
 
   Future<int> deleteSyncItem(int id) async {
@@ -313,7 +371,8 @@ class DBHelper implements DBInterface {
 
   Future<void> setProfileLastSynced(String uid, String iso) async {
     final db = await database;
-    await db.update('profiles', {'lastSyncedAt': iso}, where: 'uid = ?', whereArgs: [uid]);
+    await db.update('profiles', {'lastSyncedAt': iso},
+        where: 'uid = ?', whereArgs: [uid]);
   }
 
   Future<int> insertMessage(String relation, String text) async {
@@ -323,13 +382,17 @@ class DBHelper implements DBInterface {
 
   Future<List<String>> getMessagesByRelation(String relation) async {
     final db = await database;
-    final res = await db.query('messages', where: 'relation = ? OR relation = ?', whereArgs: [relation.toLowerCase(), 'default']);
+    final res = await db.query('messages',
+        where: 'relation = ? OR relation = ?',
+        whereArgs: [relation.toLowerCase(), 'default']);
     return res.map((r) => r['text'] as String).toList();
   }
 
   Future<String?> getRandomMessageByRelation(String relation) async {
     final db = await database;
-    final res = await db.rawQuery('SELECT text FROM messages WHERE relation = ? OR relation = ? ORDER BY RANDOM() LIMIT 1', [relation.toLowerCase(), 'default']);
+    final res = await db.rawQuery(
+        'SELECT text FROM messages WHERE relation = ? OR relation = ? ORDER BY RANDOM() LIMIT 1',
+        [relation.toLowerCase(), 'default']);
     if (res.isEmpty) return null;
     return res.first['text'] as String?;
   }
@@ -341,7 +404,8 @@ class DBHelper implements DBInterface {
   }
 
   /// Parse messages from a JS-like content string and return list of maps {relation, text}
-  List<Map<String, String>> parseMessagesFromContent(String content) => parser.parseMessagesFromContent(content);
+  List<Map<String, String>> parseMessagesFromContent(String content) =>
+      parser.parseMessagesFromContent(content);
 
   /// Insert parsed messages into DB using a transaction. Returns number inserted.
   Future<int> importMessagesFromString(String content) async {
@@ -350,25 +414,29 @@ class DBHelper implements DBInterface {
     var inserted = 0;
     await db.transaction((txn) async {
       for (final row in parsed) {
-        await txn.insert('messages', {'relation': (row['relation'] ?? 'default'), 'text': row['text']});
+        await txn.insert('messages',
+            {'relation': (row['relation'] ?? 'default'), 'text': row['text']});
         inserted++;
       }
     });
     // create index if missing
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_messages_relation ON messages(relation)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_messages_relation ON messages(relation)');
     return inserted;
   }
 
   Future<String?> _getMeta(String key) async {
     final db = await database;
-    final res = await db.query('meta', where: 'key = ?', whereArgs: [key], limit: 1);
+    final res =
+        await db.query('meta', where: 'key = ?', whereArgs: [key], limit: 1);
     if (res.isEmpty) return null;
     return res.first['value'] as String?;
   }
 
   Future<void> _setMeta(String key, String value) async {
     final db = await database;
-    await db.insert('meta', {'key': key, 'value': value}, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('meta', {'key': key, 'value': value},
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   /// Import messages from assets/messages.txt if messages table is empty.
@@ -411,7 +479,8 @@ class DBHelper implements DBInterface {
             try {
               if (line.startsWith('{')) {
                 final m = Map<String, dynamic>.from(jsonDecode(line));
-                final rel = (m['relation'] ?? 'default').toString().toLowerCase();
+                final rel =
+                    (m['relation'] ?? 'default').toString().toLowerCase();
                 final txt = (m['text'] ?? '').toString();
                 if (txt.isNotEmpty) {
                   await txn.insert('messages', {'relation': rel, 'text': txt});
@@ -429,7 +498,8 @@ class DBHelper implements DBInterface {
                 inserted++;
               }
             } else {
-              await txn.insert('messages', {'relation': 'default', 'text': line});
+              await txn
+                  .insert('messages', {'relation': 'default', 'text': line});
               inserted++;
             }
           }
@@ -442,38 +512,6 @@ class DBHelper implements DBInterface {
     return inserted;
   }
 
-  String _mapCategoryToRelation(String cat) {
-    final m = cat.toLowerCase();
-    // map some known category variable names to relation keys used in DB
-    final map = {
-      'son': 'son',
-      'daughter': 'daughter',
-      'sister': 'sister',
-      'brother': 'brother',
-      'friend': 'friend',
-      'neighbor': 'neighbor',
-      'bestfriend': 'bestfriend',
-      'boyfriend': 'boyfriend',
-      'girlfriend': 'girlfriend',
-      'husband': 'husband',
-      'father': 'father',
-      'mother': 'mother',
-      'auntie': 'auntie',
-      'uncle': 'uncle',
-      'cousin': 'cousin',
-      'niece': 'niece',
-      'nephew': 'nephew',
-      'grandson': 'grand-son',
-      'granddaughter': 'grand-daughter',
-      'grandfather': 'grand-father',
-      'grandmother': 'grand-mother',
-      'godfather': 'god-father',
-      'godmother': 'god-mother',
-      'best friend': 'bestfriend'
-    };
-    return map[m] ?? 'default';
-  }
-
   Future<List<Contact>> getContacts() async {
     final db = await database;
     final res = await db.query('contact', orderBy: 'name COLLATE NOCASE');
@@ -482,7 +520,8 @@ class DBHelper implements DBInterface {
 
   Future<int> updateContact(Contact c) async {
     final db = await database;
-    return await db.update('contact', c.toMap(), where: 'id = ?', whereArgs: [c.id]);
+    return await db
+        .update('contact', c.toMap(), where: 'id = ?', whereArgs: [c.id]);
   }
 
   Future<int> deleteContact(int id) async {

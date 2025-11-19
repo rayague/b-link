@@ -212,7 +212,7 @@ class AdminAuthService {
   Future<void> changeAdminPassword(String uid, String newPassword) async {
     try {
       final passwordHash = _hashPassword(newPassword);
-      
+
       await _firestore.collection('admins').doc(uid).update({
         'passwordHash': passwordHash,
       });
@@ -228,9 +228,7 @@ class AdminAuthService {
   Future<List<AdminUser>> getAllAdmins() async {
     try {
       final snapshot = await _firestore.collection('admins').get();
-      return snapshot.docs
-          .map((doc) => AdminUser.fromMap(doc.data()))
-          .toList();
+      return snapshot.docs.map((doc) => AdminUser.fromMap(doc.data())).toList();
     } catch (e) {
       print('❌ Erreur récupération admins: $e');
       return [];
@@ -239,11 +237,7 @@ class AdminAuthService {
 
   /// Stream des changements de statut admin
   Stream<bool> adminStatusStream(String uid) {
-    return _firestore
-        .collection('admins')
-        .doc(uid)
-        .snapshots()
-        .map((snapshot) {
+    return _firestore.collection('admins').doc(uid).snapshots().map((snapshot) {
       if (!snapshot.exists) return false;
       final admin = AdminUser.fromMap(snapshot.data()!);
       return admin.isActive;

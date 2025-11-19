@@ -46,18 +46,19 @@ class NotificationService {
 
   void _onNotificationTapped(NotificationResponse response) {
     print('Notification tapped: ${response.payload}');
-    
+
     // Si le payload contient un message, on le stocke pour que l'app puisse l'afficher
     if (response.payload != null && response.payload!.startsWith('message::')) {
       final message = response.payload!.substring(9); // Enlever "message::"
       _lastTappedMessage = message;
-      print('📋 Message disponible pour copie: ${message.substring(0, message.length > 50 ? 50 : message.length)}...');
+      print(
+          '📋 Message disponible pour copie: ${message.substring(0, message.length > 50 ? 50 : message.length)}...');
     }
   }
 
   // Message de la dernière notification cliquée
   String? _lastTappedMessage;
-  
+
   /// Récupère le dernier message de notification cliquée
   String? getLastTappedMessage() {
     final msg = _lastTappedMessage;
@@ -162,7 +163,8 @@ class NotificationService {
       payload: 'message::$message', // On stocke le message dans le payload
     );
 
-    print('✅ Notification test envoyée pour ${contact.name} (${contact.relation})');
+    print(
+        '✅ Notification test envoyée pour ${contact.name} (${contact.relation})');
     print('📝 Message complet: $message');
   }
 
@@ -173,7 +175,8 @@ class NotificationService {
 
     // Vérifier que le contact a un ID
     if (contact.id == null) {
-      print('⚠️ Cannot schedule reminders: contact ID is null for ${contact.name}');
+      print(
+          '⚠️ Cannot schedule reminders: contact ID is null for ${contact.name}');
       return;
     }
 

@@ -104,9 +104,8 @@ class _InitAdminScreenState extends State<InitAdminScreen> {
                         : Colors.red.shade50,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: _result!.startsWith('✅')
-                          ? Colors.green
-                          : Colors.red,
+                      color:
+                          _result!.startsWith('✅') ? Colors.green : Colors.red,
                     ),
                   ),
                   child: Text(
