@@ -7,6 +7,7 @@ import '../models/user_profile.dart';
 import 'public_profile_screen.dart';
 import 'dart:math' as math;
 import '../services/message_repository.dart';
+import '../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 
 class SameDayScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class SameDayScreen extends StatefulWidget {
 
 class _SameDayScreenState extends State<SameDayScreen>
     with SingleTickerProviderStateMixin {
+  late AppLocalizations l10n;
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   int _count = 0;
@@ -209,6 +211,7 @@ class _SameDayScreenState extends State<SameDayScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    l10n = AppLocalizations.of(context);
     final profile = Provider.of<ProfileProvider>(context).profile;
 
     return Scaffold(
@@ -278,9 +281,9 @@ class _SameDayScreenState extends State<SameDayScreen>
                       FlexibleSpaceBar(
                         titlePadding:
                             const EdgeInsets.only(left: 60, bottom: 16),
-                        title: const Text(
-                          'Même Jour 🎂',
-                          style: TextStyle(
+                        title: Text(
+                          l10n.translate('sameDay'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -378,7 +381,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '$_count personnes',
+                                      '$_count ${l10n.translate('peopleCount')}',
                                       style: TextStyle(
                                         fontSize: 28,
                                         fontWeight: FontWeight.bold,
@@ -389,7 +392,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'partagent votre anniversaire',
+                                      l10n.translate('shareYourBirthday'),
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: isDark
@@ -408,7 +411,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                         // List Header
                         if (_items.isNotEmpty) ...[
                           Text(
-                            '👥 Profils publics',
+                            l10n.translate('publicProfiles'),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -443,7 +446,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Aucun profil trouvé',
+                          l10n.translate('noProfileFound'),
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.grey[600],
@@ -452,7 +455,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Soyez le premier à partager !',
+                          l10n.translate('beTheFirst'),
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[500],
@@ -608,7 +611,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                                               const SizedBox(width: 12),
                                               Expanded(
                                                 child: Text(
-                                                  'Message pour $displayName',
+                                                  '${l10n.translate('messageFor')} $displayName',
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 18,
@@ -643,7 +646,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                                                               8),
                                                     ),
                                                     child: Text(
-                                                      '📝 Catégorie: $relation',
+                                                      '${l10n.translate('category')}: $relation',
                                                       style: const TextStyle(
                                                         color:
                                                             Color(0xFFEC4899),
@@ -678,9 +681,9 @@ class _SameDayScreenState extends State<SameDayScreen>
                                                     ),
                                                   ),
                                                   const SizedBox(height: 12),
-                                                  const Text(
-                                                    '💡 Appuyez sur "Copier" puis collez le message dans WhatsApp, SMS ou email',
-                                                    style: TextStyle(
+                                                  Text(
+                                                    l10n.translate('copyHelp'),
+                                                    style: const TextStyle(
                                                       color: Colors.white54,
                                                       fontSize: 11,
                                                       fontStyle:
@@ -699,28 +702,32 @@ class _SameDayScreenState extends State<SameDayScreen>
                                                 if (context.mounted) {
                                                   ScaffoldMessenger.of(context)
                                                       .showSnackBar(
-                                                    const SnackBar(
+                                                    SnackBar(
                                                       content: Row(
                                                         children: [
-                                                          Icon(
+                                                          const Icon(
                                                               Icons
                                                                   .check_circle,
                                                               color:
                                                                   Colors.white),
-                                                          SizedBox(width: 12),
+                                                          const SizedBox(
+                                                              width: 12),
                                                           Expanded(
                                                             child: Text(
-                                                              '✅ Message copié ! Collez-le dans votre app de messagerie',
-                                                              style: TextStyle(
-                                                                  fontSize: 13),
+                                                              l10n.translate(
+                                                                  'messageCopied'),
+                                                              style:
+                                                                  const TextStyle(
+                                                                      fontSize:
+                                                                          13),
                                                             ),
                                                           ),
                                                         ],
                                                       ),
                                                       backgroundColor:
                                                           Colors.green,
-                                                      duration:
-                                                          Duration(seconds: 3),
+                                                      duration: const Duration(
+                                                          seconds: 3),
                                                       behavior: SnackBarBehavior
                                                           .floating,
                                                     ),
@@ -753,8 +760,9 @@ class _SameDayScreenState extends State<SameDayScreen>
                                     },
                                     icon: const Icon(Icons.card_giftcard,
                                         size: 16),
-                                    label: const Text('Générer message 🎁',
-                                        style: TextStyle(fontSize: 12)),
+                                    label: Text(
+                                        l10n.translate('generateMessage'),
+                                        style: const TextStyle(fontSize: 12)),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFFEC4899),
                                       foregroundColor: Colors.white,

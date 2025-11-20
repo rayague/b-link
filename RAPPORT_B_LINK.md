@@ -1,3 +1,22 @@
+---
+
+## Fonctionnalités principales pour l’utilisateur
+
+- ✔️ **Connexion / Inscription**
+  - L’utilisateur peut choisir de se connecter, de s’inscrire ou d’utiliser l’application en mode invité.
+- ✔️ **Recherche de profils**
+  - Affichage des profils nés le même jour que l’utilisateur ou à une date choisie.
+- ✔️ **Consultation d’un profil**
+  - Visibilité des informations publiques (nom, ville, réseaux sociaux, etc.).
+- ✔️ **Génération de messages**
+  - Messages personnalisés, prêts à partager (WhatsApp, SMS, email…).
+- ✔️ **Thème clair / sombre**
+  - L’interface s’adapte automatiquement au thème du téléphone.
+- ✔️ **Protection des données**
+  - L’utilisateur choisit quelles informations rendre publiques ou privées.
+- ✔️ **Signe astrologique et citation**
+  - L’utilisateur peut voir son signe astrologique calculé automatiquement à partir de sa date de naissance.
+  - Une citation ou un message inspirant lié à son signe ou à sa date de naissance lui est proposé.
 # Rapport de Présentation – Application Flutter "b_link"
 
 ## Introduction

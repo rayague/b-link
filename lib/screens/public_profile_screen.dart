@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
 import '../widgets/social_links_widget.dart';
 import '../widgets/birth_insights_widget.dart';
+import '../l10n/app_localizations.dart';
 
 class PublicProfileScreen extends StatelessWidget {
   static const routeName = '/public-profile';
@@ -15,6 +16,7 @@ class PublicProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: Container(
@@ -48,56 +50,28 @@ class PublicProfileScreen extends StatelessWidget {
                     child: const Icon(Icons.arrow_back, color: Colors.white),
                   ),
                 ),
-                flexibleSpace: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isDark
-                          ? [const Color(0xFF6366F1), const Color(0xFF8B5CF6)]
-                          : [
-                              const Color(0xFF8B5CF6),
-                              const Color(0xFFA78BFA),
-                              const Color(0xFFC4B5FD)
-                            ],
-                    ),
-                  ),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Decorative circles
-                      Positioned(
-                        right: -50,
-                        top: -50,
-                        child: Container(
-                          width: 200,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.1),
+                flexibleSpace: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCollapsed = constraints.maxHeight < 120;
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Decorative circles
+                        Positioned(
+                          right: -50,
+                          top: -50,
+                          child: Container(
+                            width: 200,
+                            height: 200,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withOpacity(0.1),
+                            ),
                           ),
                         ),
-                      ),
-                      FlexibleSpaceBar(
-                        centerTitle: true,
-                        title: profile.isPublic && profile.publicName
-                            ? Text(
-                                profile.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : const Text(
-                                'Profil privé',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                        background: Center(
+                        // Avatar et nom
+                        Align(
+                          alignment: Alignment.center,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -124,12 +98,58 @@ class PublicProfileScreen extends StatelessWidget {
                                   color: const Color(0xFF8B5CF6),
                                 ),
                               ),
+                              if (!isCollapsed)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: profile.isPublic && profile.publicName
+                                      ? Text(
+                                          profile.name,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        )
+                                      : Text(
+                                          l10n.translate('privateProfile'),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        // Nom dans la barre réduite
+                        if (isCollapsed)
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              child: profile.isPublic && profile.publicName
+                                  ? Text(
+                                      profile.name,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : Text(
+                                      l10n.translate('privateProfile'),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
 
@@ -141,12 +161,12 @@ class PublicProfileScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (!profile.isPublic)
-                        _buildPrivateProfileCard(isDark)
+                        _buildPrivateProfileCard(isDark, l10n)
                       else ...[
                         // Public profile content
                         if (profile.publicBirthDate || profile.publicBirthTime)
                           _buildInfoSection(
-                            'Date de naissance',
+                            l10n.translate('birthDate'),
                             Icons.cake_rounded,
                             _getFormattedBirthDate(),
                             isDark,
@@ -155,7 +175,7 @@ class PublicProfileScreen extends StatelessWidget {
                         if (profile.publicBirthCountry ||
                             profile.publicBirthPlace)
                           _buildInfoSection(
-                            'Lieu de naissance',
+                            l10n.translate('birthPlace'),
                             Icons.location_on_rounded,
                             _getFormattedBirthPlace(),
                             isDark,
@@ -164,7 +184,7 @@ class PublicProfileScreen extends StatelessWidget {
                         if (profile.publicBirthCity &&
                             profile.birthCity != null)
                           _buildInfoSection(
-                            'Ville actuelle',
+                            l10n.translate('currentCity'),
                             Icons.home_rounded,
                             profile.birthCity!,
                             isDark,
@@ -172,7 +192,7 @@ class PublicProfileScreen extends StatelessWidget {
 
                         if (profile.publicZodiac && profile.zodiac != null)
                           _buildInfoSection(
-                            'Signe du zodiaque',
+                            l10n.translate('zodiacSign'),
                             Icons.stars_rounded,
                             profile.zodiac!,
                             isDark,
@@ -183,8 +203,8 @@ class PublicProfileScreen extends StatelessWidget {
                             profile.socialLinks != null &&
                             profile.socialLinks!.isNotEmpty) ...[
                           const SizedBox(height: 24),
-                          _buildSectionTitle(
-                              'Réseaux sociaux', Icons.share_rounded, isDark),
+                          _buildSectionTitle(l10n.translate('socialNetworks'),
+                              Icons.share_rounded, isDark),
                           const SizedBox(height: 12),
                           SocialLinksWidget(
                             socialLinks: profile.socialLinks!,
@@ -221,7 +241,7 @@ class PublicProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPrivateProfileCard(bool isDark) {
+  Widget _buildPrivateProfileCard(bool isDark, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -247,7 +267,7 @@ class PublicProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Profil privé',
+            l10n.translate('privateProfile'),
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -256,7 +276,7 @@ class PublicProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Cette personne a choisi de garder son profil privé',
+            l10n.translate('privateProfileDesc'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -347,32 +367,46 @@ class PublicProfileScreen extends StatelessWidget {
     );
   }
 
-  String _getFormattedBirthDate() {
+  String _getFormattedBirthDate([BuildContext? context]) {
     final parts = <String>[];
-
+    final l10n = context != null ? AppLocalizations.of(context) : null;
     if (profile.publicBirthDate) {
-      final months = [
-        'janvier',
-        'février',
-        'mars',
-        'avril',
-        'mai',
-        'juin',
-        'juillet',
-        'août',
-        'septembre',
-        'octobre',
-        'novembre',
-        'décembre'
-      ];
+      final months = l10n != null
+          ? [
+              l10n.translate('month_january'),
+              l10n.translate('month_february'),
+              l10n.translate('month_march'),
+              l10n.translate('month_april'),
+              l10n.translate('month_may'),
+              l10n.translate('month_june'),
+              l10n.translate('month_july'),
+              l10n.translate('month_august'),
+              l10n.translate('month_september'),
+              l10n.translate('month_october'),
+              l10n.translate('month_november'),
+              l10n.translate('month_december'),
+            ]
+          : [
+              'janvier',
+              'février',
+              'mars',
+              'avril',
+              'mai',
+              'juin',
+              'juillet',
+              'août',
+              'septembre',
+              'octobre',
+              'novembre',
+              'décembre',
+            ];
       parts.add(
           '${profile.birthDate.day} ${months[profile.birthDate.month - 1]} ${profile.birthDate.year}');
     }
-
     if (profile.publicBirthTime && profile.birthTime != null) {
-      parts.add('à ${profile.birthTime}');
+      parts.add(
+          '${l10n != null ? l10n.translate('atTime') : 'à'} ${profile.birthTime}');
     }
-
     return parts.join(' ');
   }
 

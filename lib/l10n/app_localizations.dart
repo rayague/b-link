@@ -5,7 +5,7 @@ class AppLocalizations {
 
   AppLocalizations(this.locale);
 
-  static Map<String, Map<String, String>> _localizedValues = {
+  static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'appTitle': 'B-Link',
       'home': 'Home',
@@ -300,7 +300,35 @@ class AppLocalizations {
       'resetEmailSent':
           '✅ Email de réinitialisation envoyé! Vérifiez votre boîte mail.',
       'emailNotFound': 'Aucun compte trouvé avec cet email',
-    }
+      // Same Day Screen
+      'messageFor': 'Message pour',
+      'category': 'Catégorie',
+      'copyHelp':
+          '💡 Appuyez sur "Copier" puis collez le message dans WhatsApp, SMS ou email',
+      'messageCopied':
+          '✅ Message copié ! Collez-le dans votre app de messagerie',
+      'generateMessage': 'Générer message 🎁',
+      // Public Profile
+      'privateProfile': 'Profil privé',
+      'privateProfileDesc':
+          'Cette personne a choisi de garder son profil privé',
+      'birthPlace': 'Lieu de naissance',
+      'zodiacSign': 'Signe du zodiaque',
+      'socialNetworks': 'Réseaux sociaux',
+      'atTime': 'à',
+      'month_january': 'janvier',
+      'month_february': 'février',
+      'month_march': 'mars',
+      'month_april': 'avril',
+      'month_may': 'mai',
+      'month_june': 'juin',
+      'month_july': 'juillet',
+      'month_august': 'août',
+      'month_september': 'septembre',
+      'month_october': 'octobre',
+      'month_november': 'novembre',
+      'month_december': 'décembre',
+    },
   };
 
   String translate(String key) {
