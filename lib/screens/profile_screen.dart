@@ -3,11 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/profile_provider.dart';
+import '../models/user_profile.dart';
 import '../widgets/social_links_widget.dart';
 import '../widgets/birth_insights_widget.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/network_error_handler.dart';
 import 'admin_stats_screen.dart';
 import '../services/admin_service.dart';
+import '../services/analytics_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
@@ -17,7 +20,8 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _birthPlaceController;
@@ -45,6 +49,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
+    
+    AnalyticsService().logScreenView(
+      screenName: 'ProfileScreen',
+      screenClass: 'ProfileScreen',
+    );
     final prov = context.read<ProfileProvider>();
     final p = prov.profile;
     _nameController = TextEditingController(text: p?.name ?? '');
@@ -86,7 +95,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final profile = context.watch<ProfileProvider>().profile;
-    final isCollapsed = false; // TODO: Replace with actual logic if needed
     final zodiacSign = _birthDate != null ? _computeZodiac(_birthDate!) : null;
 
     return Scaffold(
@@ -128,47 +136,59 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   backgroundColor: Colors.transparent,
                   flexibleSpace: LayoutBuilder(
                     builder: (context, constraints) {
+                      // Détecter si l'AppBar est collapsée
+                      final isCollapsed = constraints.maxHeight <= kToolbarHeight + 40;
+                      
                       // Correction overflow: limiter la hauteur du contenu
                       return Align(
                         alignment: Alignment.center,
-                        child: SizedBox(
+                        child: Container(
                           height: constraints.maxHeight,
+                          width: double.infinity,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
+                            mainAxisSize: MainAxisSize.max,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Container(
-                                width: 90,
-                                height: 90,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: const LinearGradient(
-                                    colors: [Colors.white, Color(0xFFF3E8FF)],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                  ],
-                                ),
+                              Expanded(
                                 child: Center(
-                                  child: Text(
-                                    profile?.name.isNotEmpty == true
-                                        ? profile!.name[0].toUpperCase()
-                                        : '👤',
-                                    style: const TextStyle(
-                                      fontSize: 40,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF8B5CF6),
+                                  child: Container(
+                                    width: 90,
+                                    height: 90,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Colors.white,
+                                          Color(0xFFF3E8FF)
+                                        ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 10),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        profile?.name.isNotEmpty == true
+                                            ? profile!.name[0].toUpperCase()
+                                            : '👤',
+                                        style: const TextStyle(
+                                          fontSize: 40,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF8B5CF6),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                               if (!isCollapsed)
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 12),
+                                  padding: const EdgeInsets.only(bottom: 12),
                                   child: Text(
                                     profile?.name ?? '',
                                     style: const TextStyle(
@@ -199,7 +219,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const AdminStatsScreen(),
+                                  builder: (context) =>
+                                      const AdminStatsScreen(),
                                 ),
                               );
                             },
@@ -247,9 +268,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 birthPlace: _birthPlaceController.text.isEmpty
                                     ? null
                                     : _birthPlaceController.text,
-                                birthCountry: _birthCountryController.text.isEmpty
-                                    ? null
-                                    : _birthCountryController.text,
+                                birthCountry:
+                                    _birthCountryController.text.isEmpty
+                                        ? null
+                                        : _birthCountryController.text,
                               ),
                               const SizedBox(height: 20),
                             ],
@@ -268,14 +290,118 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ],
       ),
     );
-
   }
 
-  void _saveProfile() {
-    // TODO: Implémenter la sauvegarde du profil
-    setState(() {
-      _isEditing = false;
-    });
+  Future<void> _saveProfile() async {
+    // Valider le formulaire avant sauvegarde
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(AppLocalizations.of(context)
+                      .translate('pleaseFillAllRequiredFields')),
+            ],
+          ),
+          backgroundColor: Colors.red[400],
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Vérifier que la date de naissance est définie
+    if (_birthDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                  AppLocalizations.of(context).translate('birthDateRequired')),
+            ],
+          ),
+          backgroundColor: Colors.red[400],
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Créer le profil avec toutes les informations
+      final updatedProfile = UserProfile(
+        uid: context.read<ProfileProvider>().profile?.uid,
+        name: _nameController.text.trim(),
+        birthDate: _birthDate!,
+        birthTime: _birthTime != null
+            ? '${_birthTime!.hour.toString().padLeft(2, '0')}:${_birthTime!.minute.toString().padLeft(2, '0')}'
+            : null,
+        birthplace: _birthPlaceController.text.trim().isEmpty
+            ? null
+            : _birthPlaceController.text.trim(),
+        birthCountry: _birthCountryController.text.trim().isEmpty
+            ? null
+            : _birthCountryController.text.trim(),
+        birthCity: _birthCityController.text.trim().isEmpty
+            ? null
+            : _birthCityController.text.trim(),
+        socialLinks: Map<String, String>.from(_socialLinks),
+        // Paramètres de confidentialité
+        isPublic: _isPublic,
+        publicName: _publicName,
+        publicBirthDate: _publicBirthDate,
+        publicBirthTime: _publicBirthTime,
+        publicBirthPlace: _publicBirthPlace,
+        publicBirthCountry: _publicBirthCountry,
+        publicBirthCity: _publicBirthCity,
+        publicSocials: _publicSocials,
+        publicZodiac: _publicZodiac,
+      );
+
+      // Sauvegarder via le provider (local + Firebase)
+      await context.read<ProfileProvider>().save(updatedProfile, push: true);
+
+      // Passer en mode lecture
+      setState(() {
+        _isEditing = false;
+      });
+
+      // Afficher un message de succès
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(AppLocalizations.of(context).translate('profileSaved')),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Gérer les erreurs avec messages personnalisés
+      if (mounted) {
+        final errorMessage = NetworkErrorHandler.getFirebaseErrorMessage(e);
+        NetworkErrorHandler.showErrorSnackBar(
+          context,
+          errorMessage,
+          onRetry: _saveProfile,
+        );
+      }
+      // Ne pas sortir du mode édition en cas d'erreur
+      print('❌ Erreur sauvegarde profil: $e');
+    }
   }
 
   Widget _buildInfoCard(bool isDark) {
@@ -308,9 +434,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 child: const Icon(Icons.person, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Informations personnelles',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context).translate('personalInfo'),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -972,7 +1098,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             ),
             const SizedBox(width: 8),
             Text(
-              'Réseaux Sociaux',
+              AppLocalizations.of(context).translate('socialNetworks'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -997,7 +1123,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     size: 20,
                   ),
                 ),
-                tooltip: 'Ajouter un réseau social',
+                tooltip:
+                    AppLocalizations.of(context).translate('addSocialNetwork'),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -1050,7 +1177,22 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     String? selectedPlatform;
     final urlController = TextEditingController();
     final platforms = [
-      'Facebook', 'Instagram', 'Twitter', 'LinkedIn', 'YouTube', 'TikTok', 'Snapchat', 'WhatsApp', 'Telegram', 'GitHub', 'Discord', 'Reddit', 'Pinterest', 'Twitch', 'Spotify', 'Autre',
+      'Facebook',
+      'Instagram',
+      'Twitter',
+      'LinkedIn',
+      'YouTube',
+      'TikTok',
+      'Snapchat',
+      'WhatsApp',
+      'Telegram',
+      'GitHub',
+      'Discord',
+      'Reddit',
+      'Pinterest',
+      'Twitch',
+      'Spotify',
+      'Autre',
     ];
     showModalBottomSheet(
       context: context,
@@ -1064,7 +1206,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             ),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1F2937) : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -1081,39 +1224,45 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     value: selectedPlatform,
                     decoration: InputDecoration(
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       prefixIcon: const Icon(Icons.apps_rounded),
                     ),
                     hint: Text(
                       AppLocalizations.of(context).translate('choose_platform'),
                       style: TextStyle(
-                        color: isDark ? Colors.grey[500] : const Color(0xFF9CA3AF),
+                        color:
+                            isDark ? Colors.grey[500] : const Color(0xFF9CA3AF),
                       ),
                     ),
-                    dropdownColor: isDark ? const Color(0xFF374151) : Colors.white,
-                    items: platforms.map((platform) => DropdownMenuItem(
-                      value: platform,
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: _getSocialColors(platform.toLowerCase()),
+                    dropdownColor:
+                        isDark ? const Color(0xFF374151) : Colors.white,
+                    items: platforms
+                        .map((platform) => DropdownMenuItem(
+                              value: platform,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: _getSocialColors(
+                                            platform.toLowerCase()),
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Icon(
+                                      _getSocialIcon(platform.toLowerCase()),
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(platform),
+                                ],
                               ),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Icon(
-                              _getSocialIcon(platform.toLowerCase()),
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(platform),
-                        ],
-                      ),
-                    )).toList(),
+                            ))
+                        .toList(),
                     onChanged: (value) {
                       setModalState(() {
                         selectedPlatform = value;
@@ -1126,7 +1275,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.grey[300] : const Color(0xFF374151),
+                      color:
+                          isDark ? Colors.grey[300] : const Color(0xFF374151),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -1136,17 +1286,23 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       hintText: 'https://...',
                       prefixIcon: const Icon(Icons.link_rounded),
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF374151) : const Color(0xFFF9FAFB),
+                      fillColor: isDark
+                          ? const Color(0xFF374151)
+                          : const Color(0xFFF9FAFB),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: isDark ? Colors.grey[700]! : const Color(0xFFE5E7EB),
+                          color: isDark
+                              ? Colors.grey[700]!
+                              : const Color(0xFFE5E7EB),
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: isDark ? Colors.grey[700]! : const Color(0xFFE5E7EB),
+                          color: isDark
+                              ? Colors.grey[700]!
+                              : const Color(0xFFE5E7EB),
                         ),
                       ),
                     ),
@@ -1166,13 +1322,17 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               borderRadius: BorderRadius.circular(12),
                             ),
                             side: BorderSide(
-                              color: isDark ? Colors.grey[700]! : const Color(0xFFE5E7EB),
+                              color: isDark
+                                  ? Colors.grey[700]!
+                                  : const Color(0xFFE5E7EB),
                             ),
                           ),
                           child: Text(
                             AppLocalizations.of(context).translate('cancel'),
                             style: TextStyle(
-                              color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
+                              color: isDark
+                                  ? Colors.grey[400]
+                                  : const Color(0xFF6B7280),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1196,9 +1356,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           ),
                           child: ElevatedButton(
                             onPressed: () {
-                              if (selectedPlatform != null && urlController.text.isNotEmpty) {
+                              if (selectedPlatform != null &&
+                                  urlController.text.isNotEmpty) {
                                 setState(() {
-                                  _socialLinks[selectedPlatform!.toLowerCase()] = urlController.text;
+                                  _socialLinks[selectedPlatform!
+                                      .toLowerCase()] = urlController.text;
                                 });
                                 Navigator.pop(context);
                               }
@@ -1231,6 +1393,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       ),
     );
   }
+
   Widget _buildPrivacySection(BuildContext context, bool isDark) {
     final l10n = AppLocalizations.of(context);
     return Container(
@@ -1547,5 +1710,4 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         return [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)];
     }
   }
-
 }

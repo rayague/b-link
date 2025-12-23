@@ -3,6 +3,7 @@ import '../models/user_profile.dart';
 import '../widgets/social_links_widget.dart';
 import '../widgets/birth_insights_widget.dart';
 import '../l10n/app_localizations.dart';
+import '../services/analytics_service.dart';
 
 class PublicProfileScreen extends StatelessWidget {
   static const routeName = '/public-profile';
@@ -17,6 +18,12 @@ class PublicProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
+    
+    // Track screen view
+    AnalyticsService().logScreenView(
+      screenName: 'PublicProfileScreen',
+      screenClass: 'PublicProfileScreen',
+    );
 
     return Scaffold(
       body: Container(

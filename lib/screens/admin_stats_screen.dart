@@ -9,6 +9,7 @@ import '../services/admin_service.dart';
 import '../services/notification_service.dart';
 import '../services/message_repository.dart';
 import '../models/contact.dart';
+import '../services/analytics_service.dart';
 
 /// Écran d'administration pour voir les statistiques globales
 /// et la liste de tous les utilisateurs inscrits
@@ -30,6 +31,13 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
   @override
   void initState() {
     super.initState();
+    
+    AnalyticsService().logScreenView(
+      screenName: 'AdminStatsScreen',
+      screenClass: 'AdminStatsScreen',
+    );
+    AnalyticsService().logAdminLogin();
+    
     _checkAuthorization();
   }
 

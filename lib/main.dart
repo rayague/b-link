@@ -9,6 +9,9 @@ import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/contact_provider.dart';
+import 'services/analytics_service.dart';
+import 'services/connectivity_service.dart';
+import 'services/sync_queue_service.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
@@ -32,6 +35,11 @@ void main() async {
   } catch (_) {
     // If Firebase isn't configured yet (no firebase_options.dart), continue without it.
   }
+  
+  // Initialiser les services de connectivité et synchronisation
+  ConnectivityService().initialize();
+  SyncQueueService().initialize();
+  
   runApp(const RootApp());
 }
 
@@ -89,6 +97,9 @@ class _App extends StatelessWidget {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
+      ],
+      navigatorObservers: [
+        AnalyticsService().getAnalyticsObserver(), // Analytics tracking
       ],
       home: const EntryPointStateful(),
       routes: {
@@ -150,7 +161,7 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final contacts = Provider.of<ContactProvider>(context, listen: false);
       final locale = Provider.of<LocaleProvider>(context, listen: false);
-      // if not registered, navigate to onboarding immediately
+      // Si l'utilisateur n'est pas connecté (Firebase), on va à l'onboarding
       if (!auth.isRegistered) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.of(context).pushReplacementNamed('/onboarding');

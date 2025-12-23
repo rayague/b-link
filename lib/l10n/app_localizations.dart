@@ -7,6 +7,12 @@ class AppLocalizations {
 
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
+      // Profile Screen additions
+      'personalInfo': 'Personal Information',
+      'addSocialNetwork': 'Add social network',
+      'actions': 'Actions',
+      'shareDefaultText': 'Join me on B-Link! 🎂',
+      'shareProfileText': 'I am {name}, join me on B-Link to never forget birthdays! 🎉',
       'appTitle': 'B-Link',
       'home': 'Home',
       'contacts': 'Contacts',
@@ -153,6 +159,12 @@ class AppLocalizations {
       'emailNotFound': 'No account found with this email',
     },
     'fr': {
+      // Profile Screen additions
+      'personalInfo': 'Informations personnelles',
+      'addSocialNetwork': 'Ajouter un réseau social',
+      'actions': 'Actions',
+      'shareDefaultText': 'Rejoins-moi sur B-Link ! 🎂',
+      'shareProfileText': 'Je suis {name}, rejoins-moi sur B-Link pour ne plus oublier les anniversaires! 🎉',
       'appTitle': 'B-Link',
       'home': 'Accueil',
       'contacts': 'Contacts',

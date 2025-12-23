@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/theme_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/contact_provider.dart';
@@ -8,6 +9,8 @@ import '../l10n/app_localizations.dart';
 import '../test_notifications.dart';
 import 'init_admin_screen.dart';
 import '../services/message_repository.dart';
+import '../services/admin_service.dart';
+import '../services/analytics_service.dart';
 import 'dart:math' as math;
 
 class HomeScreen extends StatefulWidget {
@@ -26,6 +29,13 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+    
+    // Analytics: Log screen view
+    AnalyticsService().logScreenView(
+      screenName: 'HomeScreen',
+      screenClass: 'HomeScreen',
+    );
+    
     _controller = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -65,9 +75,13 @@ class _HomeScreenState extends State<HomeScreen>
     }).toList();
 
     return Scaffold(
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
+      body: Column(
+        children: [
+          OfflineBanner(), // Afficher le banner si hors ligne
+          Expanded(
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
           // Modern App Bar with gradient
           SliverAppBar(
             expandedHeight: 160,
@@ -148,18 +162,28 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             actions: [
-              // Bouton temporaire pour initialiser le premier admin
-              IconButton(
-                icon:
-                    const Icon(Icons.admin_panel_settings, color: Colors.amber),
-                tooltip: 'Initialiser Admin (à utiliser une seule fois)',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const InitAdminScreen(),
-                    ),
-                  );
+              // Bouton admin sécurisé - visible uniquement pour les admins
+              FutureBuilder<bool>(
+                future: _isAdminUser(),
+                builder: (context, snapshot) {
+                  // Afficher uniquement si l'utilisateur est admin
+                  if (snapshot.data == true) {
+                    return IconButton(
+                      icon: const Icon(Icons.admin_panel_settings,
+                          color: Colors.amber),
+                      tooltip: 'Administration',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const InitAdminScreen(),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                  // Ne rien afficher si ce n'est pas un admin
+                  return const SizedBox.shrink();
                 },
               ),
               IconButton(
@@ -213,6 +237,9 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ),
+            ), // Fermeture Expanded
+          ], // Fermeture Column children
+        ), // Fermeture Column
       floatingActionButton: null, // Removed to avoid overlap
     );
   }
@@ -716,6 +743,20 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       builder: (context) => const CustomSettingsSheet(),
     );
+  }
+
+  /// Vérifier si l'utilisateur actuel est administrateur
+  Future<bool> _isAdminUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    try {
+      final adminService = AdminService();
+      return await adminService.isUserAdmin(user.uid);
+    } catch (e) {
+      print('❌ Erreur vérification admin: $e');
+      return false;
+    }
   }
 }
 

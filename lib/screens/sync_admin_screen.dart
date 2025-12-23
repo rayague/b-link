@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import '../services/db_helper.dart';
 import '../services/admin_service.dart';
 import '../providers/auth_provider.dart' as local_auth;
+import '../services/analytics_service.dart';
 
 enum SyncFilter { all, pending, failed, done }
 
@@ -36,6 +38,12 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
   @override
   void initState() {
     super.initState();
+    
+    AnalyticsService().logScreenView(
+      screenName: 'SyncAdminScreen',
+      screenClass: 'SyncAdminScreen',
+    );
+    
     _load();
     _loadActions();
     _loadAdmin();
@@ -74,19 +82,103 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
   }
 
   Future<void> _claimAdmin() async {
-    // Cette méthode n'est pas implémentée dans AdminService, à adapter selon besoin
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final email = FirebaseAuth.instance.currentUser?.email;
+    
+    if (uid == null || email == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No authenticated user.')));
+        const SnackBar(
+          content: Text('Aucun utilisateur authentifié.'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
-    // À implémenter si besoin : création d'un admin Firestore pour ce UID
-    setState(() => _adminUid = uid);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Admin configured in Firestore.')));
+
+    // Afficher dialogue de confirmation
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Devenir administrateur'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Voulez-vous vraiment devenir administrateur ?'),
+            const SizedBox(height: 16),
+            Text(
+              'Email: $email',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'UID: $uid',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+            ),
+            child: const Text('Confirmer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // Vérifier si un admin existe déjà
+      final admins = await _adminService.getAllAdmins();
+      
+      if (admins.isNotEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Un administrateur existe déjà dans le système.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // Créer l'admin dans Firestore avec le même UID que l'utilisateur actuel
+      await FirebaseFirestore.instance.collection('admins').doc(uid).set({
+        'uid': uid,
+        'email': email,
+        'role': 'super_admin',
+        'isActive': true,
+        'createdAt': DateTime.now().toIso8601String(),
+        'lastLogin': DateTime.now().toIso8601String(),
+      });
+
+      setState(() => _adminUid = uid);
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✓ Vous êtes maintenant administrateur.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la création admin: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _revokeAdmin() async {

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/sync_service.dart';
 import '../services/firebase_sync_service.dart';
 import '../services/db_helper.dart';
+import '../services/analytics_service.dart';
 
 class ProfileProvider extends ChangeNotifier {
   UserProfile? _profile;
@@ -75,6 +76,12 @@ class ProfileProvider extends ChangeNotifier {
 
     await _service.saveLocally(_profile!);
     notifyListeners();
+
+    // Analytics: Track profile updated
+    AnalyticsService().logProfileUpdated(
+      hasPhoto: _profile!.photo != null && _profile!.photo!.isNotEmpty,
+      isPublic: _profile!.isPublic,
+    );
 
     if (push) {
       // Sauvegarder dans Firebase

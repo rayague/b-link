@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../providers/auth_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../services/analytics_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -28,6 +29,11 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    AnalyticsService().logScreenView(
+      screenName: 'AuthScreen',
+      screenClass: 'AuthScreen',
+    );
 
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -87,7 +93,6 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
       if (_isLogin) {
         final ok = await auth.login(email, pw);
         if (!mounted) return;
-
         if (ok) {
           Navigator.of(context).pushReplacementNamed('/');
         } else {

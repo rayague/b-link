@@ -7,6 +7,7 @@ import '../providers/contact_provider.dart';
 import '../providers/locale_provider.dart';
 import '../l10n/app_localizations.dart';
 import 'dart:math' as math;
+import '../services/analytics_service.dart';
 
 class ListScreen extends StatefulWidget {
   const ListScreen({super.key});
@@ -22,6 +23,12 @@ class _ListScreenState extends State<ListScreen> {
   @override
   void initState() {
     super.initState();
+    
+    AnalyticsService().logScreenView(
+      screenName: 'ListScreen',
+      screenClass: 'ListScreen',
+    );
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final prov = Provider.of<ContactProvider>(context, listen: false);
       final locale = Provider.of<LocaleProvider>(context, listen: false);

@@ -6,6 +6,7 @@ import '../providers/contact_provider.dart';
 import '../models/contact.dart';
 // message_generator not used here; repository is preferred
 import '../services/message_repository.dart';
+import '../services/analytics_service.dart';
 
 class CelebrationScreen extends StatefulWidget {
   const CelebrationScreen({super.key});
@@ -15,6 +16,15 @@ class CelebrationScreen extends StatefulWidget {
 }
 
 class _CelebrationScreenState extends State<CelebrationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsService().logScreenView(
+      screenName: 'CelebrationScreen',
+      screenClass: 'CelebrationScreen',
+    );
+  }
+  
   @override
   Widget build(BuildContext context) {
     final prov = Provider.of<ContactProvider>(context);
@@ -57,6 +67,13 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
 
   Future<void> _call(Contact c) async {
     if (c.phone == null || c.phone!.isEmpty) return;
+    
+    // Analytics: Track call initiated
+    AnalyticsService().logCallInitiated(
+      relation: c.relation,
+      hasPhone: true,
+    );
+    
     final uri = Uri.parse('tel:${c.phone}');
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
@@ -66,6 +83,12 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
     final repo = MessageRepository();
     final msg = await repo.getRandomForRelation(c.relation, c.name);
     await Clipboard.setData(ClipboardData(text: msg));
+
+    // Analytics: Track message generated
+    AnalyticsService().logBirthdayMessageGenerated(
+      relation: c.relation,
+      messageLength: msg.length,
+    );
 
     if (!mounted) return;
 

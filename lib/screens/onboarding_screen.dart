@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import '../services/analytics_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -18,6 +19,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   void initState() {
     super.initState();
+    
+    AnalyticsService().logScreenView(
+      screenName: 'OnboardingScreen',
+      screenClass: 'OnboardingScreen',
+    );
+    
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,

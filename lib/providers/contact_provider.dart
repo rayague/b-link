@@ -3,6 +3,7 @@ import '../models/contact.dart';
 import '../services/db_helper.dart';
 import '../services/notification_service.dart';
 import '../services/firebase_sync_service.dart';
+import '../services/analytics_service.dart';
 
 class ContactProvider extends ChangeNotifier {
   final dynamic _db;
@@ -113,6 +114,12 @@ class ContactProvider extends ChangeNotifier {
       await _firebaseSync!.saveContact(c);
     }
 
+    // Analytics: Track contact added
+    AnalyticsService().logContactAdded(
+      relation: c.relation,
+      hasPhone: c.phone != null && c.phone!.isNotEmpty,
+    );
+
     await loadContacts(locale: locale, syncWithFirebase: false);
   }
 
@@ -126,13 +133,22 @@ class ContactProvider extends ChangeNotifier {
       await _firebaseSync!.saveContact(c);
     }
 
+    // Analytics: Track contact updated
+    AnalyticsService().logContactUpdated(
+      relation: c.relation,
+      hasPhone: c.phone != null && c.phone!.isNotEmpty,
+    );
+
     await loadContacts(locale: locale, syncWithFirebase: false);
   }
 
   Future<void> deleteContact(int id) async {
     await _db.deleteContact(id);
     await _notif.cancelBirthdayReminders(id);
+// Analytics: Track contact deleted
+    AnalyticsService().logContactDeleted();
 
+    
     // Supprimer de Firebase
     if (_firebaseSync != null && _firebaseSync!.isUserAuthenticated) {
       await _firebaseSync!.deleteContact(id);

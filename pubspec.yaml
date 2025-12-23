@@ -54,11 +54,18 @@ dependencies:
   cloud_firestore: any
   firebase_auth: any
   share_plus: any
+  
+  # Connectivity
+  connectivity_plus: ^5.0.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: any
+  integration_test:
+    sdk: flutter
+  fake_cloud_firestore: ^2.4.1+1
+  firebase_auth_mocks: ^0.13.0
 
 flutter:
   uses-material-design: true

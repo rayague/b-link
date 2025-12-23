@@ -1,55 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
-import 'package:crypto/crypto.dart';
+// Suppression du stockage local et du hashage, tout passe par Firebase Auth
+import '../services/analytics_service.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  static const _keyRegistered = 'is_registered';
-  static const _keyUser = 'user_email';
-
-  bool _isRegistered = false;
-  String? _userEmail;
-
-  bool get isRegistered => _isRegistered;
-  String? get userEmail => _userEmail;
+  bool get isRegistered => FirebaseAuth.instance.currentUser != null;
+  String? get userEmail => FirebaseAuth.instance.currentUser?.email;
   String? get userId => FirebaseAuth.instance.currentUser?.uid;
 
-  AuthProvider() {
-    _load();
-  }
-
-  Future<void> _load() async {
-    final reg = await _storage.read(key: _keyRegistered);
-    final email = await _storage.read(key: _keyUser);
-    _isRegistered = reg == 'true';
-    _userEmail = email;
-    notifyListeners();
-  }
+  AuthProvider();
 
   Future<void> register(String email, String password) async {
-    // store a simple hashed password (local only)
-    final hashed = sha256.convert(utf8.encode(password)).toString();
-    await _storage.write(key: _keyUser, value: email);
-    await _storage.write(key: 'pw_hash', value: hashed);
-    await _storage.write(key: _keyRegistered, value: 'true');
-    _isRegistered = true;
-    _userEmail = email;
-    notifyListeners();
+    try {
+      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<bool> login(String email, String password) async {
-    final stored = await _storage.read(key: _keyUser);
-    final storedHash = await _storage.read(key: 'pw_hash');
-    final hashed = sha256.convert(utf8.encode(password)).toString();
-    if (stored == email && storedHash == hashed) {
-      _isRegistered = true;
-      _userEmail = email;
+    try {
+      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      // Analytics: Set user ID
+      final uid = cred.user?.uid;
+      if (uid != null) {
+        AnalyticsService().setUserId(uid);
+      }
       notifyListeners();
       return true;
+    } catch (e) {
+      return false;
     }
-    return false;
+  }
+
+  /// Déconnexion
+  Future<void> logout() async {
+    await FirebaseAuth.instance.signOut();
+    notifyListeners();
   }
 
   /// Ensure there is an anonymous Firebase user. Returns the UID.

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/profile_provider.dart';
 import '../l10n/app_localizations.dart';
 import 'dart:math' as math;
+import '../services/analytics_service.dart';
 
 class ZodiacScreen extends StatefulWidget {
   static const routeName = '/zodiac';
@@ -21,6 +22,12 @@ class _ZodiacScreenState extends State<ZodiacScreen>
   @override
   void initState() {
     super.initState();
+    
+    AnalyticsService().logScreenView(
+      screenName: 'ZodiacScreen',
+      screenClass: 'ZodiacScreen',
+    );
+    
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,

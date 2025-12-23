@@ -4,6 +4,7 @@ import '../providers/profile_provider.dart';
 import '../models/user_profile.dart';
 import '../utils/zodiac.dart';
 import '../l10n/app_localizations.dart';
+import '../services/analytics_service.dart';
 
 class ProfileRegistrationScreen extends StatefulWidget {
   const ProfileRegistrationScreen({super.key});
@@ -26,6 +27,15 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   bool _publicBirthDate = false;
   bool _publicBirthPlace = false;
   bool _publicSocials = false;
+
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsService().logScreenView(
+      screenName: 'ProfileRegistrationScreen',
+      screenClass: 'ProfileRegistrationScreen',
+    );
+  }
 
   @override
   void dispose() {

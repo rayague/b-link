@@ -9,6 +9,7 @@ import 'dart:math' as math;
 import '../services/message_repository.dart';
 import '../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
+import '../services/analytics_service.dart';
 
 class SameDayScreen extends StatefulWidget {
   const SameDayScreen({super.key});
@@ -34,6 +35,12 @@ class _SameDayScreenState extends State<SameDayScreen>
   @override
   void initState() {
     super.initState();
+    
+    AnalyticsService().logScreenView(
+      screenName: 'SameDayScreen',
+      screenClass: 'SameDayScreen',
+    );
+    
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,

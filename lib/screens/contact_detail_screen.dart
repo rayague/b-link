@@ -6,6 +6,7 @@ import '../models/contact.dart';
 import '../providers/contact_provider.dart';
 import '../providers/locale_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../services/analytics_service.dart';
 
 class ContactDetailScreen extends StatefulWidget {
   const ContactDetailScreen({super.key});
@@ -57,6 +58,12 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
   @override
   void initState() {
     super.initState();
+    
+    AnalyticsService().logScreenView(
+      screenName: 'ContactDetailScreen',
+      screenClass: 'ContactDetailScreen',
+    );
+    
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
