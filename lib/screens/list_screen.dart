@@ -23,12 +23,12 @@ class _ListScreenState extends State<ListScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     AnalyticsService().logScreenView(
       screenName: 'ListScreen',
       screenClass: 'ListScreen',
     );
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final prov = Provider.of<ContactProvider>(context, listen: false);
       final locale = Provider.of<LocaleProvider>(context, listen: false);

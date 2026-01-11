@@ -178,7 +178,7 @@ class AnalyticsService {
       name: 'sync_triggered',
       parameters: {
         'item_count': itemCount ?? 0,
-        'is_manual': isManual,
+        'is_manual': isManual ? 1 : 0,
         'timestamp': DateTime.now().toIso8601String(),
       },
     );
@@ -249,7 +249,8 @@ class AnalyticsService {
       name: 'app_error',
       parameters: {
         'error_type': errorType,
-        'error_message': errorMessage.substring(0, errorMessage.length > 100 ? 100 : errorMessage.length),
+        'error_message': errorMessage.substring(
+            0, errorMessage.length > 100 ? 100 : errorMessage.length),
         'screen_name': screenName ?? 'unknown',
         'timestamp': DateTime.now().toIso8601String(),
       },

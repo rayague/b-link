@@ -31,15 +31,13 @@ class ConnectivityService {
     isConnected();
 
     // Écouter les changements
-    _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
-      // Prendre le premier résultat de la liste
-      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
+    _connectivity.onConnectivityChanged
+        .listen((ConnectivityResult result) {
       final connected = _isOnline(result);
-      
       if (_isConnected != connected) {
         _isConnected = connected;
         _connectionController.add(connected);
-        
+
         if (connected) {
           print('🌐 ✅ Connexion rétablie');
         } else {

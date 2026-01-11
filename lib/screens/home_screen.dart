@@ -11,6 +11,7 @@ import 'init_admin_screen.dart';
 import '../services/message_repository.dart';
 import '../services/admin_service.dart';
 import '../services/analytics_service.dart';
+import '../widgets/offline_banner.dart';
 import 'dart:math' as math;
 
 class HomeScreen extends StatefulWidget {
@@ -29,13 +30,13 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    
+
     // Analytics: Log screen view
     AnalyticsService().logScreenView(
       screenName: 'HomeScreen',
       screenClass: 'HomeScreen',
     );
-    
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -82,164 +83,165 @@ class _HomeScreenState extends State<HomeScreen>
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-          // Modern App Bar with gradient
-          SliverAppBar(
-            expandedHeight: 160,
-            floating: false,
-            pinned: true,
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            flexibleSpace: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isDark
-                      ? [const Color(0xFF1E3A8A), const Color(0xFF3B82F6)]
-                      : [
-                          const Color(0xFF3B82F6),
-                          const Color(0xFF60A5FA),
-                          const Color(0xFF93C5FD)
-                        ],
-                ),
-              ),
-              child: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-                title: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.cake_outlined,
-                          color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      loc.translate('appTitle'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
+                // Modern App Bar with gradient
+                SliverAppBar(
+                  expandedHeight: 160,
+                  floating: false,
+                  pinned: true,
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  flexibleSpace: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isDark
+                            ? [const Color(0xFF1E3A8A), const Color(0xFF3B82F6)]
+                            : [
+                                const Color(0xFF3B82F6),
+                                const Color(0xFF60A5FA),
+                                const Color(0xFF93C5FD)
+                              ],
                       ),
                     ),
-                  ],
-                ),
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Animated circles background
-                    Positioned(
-                      right: -50,
-                      top: -50,
-                      child: Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: -30,
-                      bottom: -30,
-                      child: Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.08),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              // Bouton admin sécurisé - visible uniquement pour les admins
-              FutureBuilder<bool>(
-                future: _isAdminUser(),
-                builder: (context, snapshot) {
-                  // Afficher uniquement si l'utilisateur est admin
-                  if (snapshot.data == true) {
-                    return IconButton(
-                      icon: const Icon(Icons.admin_panel_settings,
-                          color: Colors.amber),
-                      tooltip: 'Administration',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const InitAdminScreen(),
+                    child: FlexibleSpaceBar(
+                      titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                      title: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.cake_outlined,
+                                color: Colors.white, size: 20),
                           ),
-                        );
+                          const SizedBox(width: 8),
+                          Text(
+                            loc.translate('appTitle'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      background: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Animated circles background
+                          Positioned(
+                            right: -50,
+                            top: -50,
+                            child: Container(
+                              width: 200,
+                              height: 200,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.1),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: -30,
+                            bottom: -30,
+                            child: Container(
+                              width: 150,
+                              height: 150,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.08),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    // Bouton admin sécurisé - visible uniquement pour les admins
+                    FutureBuilder<bool>(
+                      future: _isAdminUser(),
+                      builder: (context, snapshot) {
+                        // Afficher uniquement si l'utilisateur est admin
+                        if (snapshot.data == true) {
+                          return IconButton(
+                            icon: const Icon(Icons.admin_panel_settings,
+                                color: Colors.amber),
+                            tooltip: 'Administration',
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const InitAdminScreen(),
+                                ),
+                              );
+                            },
+                          );
+                        }
+                        // Ne rien afficher si ce n'est pas un admin
+                        return const SizedBox.shrink();
                       },
-                    );
-                  }
-                  // Ne rien afficher si ce n'est pas un admin
-                  return const SizedBox.shrink();
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.settings_outlined, color: Colors.white),
-                onPressed: () => _showSettingsSheet(context),
-              ),
-            ],
-          ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined,
+                          color: Colors.white),
+                      onPressed: () => _showSettingsSheet(context),
+                    ),
+                  ],
+                ),
 
-          // Content
-          SliverToBoxAdapter(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Quick Stats Card
-                      _buildStatsCard(context, contacts, loc, isDark),
-                      const SizedBox(height: 24),
+                // Content
+                SliverToBoxAdapter(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Quick Stats Card
+                            _buildStatsCard(context, contacts, loc, isDark),
+                            const SizedBox(height: 24),
 
-                      // Upcoming Birthdays Section
-                      if (upcomingBirthdays.isNotEmpty) ...[
-                        _buildSectionHeader(
-                            context, '🎉 ${loc.translate("celebrations")}', () {
-                          Navigator.of(context).pushNamed('/same-day');
-                        }),
-                        const SizedBox(height: 12),
-                        ...upcomingBirthdays.take(3).map((contact) =>
-                            _buildUpcomingBirthdayCard(
-                                context, contact, isDark)),
-                        const SizedBox(height: 24),
-                      ],
+                            // Upcoming Birthdays Section
+                            if (upcomingBirthdays.isNotEmpty) ...[
+                              _buildSectionHeader(context,
+                                  '🎉 ${loc.translate("celebrations")}', () {
+                                Navigator.of(context).pushNamed('/same-day');
+                              }),
+                              const SizedBox(height: 12),
+                              ...upcomingBirthdays.take(3).map((contact) =>
+                                  _buildUpcomingBirthdayCard(
+                                      context, contact, isDark)),
+                              const SizedBox(height: 24),
+                            ],
 
-                      // Quick Actions
-                      _buildSectionHeader(
-                          context, '⚡ ${loc.translate("quickActions")}', null),
-                      const SizedBox(height: 12),
-                      _buildQuickActions(context, loc, isDark),
+                            // Quick Actions
+                            _buildSectionHeader(context,
+                                '⚡ ${loc.translate("quickActions")}', null),
+                            const SizedBox(height: 12),
+                            _buildQuickActions(context, loc, isDark),
 
-                      // Extra spacing for FAB
-                      const SizedBox(height: 80),
-                    ],
+                            // Extra spacing for FAB
+                            const SizedBox(height: 80),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ),
-        ],
-      ),
-            ), // Fermeture Expanded
-          ], // Fermeture Column children
-        ), // Fermeture Column
+          ), // Fermeture Expanded
+        ], // Fermeture Column children
+      ), // Fermeture Column
       floatingActionButton: null, // Removed to avoid overlap
     );
   }

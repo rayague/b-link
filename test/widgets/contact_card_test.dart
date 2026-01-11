@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:b_link/models/contact.dart';
 
 void main() {
-  testWidgets('ContactCard affiche les informations du contact', (tester) async {
+  testWidgets('ContactCard affiche les informations du contact',
+      (tester) async {
     final contact = Contact(
       id: 1,
       name: 'Alice Dupont',
@@ -70,7 +71,8 @@ void main() {
           body: ListTile(
             leading: CircleAvatar(child: Text(contact.name[0])),
             title: Text(contact.name),
-            subtitle: Text('${contact.relation}${contact.phone != null ? ' • ${contact.phone}' : ''}'),
+            subtitle: Text(
+                '${contact.relation}${contact.phone != null ? ' • ${contact.phone}' : ''}'),
           ),
         ),
       ),

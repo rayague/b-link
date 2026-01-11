@@ -136,7 +136,6 @@ class ContactProvider extends ChangeNotifier {
     // Analytics: Track contact updated
     AnalyticsService().logContactUpdated(
       relation: c.relation,
-      hasPhone: c.phone != null && c.phone!.isNotEmpty,
     );
 
     await loadContacts(locale: locale, syncWithFirebase: false);
@@ -145,10 +144,13 @@ class ContactProvider extends ChangeNotifier {
   Future<void> deleteContact(int id) async {
     await _db.deleteContact(id);
     await _notif.cancelBirthdayReminders(id);
-// Analytics: Track contact deleted
-    AnalyticsService().logContactDeleted();
+    // Analytics: Track contact deleted
+    // Pour suppression, il faut passer le paramètre relation
+    final contact = _contacts.firstWhere((c) => c.id == id, orElse: () => Contact(id: id, name: '', date: '', relation: '', phone: null));
+    AnalyticsService().logContactDeleted(
+      relation: contact.relation,
+    );
 
-    
     // Supprimer de Firebase
     if (_firebaseSync != null && _firebaseSync!.isUserAuthenticated) {
       await _firebaseSync!.deleteContact(id);

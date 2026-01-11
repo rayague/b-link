@@ -41,12 +41,13 @@ class SyncQueueService {
     String? userId,
   }) async {
     try {
-      await _db.addToSyncQueue(
-        action: action,
-        data: jsonEncode(data),
-        userId: userId,
+      // Correction : utiliser enqueueSync (DBInterface)
+      await _db.enqueueSync(
+        action,
+        userId,
+        jsonEncode(data),
       );
-      
+
       print('📤 Opération ajoutée à la queue: $action');
 
       // Si en ligne, traiter immédiatement
@@ -76,7 +77,7 @@ class SyncQueueService {
     try {
       _analytics.logSyncTriggered();
 
-      final items = await _db.getNextSyncItems(limit: 50);
+      final items = await _db.getPendingSyncItems(limit: 50);
       print('📥 ${items.length} éléments à synchroniser');
 
       int successCount = 0;
@@ -102,15 +103,16 @@ class SyncQueueService {
 
       if (successCount > 0) {
         _analytics.logSyncCompleted(
-          success: true,
-          itemCount: successCount,
+          syncedItems: successCount,
+          failedItems: failedCount,
         );
       }
     } catch (e) {
       print('💥 Erreur fatale lors de la sync: $e');
       _analytics.logError(
+        errorType: 'SyncQueue',
         errorMessage: 'Sync queue error: $e',
-        fatal: false,
+        screenName: 'SyncQueueService',
       );
     } finally {
       _isProcessing = false;
@@ -215,7 +217,7 @@ class SyncQueueService {
 
   /// Obtenir le nombre d'éléments en attente
   Future<int> getPendingCount() async {
-    final items = await _db.getNextSyncItems(limit: 1000);
+    final items = await _db.getPendingSyncItems(limit: 1000);
     return items.length;
   }
 

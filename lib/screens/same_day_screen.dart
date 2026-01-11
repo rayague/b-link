@@ -35,12 +35,12 @@ class _SameDayScreenState extends State<SameDayScreen>
   @override
   void initState() {
     super.initState();
-    
+
     AnalyticsService().logScreenView(
       screenName: 'SameDayScreen',
       screenClass: 'SameDayScreen',
     );
-    
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,

@@ -19,7 +19,7 @@ void main() {
   group('AdminService Tests', () {
     test('should verify user is not admin when no admin exists', () async {
       final isAdmin = await adminService.isUserAdmin('test-uid');
-      
+
       expect(isAdmin, isFalse);
     });
 
@@ -33,11 +33,14 @@ void main() {
         createdAt: DateTime.now(),
         isActive: true,
       );
-      
-      await fakeFirestore.collection('admins').doc('admin-uid').set(admin.toMap());
-      
+
+      await fakeFirestore
+          .collection('admins')
+          .doc('admin-uid')
+          .set(admin.toMap());
+
       final isAdmin = await adminService.isUserAdmin('admin-uid');
-      
+
       expect(isAdmin, isTrue);
     });
 
@@ -50,11 +53,14 @@ void main() {
         createdAt: DateTime.now(),
         isActive: false,
       );
-      
-      await fakeFirestore.collection('admins').doc('inactive-admin').set(admin.toMap());
-      
+
+      await fakeFirestore
+          .collection('admins')
+          .doc('inactive-admin')
+          .set(admin.toMap());
+
       final isAdmin = await adminService.isUserAdmin('inactive-admin');
-      
+
       expect(isAdmin, isFalse);
     });
 
@@ -67,11 +73,14 @@ void main() {
         createdAt: DateTime.now(),
         isActive: true,
       );
-      
-      await fakeFirestore.collection('admins').doc('admin-uid').set(admin.toMap());
-      
+
+      await fakeFirestore
+          .collection('admins')
+          .doc('admin-uid')
+          .set(admin.toMap());
+
       final adminUser = await adminService.getAdminUser('admin-uid');
-      
+
       expect(adminUser, isNotNull);
       expect(adminUser!.uid, equals('admin-uid'));
       expect(adminUser.email, equals('admin@test.com'));
@@ -88,12 +97,16 @@ void main() {
         createdAt: DateTime.now(),
         isActive: true,
       );
-      
-      await fakeFirestore.collection('admins').doc('admin-uid').set(admin.toMap());
-      
+
+      await fakeFirestore
+          .collection('admins')
+          .doc('admin-uid')
+          .set(admin.toMap());
+
       await adminService.updateLastLogin('admin-uid');
-      
-      final doc = await fakeFirestore.collection('admins').doc('admin-uid').get();
+
+      final doc =
+          await fakeFirestore.collection('admins').doc('admin-uid').get();
       expect(doc.data()?['lastLogin'], isNotNull);
     });
 
@@ -106,7 +119,7 @@ void main() {
         createdAt: DateTime.now(),
         isActive: true,
       );
-      
+
       final admin2 = AdminUser(
         uid: 'admin-2',
         email: 'admin2@test.com',
@@ -115,12 +128,18 @@ void main() {
         createdAt: DateTime.now(),
         isActive: true,
       );
-      
-      await fakeFirestore.collection('admins').doc('admin-1').set(admin1.toMap());
-      await fakeFirestore.collection('admins').doc('admin-2').set(admin2.toMap());
-      
+
+      await fakeFirestore
+          .collection('admins')
+          .doc('admin-1')
+          .set(admin1.toMap());
+      await fakeFirestore
+          .collection('admins')
+          .doc('admin-2')
+          .set(admin2.toMap());
+
       final admins = await adminService.getAllAdmins();
-      
+
       expect(admins.length, equals(2));
       expect(admins[0].email, equals('admin1@test.com'));
       expect(admins[1].email, equals('admin2@test.com'));
@@ -132,7 +151,7 @@ void main() {
       // On ne peut pas tester directement _hashPassword car c'est privé,
       // mais on peut tester que deux authentifications avec le même mot de passe
       // devraient donner le même hash
-      
+
       // Ce test est une démonstration de concept
       expect(true, isTrue);
     });

@@ -49,7 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    
+
     AnalyticsService().logScreenView(
       screenName: 'ProfileScreen',
       screenClass: 'ProfileScreen',
@@ -137,8 +137,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                   flexibleSpace: LayoutBuilder(
                     builder: (context, constraints) {
                       // Détecter si l'AppBar est collapsée
-                      final isCollapsed = constraints.maxHeight <= kToolbarHeight + 40;
-                      
+                      final isCollapsed =
+                          constraints.maxHeight <= kToolbarHeight + 40;
+
                       // Correction overflow: limiter la hauteur du contenu
                       return Align(
                         alignment: Alignment.center,
@@ -302,7 +303,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               const Icon(Icons.error_outline, color: Colors.white),
               const SizedBox(width: 8),
               Text(AppLocalizations.of(context)
-                      .translate('pleaseFillAllRequiredFields')),
+                  .translate('pleaseFillAllRequiredFields')),
             ],
           ),
           backgroundColor: Colors.red[400],
@@ -320,8 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: [
               const Icon(Icons.error_outline, color: Colors.white),
               const SizedBox(width: 8),
-              Text(
-                  AppLocalizations.of(context).translate('birthDateRequired')),
+              Text(AppLocalizations.of(context).translate('birthDateRequired')),
             ],
           ),
           backgroundColor: Colors.red[400],

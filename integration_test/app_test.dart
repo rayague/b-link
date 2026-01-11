@@ -84,12 +84,12 @@ void main() {
   group('Tests de performance', () {
     testWidgets('Chargement initial rapide', (tester) async {
       final stopwatch = Stopwatch()..start();
-      
+
       app.main();
       await tester.pumpAndSettle();
-      
+
       stopwatch.stop();
-      
+
       // Vérifier que le chargement prend moins de 5 secondes
       expect(stopwatch.elapsedMilliseconds, lessThan(5000));
     });

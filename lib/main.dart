@@ -35,11 +35,11 @@ void main() async {
   } catch (_) {
     // If Firebase isn't configured yet (no firebase_options.dart), continue without it.
   }
-  
+
   // Initialiser les services de connectivité et synchronisation
   ConnectivityService().initialize();
   SyncQueueService().initialize();
-  
+
   runApp(const RootApp());
 }
 

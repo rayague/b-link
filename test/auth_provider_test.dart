@@ -54,7 +54,7 @@ void main() {
         'user.name@example.co.uk',
         'user+tag@example.com',
       ];
-      
+
       for (var email in validEmails) {
         expect(_isValidEmail(email), isTrue, reason: '$email should be valid');
       }
@@ -67,9 +67,10 @@ void main() {
         'user@',
         'user @example.com',
       ];
-      
+
       for (var email in invalidEmails) {
-        expect(_isValidEmail(email), isFalse, reason: '$email should be invalid');
+        expect(_isValidEmail(email), isFalse,
+            reason: '$email should be invalid');
       }
     });
   });

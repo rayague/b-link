@@ -24,12 +24,12 @@ class _InitAdminScreenState extends State<InitAdminScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     AnalyticsService().logScreenView(
       screenName: 'InitAdminScreen',
       screenClass: 'InitAdminScreen',
     );
-    
+
     _checkIfAdminExists();
   }
 

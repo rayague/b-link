@@ -22,12 +22,12 @@ class _ZodiacScreenState extends State<ZodiacScreen>
   @override
   void initState() {
     super.initState();
-    
+
     AnalyticsService().logScreenView(
       screenName: 'ZodiacScreen',
       screenClass: 'ZodiacScreen',
     );
-    
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,

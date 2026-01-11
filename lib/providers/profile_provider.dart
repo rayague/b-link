@@ -79,7 +79,7 @@ class ProfileProvider extends ChangeNotifier {
 
     // Analytics: Track profile updated
     AnalyticsService().logProfileUpdated(
-      hasPhoto: _profile!.photo != null && _profile!.photo!.isNotEmpty,
+      hasPhoto: false,
       isPublic: _profile!.isPublic,
     );
 

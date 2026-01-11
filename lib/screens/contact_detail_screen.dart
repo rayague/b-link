@@ -58,12 +58,12 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
   @override
   void initState() {
     super.initState();
-    
+
     AnalyticsService().logScreenView(
       screenName: 'ContactDetailScreen',
       screenClass: 'ContactDetailScreen',
     );
-    
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,

@@ -31,13 +31,13 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     AnalyticsService().logScreenView(
       screenName: 'AdminStatsScreen',
       screenClass: 'AdminStatsScreen',
     );
-    AnalyticsService().logAdminLogin();
-    
+    AnalyticsService().logAdminLogin(adminRole: 'admin');
+
     _checkAuthorization();
   }
 

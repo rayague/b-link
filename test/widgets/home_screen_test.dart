@@ -34,7 +34,7 @@ void main() {
 
   testWidgets('HomeScreen change de thème', (tester) async {
     final themeProvider = ThemeProvider();
-    
+
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
         value: themeProvider,

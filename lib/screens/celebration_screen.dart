@@ -24,7 +24,7 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
       screenClass: 'CelebrationScreen',
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final prov = Provider.of<ContactProvider>(context);
@@ -38,14 +38,22 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
               itemBuilder: (_, i) {
                 final c = list[i];
                 return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: ListTile(
-                    leading: CircleAvatar(child: Text(c.name.isNotEmpty ? c.name[0].toUpperCase() : '?')),
+                    leading: CircleAvatar(
+                        child: Text(
+                            c.name.isNotEmpty ? c.name[0].toUpperCase() : '?')),
                     title: Text(c.name),
-                    subtitle: Text('In ${_daysRemaining(c)} days • ${c.relation}'),
+                    subtitle:
+                        Text('In ${_daysRemaining(c)} days • ${c.relation}'),
                     trailing: Wrap(spacing: 8, children: [
-                      IconButton(icon: const Icon(Icons.call, color: Colors.green), onPressed: () => _call(c)),
-                      IconButton(icon: const Icon(Icons.message, color: Colors.blue), onPressed: () => _generateAndCopy(c)),
+                      IconButton(
+                          icon: const Icon(Icons.call, color: Colors.green),
+                          onPressed: () => _call(c)),
+                      IconButton(
+                          icon: const Icon(Icons.message, color: Colors.blue),
+                          onPressed: () => _generateAndCopy(c)),
                     ]),
                   ),
                 );
@@ -67,13 +75,13 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
 
   Future<void> _call(Contact c) async {
     if (c.phone == null || c.phone!.isEmpty) return;
-    
+
     // Analytics: Track call initiated
     AnalyticsService().logCallInitiated(
       relation: c.relation,
       hasPhone: true,
     );
-    
+
     final uri = Uri.parse('tel:${c.phone}');
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
@@ -92,22 +100,25 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
 
     if (!mounted) return;
 
-  // capture messenger in a local variable after the async gap and mounted check
-  final messenger = ScaffoldMessenger.of(context);
+    // capture messenger in a local variable after the async gap and mounted check
+    final messenger = ScaffoldMessenger.of(context);
 
-  // Show dialog (mounted checked above)
-  showDialog(
+    // Show dialog (mounted checked above)
+    showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         title: const Text('Generated message'),
         content: Text(msg),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(), child: const Text('Close')),
+          TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              child: const Text('Close')),
           TextButton(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: msg));
               Navigator.of(dialogCtx).pop();
-              messenger.showSnackBar(const SnackBar(content: Text('Message copied')));
+              messenger.showSnackBar(
+                  const SnackBar(content: Text('Message copied')));
             },
             child: const Text('Copy'),
           ),

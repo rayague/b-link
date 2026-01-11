@@ -18,7 +18,7 @@ class PublicProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
-    
+
     // Track screen view
     AnalyticsService().logScreenView(
       screenName: 'PublicProfileScreen',

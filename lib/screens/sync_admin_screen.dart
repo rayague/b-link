@@ -38,12 +38,12 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     AnalyticsService().logScreenView(
       screenName: 'SyncAdminScreen',
       screenClass: 'SyncAdminScreen',
     );
-    
+
     _load();
     _loadActions();
     _loadAdmin();
@@ -84,7 +84,7 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
   Future<void> _claimAdmin() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     final email = FirebaseAuth.instance.currentUser?.email;
-    
+
     if (uid == null || email == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -138,7 +138,7 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
     try {
       // Vérifier si un admin existe déjà
       final admins = await _adminService.getAllAdmins();
-      
+
       if (admins.isNotEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -161,7 +161,7 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
       });
 
       setState(() => _adminUid = uid);
-      
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

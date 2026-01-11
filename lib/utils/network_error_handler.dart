@@ -119,11 +119,11 @@ class NetworkErrorHandler {
         return await operation();
       } catch (e) {
         attempts++;
-        
+
         if (attempts >= maxRetries) {
           // Dernière tentative échouée
           final message = getFirebaseErrorMessage(e);
-          
+
           if (showErrorDialog) {
             await NetworkErrorHandler.showErrorDialog(
               context,
@@ -138,7 +138,7 @@ class NetworkErrorHandler {
           }
           return null;
         }
-        
+
         // Attendre avant de réessayer
         await Future.delayed(retryDelay);
       }
