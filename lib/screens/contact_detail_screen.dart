@@ -151,8 +151,9 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (_contact == null)
+    if (_contact == null) {
       return const Scaffold(body: Center(child: Text('No contact')));
+    }
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -202,7 +203,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
                           height: 200,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withValues(alpha: 0.1),
                           ),
                         ),
                       ),
@@ -214,7 +215,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
                           height: 150,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.08),
+                            color: Colors.white.withValues(alpha: 0.08),
                           ),
                         ),
                       ),
@@ -242,8 +243,9 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
                                           source: ImageSource.gallery,
                                           imageQuality: 80,
                                         );
-                                        if (img != null)
+                                        if (img != null) {
                                           setState(() => _imagePath = img.path);
+                                        }
                                       }
                                     : null,
                                 child: Stack(
@@ -272,7 +274,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
                                         boxShadow: [
                                           BoxShadow(
                                             color:
-                                                Colors.black.withOpacity(0.2),
+                                                Colors.black.withValues(alpha: 0.2),
                                             blurRadius: 20,
                                             offset: const Offset(0, 10),
                                           ),
@@ -369,7 +371,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -626,7 +628,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
             ),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedRelation,
+            initialValue: _selectedRelation,
             decoration: InputDecoration(
               prefixIcon: Icon(
                 Icons.people_outline,
@@ -676,7 +678,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF3B82F6).withOpacity(0.4),
+              color: const Color(0xFF3B82F6).withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),

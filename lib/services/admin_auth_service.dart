@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -51,7 +52,7 @@ class AdminAuthService {
 
       return admin;
     } catch (e) {
-      print('Erreur authentification admin: $e');
+      debugPrint('Erreur authentification admin: $e');
       return null;
     }
   }
@@ -73,7 +74,7 @@ class AdminAuthService {
       final admin = AdminUser.fromMap(doc.data()!);
       return admin.isActive;
     } catch (e) {
-      print('Erreur vérification admin: $e');
+      debugPrint('Erreur vérification admin: $e');
       return false;
     }
   }
@@ -86,7 +87,7 @@ class AdminAuthService {
 
       return AdminUser.fromMap(doc.data()!);
     } catch (e) {
-      print('Erreur récupération admin: $e');
+      debugPrint('Erreur récupération admin: $e');
       return null;
     }
   }
@@ -108,7 +109,7 @@ class AdminAuthService {
         );
       } catch (e) {
         // Si le compte existe déjà, se connecter pour récupérer l'UID
-        print('⚠️ Compte existe déjà, tentative de connexion...');
+        debugPrint('⚠️ Compte existe déjà, tentative de connexion...');
         userCredential = await _auth.signInWithEmailAndPassword(
           email: email,
           password: password,
@@ -130,13 +131,13 @@ class AdminAuthService {
 
       await _firestore.collection('admins').doc(uid).set(admin.toMap());
 
-      print('✅ Premier admin créé avec succès!');
-      print('Email: $email');
-      print('Password: $password');
-      print('UID: $uid');
-      print('Hash: $passwordHash');
+      debugPrint('✅ Premier admin créé avec succès!');
+      debugPrint('Email: $email');
+      debugPrint('Password: $password');
+      debugPrint('UID: $uid');
+      debugPrint('Hash: $passwordHash');
     } catch (e) {
-      print('❌ Erreur création admin: $e');
+      debugPrint('❌ Erreur création admin: $e');
       rethrow;
     }
   }
@@ -175,9 +176,9 @@ class AdminAuthService {
 
       await _firestore.collection('admins').doc(uid).set(admin.toMap());
 
-      print('✅ Admin créé: $email');
+      debugPrint('✅ Admin créé: $email');
     } catch (e) {
-      print('❌ Erreur création admin: $e');
+      debugPrint('❌ Erreur création admin: $e');
       rethrow;
     }
   }
@@ -188,9 +189,9 @@ class AdminAuthService {
       await _firestore.collection('admins').doc(uid).update({
         'isActive': false,
       });
-      print('✅ Admin désactivé');
+      debugPrint('✅ Admin désactivé');
     } catch (e) {
-      print('❌ Erreur désactivation admin: $e');
+      debugPrint('❌ Erreur désactivation admin: $e');
       rethrow;
     }
   }
@@ -201,9 +202,9 @@ class AdminAuthService {
       await _firestore.collection('admins').doc(uid).update({
         'isActive': true,
       });
-      print('✅ Admin réactivé');
+      debugPrint('✅ Admin réactivé');
     } catch (e) {
-      print('❌ Erreur réactivation admin: $e');
+      debugPrint('❌ Erreur réactivation admin: $e');
       rethrow;
     }
   }
@@ -217,9 +218,9 @@ class AdminAuthService {
         'passwordHash': passwordHash,
       });
 
-      print('✅ Mot de passe admin changé');
+      debugPrint('✅ Mot de passe admin changé');
     } catch (e) {
-      print('❌ Erreur changement mot de passe: $e');
+      debugPrint('❌ Erreur changement mot de passe: $e');
       rethrow;
     }
   }
@@ -230,7 +231,7 @@ class AdminAuthService {
       final snapshot = await _firestore.collection('admins').get();
       return snapshot.docs.map((doc) => AdminUser.fromMap(doc.data())).toList();
     } catch (e) {
-      print('❌ Erreur récupération admins: $e');
+      debugPrint('❌ Erreur récupération admins: $e');
       return [];
     }
   }

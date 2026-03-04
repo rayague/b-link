@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/admin_user.dart';
 import 'admin_auth_service.dart';
@@ -6,22 +7,41 @@ import 'admin_auth_service.dart';
 /// Conservé pour compatibilité avec le code existant
 class AdminService {
   final FirebaseFirestore firestore;
-  final AdminAuthService _authService = AdminAuthService();
+  AdminAuthService? _authServiceInstance;
 
   AdminService({FirebaseFirestore? firestore})
       : firestore = firestore ?? FirebaseFirestore.instance;
+
+  /// Lazy-init AdminAuthService (avoids eager Firebase access in tests)
+  AdminAuthService get _authService =>
+      _authServiceInstance ??= AdminAuthService();
 
   /// Collection des admins dans Firestore
   CollectionReference get _adminsCollection => firestore.collection('admins');
 
   /// Vérifier si un utilisateur est admin
   Future<bool> isUserAdmin(String uid) async {
-    return await _authService.isUserAdmin(uid);
+    try {
+      final doc = await _adminsCollection.doc(uid).get();
+      if (!doc.exists) return false;
+      final admin = AdminUser.fromMap(doc.data()! as Map<String, dynamic>);
+      return admin.isActive;
+    } catch (e) {
+      debugPrint('Erreur vérification admin: $e');
+      return false;
+    }
   }
 
   /// Récupérer les infos admin d'un utilisateur
   Future<AdminUser?> getAdminUser(String uid) async {
-    return await _authService.getAdminUser(uid);
+    try {
+      final doc = await _adminsCollection.doc(uid).get();
+      if (!doc.exists) return null;
+      return AdminUser.fromMap(doc.data()! as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint('Erreur récupération admin: $e');
+      return null;
+    }
   }
 
   /// Vérifier si l'utilisateur connecté est admin
@@ -36,13 +56,22 @@ class AdminService {
         'lastLogin': DateTime.now().toIso8601String(),
       });
     } catch (e) {
-      print('⚠️ Erreur mise à jour lastLogin: $e');
+      debugPrint('⚠️ Erreur mise à jour lastLogin: $e');
     }
   }
 
   /// Lister tous les admins
   Future<List<AdminUser>> getAllAdmins() async {
-    return await _authService.getAllAdmins();
+    try {
+      final snapshot = await _adminsCollection.get();
+      return snapshot.docs
+          .map((doc) =>
+              AdminUser.fromMap(doc.data()! as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Erreur récupération admins: $e');
+      return [];
+    }
   }
 
   /// Stream pour écouter les changements admin

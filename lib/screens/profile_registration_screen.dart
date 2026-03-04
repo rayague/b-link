@@ -72,7 +72,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Icon(
@@ -99,7 +99,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           : 'Complete your information to get started',
                       style: TextStyle(
                         fontSize: 15,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -346,9 +346,9 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF6366F1).withOpacity(0.05),
+        color: const Color(0xFF6366F1).withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.2)),
+        border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,7 +379,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
             value: _isPublic,
-            activeColor: const Color(0xFF6366F1),
+            activeThumbColor: const Color(0xFF6366F1),
             onChanged: (v) => setState(() => _isPublic = v),
           ),
           if (_isPublic) ...[
@@ -437,7 +437,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6366F1).withOpacity(0.3),
+            color: const Color(0xFF6366F1).withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),

@@ -31,12 +31,12 @@ class BirthInsightsWidget extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFFFBBF24).withOpacity(0.3),
+          color: const Color(0xFFFBBF24).withValues(alpha: 0.3),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFBBF24).withOpacity(0.1),
+            color: const Color(0xFFFBBF24).withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -111,7 +111,7 @@ class BirthInsightsWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (insight['color'] as Color).withOpacity(0.1),
+              color: (insight['color'] as Color).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(

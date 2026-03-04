@@ -3,73 +3,73 @@ import 'package:b_link/utils/zodiac.dart';
 
 void main() {
   group('Zodiac Utils Tests', () {
-    test('getZodiacSign retourne le bon signe pour Bélier', () {
-      final sign = getZodiacSign(DateTime(1990, 3, 21));
-      expect(sign, 'ARIES');
+    test('computeZodiac retourne le bon signe pour Bélier', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 3, 21));
+      expect(sign, 'Bélier');
     });
 
-    test('getZodiacSign retourne le bon signe pour Taureau', () {
-      final sign = getZodiacSign(DateTime(1990, 5, 10));
-      expect(sign, 'TAURUS');
+    test('computeZodiac retourne le bon signe pour Taureau', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 5, 10));
+      expect(sign, 'Taureau');
     });
 
-    test('getZodiacSign retourne le bon signe pour Gémeaux', () {
-      final sign = getZodiacSign(DateTime(1990, 6, 15));
-      expect(sign, 'GEMINI');
+    test('computeZodiac retourne le bon signe pour Gémeaux', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 6, 15));
+      expect(sign, 'Gémeaux');
     });
 
-    test('getZodiacSign retourne le bon signe pour Cancer', () {
-      final sign = getZodiacSign(DateTime(1990, 7, 15));
-      expect(sign, 'CANCER');
+    test('computeZodiac retourne le bon signe pour Cancer', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 7, 15));
+      expect(sign, 'Cancer');
     });
 
-    test('getZodiacSign retourne le bon signe pour Lion', () {
-      final sign = getZodiacSign(DateTime(1990, 8, 10));
-      expect(sign, 'LEO');
+    test('computeZodiac retourne le bon signe pour Lion', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 8, 10));
+      expect(sign, 'Lion');
     });
 
-    test('getZodiacSign retourne le bon signe pour Vierge', () {
-      final sign = getZodiacSign(DateTime(1990, 9, 10));
-      expect(sign, 'VIRGO');
+    test('computeZodiac retourne le bon signe pour Vierge', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 9, 10));
+      expect(sign, 'Vierge');
     });
 
-    test('getZodiacSign retourne le bon signe pour Balance', () {
-      final sign = getZodiacSign(DateTime(1990, 10, 10));
-      expect(sign, 'LIBRA');
+    test('computeZodiac retourne le bon signe pour Balance', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 10, 10));
+      expect(sign, 'Balance');
     });
 
-    test('getZodiacSign retourne le bon signe pour Scorpion', () {
-      final sign = getZodiacSign(DateTime(1990, 11, 10));
-      expect(sign, 'SCORPIO');
+    test('computeZodiac retourne le bon signe pour Scorpion', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 11, 10));
+      expect(sign, 'Scorpion');
     });
 
-    test('getZodiacSign retourne le bon signe pour Sagittaire', () {
-      final sign = getZodiacSign(DateTime(1990, 12, 10));
-      expect(sign, 'SAGITTARIUS');
+    test('computeZodiac retourne le bon signe pour Sagittaire', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 12, 10));
+      expect(sign, 'Sagittaire');
     });
 
-    test('getZodiacSign retourne le bon signe pour Capricorne', () {
-      final sign = getZodiacSign(DateTime(1991, 1, 10));
-      expect(sign, 'CAPRICORN');
+    test('computeZodiac retourne le bon signe pour Capricorne', () {
+      final sign = Zodiac.computeZodiac(DateTime(1991, 1, 10));
+      expect(sign, 'Capricorne');
     });
 
-    test('getZodiacSign retourne le bon signe pour Verseau', () {
-      final sign = getZodiacSign(DateTime(1990, 2, 10));
-      expect(sign, 'AQUARIUS');
+    test('computeZodiac retourne le bon signe pour Verseau', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 2, 10));
+      expect(sign, 'Verseau');
     });
 
-    test('getZodiacSign retourne le bon signe pour Poissons', () {
-      final sign = getZodiacSign(DateTime(1990, 3, 10));
-      expect(sign, 'PISCES');
+    test('computeZodiac retourne le bon signe pour Poissons', () {
+      final sign = Zodiac.computeZodiac(DateTime(1990, 3, 10));
+      expect(sign, 'Poissons');
     });
 
-    test('getZodiacSign gère les dates limites correctement', () {
+    test('computeZodiac gère les dates limites correctement', () {
       // Vérifier les transitions de signes
-      final ariesStart = getZodiacSign(DateTime(1990, 3, 21));
-      final piscesEnd = getZodiacSign(DateTime(1990, 3, 20));
+      final ariesStart = Zodiac.computeZodiac(DateTime(1990, 3, 21));
+      final piscesEnd = Zodiac.computeZodiac(DateTime(1990, 3, 20));
 
-      expect(ariesStart, 'ARIES');
-      expect(piscesEnd, 'PISCES');
+      expect(ariesStart, 'Bélier');
+      expect(piscesEnd, 'Poissons');
     });
   });
 }

@@ -130,7 +130,7 @@ class _ZodiacScreenState extends State<ZodiacScreen>
                           child: Icon(
                             Icons.star,
                             size: 10 + random.nextDouble() * 15,
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                           ),
                         );
                       }),
@@ -157,10 +157,10 @@ class _ZodiacScreenState extends State<ZodiacScreen>
                                   height: 120,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: Colors.white.withValues(alpha: 0.2),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
+                                        color: Colors.black.withValues(alpha: 0.3),
                                         blurRadius: 30,
                                         offset: const Offset(0, 10),
                                       ),
@@ -245,7 +245,7 @@ class _ZodiacScreenState extends State<ZodiacScreen>
                             isDark,
                             entry.key * 100,
                           );
-                        }).toList(),
+                        }),
 
                         const SizedBox(height: 40),
                       ],
@@ -274,7 +274,7 @@ class _ZodiacScreenState extends State<ZodiacScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -325,7 +325,7 @@ class _ZodiacScreenState extends State<ZodiacScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFBBF24).withOpacity(0.2),
+            color: const Color(0xFFFBBF24).withValues(alpha: 0.2),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -367,11 +367,11 @@ class _ZodiacScreenState extends State<ZodiacScreen>
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.white.withOpacity(0.7),
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.white.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: const Color(0xFFF59E0B).withOpacity(0.3),
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
                         ),
                       ),
                       child: Text(
@@ -419,12 +419,12 @@ class _ZodiacScreenState extends State<ZodiacScreen>
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: colors[0].withOpacity(0.3),
+            color: colors[0].withValues(alpha: 0.3),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: colors[0].withOpacity(0.1),
+              color: colors[0].withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

@@ -53,6 +53,7 @@ dependencies:
   firebase_analytics: any
   cloud_firestore: any
   firebase_auth: any
+  google_sign_in: any
   share_plus: any
   
   # Connectivity

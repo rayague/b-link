@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -39,9 +40,9 @@ class ConnectivityService {
         _connectionController.add(connected);
 
         if (connected) {
-          print('🌐 ✅ Connexion rétablie');
+          debugPrint('🌐 ✅ Connexion rétablie');
         } else {
-          print('🌐 ❌ Connexion perdue - Mode hors ligne');
+          debugPrint('🌐 ❌ Connexion perdue - Mode hors ligne');
         }
       }
     });

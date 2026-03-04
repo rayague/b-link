@@ -55,16 +55,18 @@ class SyncService {
               uid.isNotEmpty) {
             profile.uid = uid;
           }
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint('SyncService: pushing profile uid=${profile.uid}');
+          }
           await _profileService.pushToFirestore(profile);
           await _db.markSyncItemDone(id);
           processed++;
         } else {
           // Unknown action: mark done to avoid endless retries.
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint(
                 'SyncService: unknown action [$action] id=$id — marking done');
+          }
           await _db.markSyncItemDone(id);
           processed++;
         }
@@ -100,10 +102,14 @@ class SyncService {
     final lower = err.toLowerCase();
     if (lower.contains('permission_denied') ||
         lower.contains('missing or insufficient permissions') ||
-        lower.contains('configuration_not_found')) return true;
+        lower.contains('configuration_not_found')) {
+      return true;
+    }
     if (lower.contains('unauthorized') ||
         lower.contains('forbidden') ||
-        lower.contains('not found')) return true;
+        lower.contains('not found')) {
+      return true;
+    }
     // network/timeouts should be retried
     return false;
   }

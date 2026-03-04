@@ -223,9 +223,10 @@ class DBHelper implements DBInterface {
       if (socialRaw != null) {
         try {
           final parsed = jsonDecode(socialRaw);
-          if (parsed is Map)
+          if (parsed is Map) {
             social = Map<String, String>.from(
                 parsed.map((k, v) => MapEntry(k.toString(), v.toString())));
+          }
         } catch (_) {}
       }
       return UserProfile(
@@ -317,8 +318,9 @@ class DBHelper implements DBInterface {
         if (updated == 1) {
           final itemRows =
               await txn.rawQuery('SELECT * FROM sync_queue WHERE id = ?', [id]);
-          if (itemRows.isNotEmpty)
+          if (itemRows.isNotEmpty) {
             claimed.add(Map<String, dynamic>.from(itemRows.first));
+          }
         }
       }
     });

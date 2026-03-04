@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:b_link/providers/contact_provider.dart';
 import 'package:b_link/models/contact.dart';
-import 'dart:async';
 
 class FakeDB {
   final List<Map<String,dynamic>> _rows = [];
@@ -29,6 +28,14 @@ class FakeNotif {
   Future<void> scheduleDaily(int id, String title, String body, int hour, int minute) async { scheduled.add(id); }
   Future<void> scheduleSpecificDate(int id, String title, String body, dynamic dateTime) async { scheduled.add(id); }
   Future<void> cancel(int id) async { scheduled.remove(id); }
+  Future<void> scheduleBirthdayReminders(dynamic contact, String locale) async {
+    if (contact.id != null) {
+      scheduled.add(contact.id);
+    }
+  }
+  Future<void> cancelBirthdayReminders(int contactId) async {
+    scheduled.remove(contactId);
+  }
 }
 
 void main() {

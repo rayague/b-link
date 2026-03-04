@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:workmanager/workmanager.dart';
 import 'package:background_fetch/background_fetch.dart';
@@ -10,7 +11,6 @@ Future<void> initializeBackgroundSync() async {
   try {
     await Workmanager().initialize(
       callbackDispatcher,
-      isInDebugMode: false,
     );
     await Workmanager().registerPeriodicTask(
       'sync-periodic',
@@ -18,7 +18,7 @@ Future<void> initializeBackgroundSync() async {
       frequency: const Duration(minutes: 15),
     );
   } catch (e) {
-    print('⚠️ WorkManager initialization failed: $e');
+    debugPrint('⚠️ WorkManager initialization failed: $e');
     // ignore if not available
   }
 
@@ -40,7 +40,7 @@ Future<void> initializeBackgroundSync() async {
       },
     );
   } catch (e) {
-    print('⚠️ BackgroundFetch initialization failed: $e');
+    debugPrint('⚠️ BackgroundFetch initialization failed: $e');
     // ignore
   }
 }

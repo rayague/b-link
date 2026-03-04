@@ -30,6 +30,7 @@ class FakeDB implements DBInterface {
     if (idx >= 0) {
       items[idx]['attempts'] = attempts;
       items[idx]['lastError'] = error;
+      items[idx]['status'] = 'pending'; // reset so it can be retried
     }
   }
 

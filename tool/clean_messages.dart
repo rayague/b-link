@@ -47,19 +47,19 @@ Future<void> main() async {
 
   final inFile = File(assetsPath);
   if (!await inFile.exists()) {
-    print('assets/messages.txt not found at $assetsPath');
+    stdout.writeln('assets/messages.txt not found at $assetsPath');
     return;
   }
 
   final backupFile = File(backupPath);
   if (!await backupFile.exists()) {
     await inFile.copy(backupPath);
-    print('Backup written to $backupPath');
+    stdout.writeln('Backup written to $backupPath');
   } else {
     final ts = DateTime.now().toIso8601String().replaceAll(RegExp(r'[:\.]'), '');
     final alt = '$projectRoot\\assets\\messages_original_backup_$ts.txt';
     await inFile.copy(alt);
-    print('Existing backup preserved; wrote new backup to $alt');
+    stdout.writeln('Existing backup preserved; wrote new backup to $alt');
   }
 
   final content = await inFile.readAsString();
@@ -122,7 +122,11 @@ Future<void> main() async {
         for (final l in lines) {
           final t = l.trim();
           if (t.isEmpty) continue;
-          if (t.startsWith('import ') || t.startsWith('export ') || t.startsWith('const ') || t.startsWith(']') || t.startsWith('{') || t.startsWith('}')) continue;
+          if (t.startsWith('import ') || t.startsWith('export ') ||
+              t.startsWith('const ') || t.startsWith(']') ||
+              t.startsWith('{') || t.startsWith('}')) {
+            continue;
+          }
           final txt = _normalize(t);
           if (txt.isEmpty) continue;
           outLines.add('default|${txt.replaceAll('|', '¦')}');
@@ -133,9 +137,11 @@ Future<void> main() async {
 
   final outFile = File(assetsPath);
   final sink = outFile.openWrite();
-  for (final l in outLines) sink.writeln(l);
+  for (final l in outLines) {
+    sink.writeln(l);
+  }
   await sink.close();
 
-  print('Wrote ${outLines.length} cleaned messages to $assetsPath');
-  print('Original file backed up at $backupPath');
+  stdout.writeln('Wrote ${outLines.length} cleaned messages to $assetsPath');
+  stdout.writeln('Original file backed up at $backupPath');
 }

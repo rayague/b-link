@@ -269,7 +269,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                           height: 150,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withValues(alpha: 0.1),
                           ),
                         ),
                       ),
@@ -281,7 +281,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                           height: 120,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.08),
+                            color: Colors.white.withValues(alpha: 0.08),
                           ),
                         ),
                       ),
@@ -305,7 +305,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 20, vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -357,7 +357,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFEC4899).withOpacity(0.1),
+                                color: const Color(0xFFEC4899).withValues(alpha: 0.1),
                                 blurRadius: 15,
                                 offset: const Offset(0, 5),
                               ),
@@ -498,7 +498,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 10,
                                 offset: const Offset(0, 2),
                               ),
@@ -647,7 +647,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                                                     decoration: BoxDecoration(
                                                       color: const Color(
                                                               0xFFEC4899)
-                                                          .withOpacity(0.2),
+                                                          .withValues(alpha: 0.2),
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               8),

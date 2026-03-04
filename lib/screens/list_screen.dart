@@ -43,12 +43,12 @@ class _ListScreenState extends State<ListScreen> {
   }
 
   void _showAdd(BuildContext ctx) {
-    final _name = TextEditingController();
-    final _date = TextEditingController();
-    final _relation = TextEditingController();
-    final _phone = TextEditingController();
-    String? _imagePath;
-    String? _selectedRelation;
+    final nameCtl = TextEditingController();
+    final dateCtl = TextEditingController();
+    final relationCtl = TextEditingController();
+    final phoneCtl = TextEditingController();
+    String? imagePath;
+    String? selectedRelation;
     final relations = [
       'SON',
       'DAUGHTER',
@@ -107,7 +107,7 @@ class _ListScreenState extends State<ListScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.person_add_rounded,
@@ -147,7 +147,7 @@ class _ListScreenState extends State<ListScreen> {
                                 imageQuality: 80,
                               );
                               if (img != null) {
-                                setDialogState(() => _imagePath = img.path);
+                                setDialogState(() => imagePath = img.path);
                               }
                             },
                             child: Stack(
@@ -157,7 +157,7 @@ class _ListScreenState extends State<ListScreen> {
                                   height: 100,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    gradient: _imagePath == null
+                                    gradient: imagePath == null
                                         ? const LinearGradient(
                                             colors: [
                                               Color(0xFF8B5CF6),
@@ -165,14 +165,14 @@ class _ListScreenState extends State<ListScreen> {
                                             ],
                                           )
                                         : null,
-                                    image: _imagePath != null
+                                    image: imagePath != null
                                         ? DecorationImage(
-                                            image: FileImage(File(_imagePath!)),
+                                            image: FileImage(File(imagePath!)),
                                             fit: BoxFit.cover,
                                           )
                                         : null,
                                   ),
-                                  child: _imagePath == null
+                                  child: imagePath == null
                                       ? const Icon(Icons.person,
                                           size: 50, color: Colors.white)
                                       : null,
@@ -200,7 +200,7 @@ class _ListScreenState extends State<ListScreen> {
 
                         // Name
                         _buildModernTextField(
-                          controller: _name,
+                          controller: nameCtl,
                           label: AppLocalizations.of(dialogCtx)
                               .translate('fullName'),
                           hint: 'Ex: Jean Dupont',
@@ -211,7 +211,7 @@ class _ListScreenState extends State<ListScreen> {
 
                         // Date
                         _buildModernTextField(
-                          controller: _date,
+                          controller: dateCtl,
                           label: AppLocalizations.of(dialogCtx)
                               .translate('birthDate'),
                           hint: AppLocalizations.of(dialogCtx)
@@ -238,7 +238,7 @@ class _ListScreenState extends State<ListScreen> {
                               },
                             );
                             if (picked != null) {
-                              setDialogState(() => _date.text =
+                              setDialogState(() => dateCtl.text =
                                   picked.toIso8601String().split('T').first);
                             }
                           },
@@ -270,7 +270,7 @@ class _ListScreenState extends State<ListScreen> {
                             ),
                           ),
                           child: DropdownButtonFormField<String>(
-                            value: _selectedRelation,
+                            initialValue: selectedRelation,
                             decoration: InputDecoration(
                               prefixIcon: Icon(
                                 Icons.people_outline,
@@ -299,8 +299,8 @@ class _ListScreenState extends State<ListScreen> {
                                 .toList(),
                             onChanged: (v) {
                               setDialogState(() {
-                                _selectedRelation = v;
-                                _relation.text = v ?? '';
+                                selectedRelation = v;
+                                relationCtl.text = v ?? '';
                               });
                             },
                           ),
@@ -309,7 +309,7 @@ class _ListScreenState extends State<ListScreen> {
 
                         // Phone (optional)
                         _buildModernTextField(
-                          controller: _phone,
+                          controller: phoneCtl,
                           label:
                               AppLocalizations.of(dialogCtx).translate('phone'),
                           hint: 'Ex: +33 6 12 34 56 78',
@@ -369,9 +369,9 @@ class _ListScreenState extends State<ListScreen> {
                           ),
                           child: ElevatedButton(
                             onPressed: () async {
-                              final name = _name.text.trim();
-                              final date = _date.text.trim();
-                              final relation = _relation.text.trim();
+                              final name = nameCtl.text.trim();
+                              final date = dateCtl.text.trim();
+                              final relation = relationCtl.text.trim();
 
                               if (name.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -398,10 +398,10 @@ class _ListScreenState extends State<ListScreen> {
                                 date: date,
                                 relation:
                                     relation.isEmpty ? 'FRIEND' : relation,
-                                phone: _phone.text.trim().isEmpty
+                                phone: phoneCtl.text.trim().isEmpty
                                     ? null
-                                    : _phone.text.trim(),
-                                imageUri: _imagePath,
+                                    : phoneCtl.text.trim(),
+                                imageUri: imagePath,
                               );
 
                               final locale = Provider.of<LocaleProvider>(
@@ -414,6 +414,7 @@ class _ListScreenState extends State<ListScreen> {
                               if (!mounted) return;
                               Navigator.of(context).pop();
 
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
@@ -605,7 +606,7 @@ class _ListScreenState extends State<ListScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),
@@ -706,7 +707,7 @@ class _ListScreenState extends State<ListScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
+                                      color: Colors.black.withValues(alpha: 0.05),
                                       blurRadius: 10,
                                       offset: const Offset(0, 2),
                                     ),
@@ -734,14 +735,14 @@ class _ListScreenState extends State<ListScreen> {
                                                                 .nextDouble() *
                                                             0xFFFFFF)
                                                         .toInt())
-                                                    .withOpacity(1.0),
+                                                    .withValues(alpha: 1.0),
                                                 Color((math.Random(c.name
                                                                         .hashCode +
                                                                     1)
                                                                 .nextDouble() *
                                                             0xFFFFFF)
                                                         .toInt())
-                                                    .withOpacity(1.0),
+                                                    .withValues(alpha: 1.0),
                                               ],
                                             ),
                                           ),

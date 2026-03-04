@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 
 /// Service centralisé pour Firebase Analytics
@@ -6,11 +7,23 @@ class AnalyticsService {
   factory AnalyticsService() => _instance;
   AnalyticsService._internal();
 
-  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+  FirebaseAnalytics? _analyticsInstance;
+  bool _initFailed = false;
+
+  /// Lazy-init to avoid crash when Firebase is not initialized (e.g. in tests)
+  FirebaseAnalytics? get _analytics {
+    if (_initFailed) return null;
+    try {
+      return _analyticsInstance ??= FirebaseAnalytics.instance;
+    } catch (_) {
+      _initFailed = true;
+      return null;
+    }
+  }
 
   /// Observer pour navigation automatique
   FirebaseAnalyticsObserver getAnalyticsObserver() {
-    return FirebaseAnalyticsObserver(analytics: _analytics);
+    return FirebaseAnalyticsObserver(analytics: _analytics ?? FirebaseAnalytics.instance);
   }
 
   // ========== TRACKING ÉCRANS ==========
@@ -20,11 +33,11 @@ class AnalyticsService {
     required String screenName,
     String? screenClass,
   }) async {
-    await _analytics.logScreenView(
+    await _analytics?.logScreenView(
       screenName: screenName,
       screenClass: screenClass ?? screenName,
     );
-    print('📊 Analytics: Screen viewed - $screenName');
+    debugPrint('📊 Analytics: Screen viewed - $screenName');
   }
 
   // ========== ÉVÉNEMENTS CONTACTS ==========
@@ -34,7 +47,7 @@ class AnalyticsService {
     required String relation,
     bool hasPhone = false,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'contact_added',
       parameters: {
         'relation': relation,
@@ -42,14 +55,14 @@ class AnalyticsService {
         'timestamp': DateTime.now().toIso8601String(),
       },
     );
-    print('📊 Analytics: Contact added - $relation');
+    debugPrint('📊 Analytics: Contact added - $relation');
   }
 
   /// Contact modifié
   Future<void> logContactUpdated({
     required String relation,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'contact_updated',
       parameters: {
         'relation': relation,
@@ -62,7 +75,7 @@ class AnalyticsService {
   Future<void> logContactDeleted({
     required String relation,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'contact_deleted',
       parameters: {
         'relation': relation,
@@ -78,7 +91,7 @@ class AnalyticsService {
     bool hasPhoto = false,
     bool isPublic = false,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'profile_updated',
       parameters: {
         'has_photo': hasPhoto,
@@ -86,7 +99,7 @@ class AnalyticsService {
         'timestamp': DateTime.now().toIso8601String(),
       },
     );
-    print('📊 Analytics: Profile updated');
+    debugPrint('📊 Analytics: Profile updated');
   }
 
   // ========== ÉVÉNEMENTS MESSAGES ==========
@@ -96,7 +109,7 @@ class AnalyticsService {
     required String relation,
     int? messageLength,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'birthday_message_generated',
       parameters: {
         'relation': relation,
@@ -104,14 +117,14 @@ class AnalyticsService {
         'timestamp': DateTime.now().toIso8601String(),
       },
     );
-    print('📊 Analytics: Birthday message generated - $relation');
+    debugPrint('📊 Analytics: Birthday message generated - $relation');
   }
 
   /// Message copié
   Future<void> logMessageCopied({
     required String relation,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'message_copied',
       parameters: {
         'relation': relation,
@@ -127,7 +140,7 @@ class AnalyticsService {
     required String relation,
     bool hasPhone = false,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'call_initiated',
       parameters: {
         'relation': relation,
@@ -135,7 +148,7 @@ class AnalyticsService {
         'timestamp': DateTime.now().toIso8601String(),
       },
     );
-    print('📊 Analytics: Call initiated - $relation');
+    debugPrint('📊 Analytics: Call initiated - $relation');
   }
 
   // ========== ÉVÉNEMENTS ADMIN ==========
@@ -144,21 +157,21 @@ class AnalyticsService {
   Future<void> logAdminLogin({
     required String adminRole,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'admin_login',
       parameters: {
         'admin_role': adminRole,
         'timestamp': DateTime.now().toIso8601String(),
       },
     );
-    print('📊 Analytics: Admin login - $adminRole');
+    debugPrint('📊 Analytics: Admin login - $adminRole');
   }
 
   /// Admin action
   Future<void> logAdminAction({
     required String action,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'admin_action',
       parameters: {
         'action': action,
@@ -174,7 +187,7 @@ class AnalyticsService {
     int? itemCount,
     bool isManual = false,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'sync_triggered',
       parameters: {
         'item_count': itemCount ?? 0,
@@ -189,7 +202,7 @@ class AnalyticsService {
     int? syncedItems,
     int? failedItems,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'sync_completed',
       parameters: {
         'synced_items': syncedItems ?? 0,
@@ -203,7 +216,7 @@ class AnalyticsService {
 
   /// Navigation vers profil public
   Future<void> logPublicProfileViewed() async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'public_profile_viewed',
       parameters: {
         'timestamp': DateTime.now().toIso8601String(),
@@ -215,7 +228,7 @@ class AnalyticsService {
   Future<void> logZodiacViewed({
     required String zodiacSign,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'zodiac_viewed',
       parameters: {
         'zodiac_sign': zodiacSign,
@@ -228,7 +241,7 @@ class AnalyticsService {
   Future<void> logSameDayViewed({
     int? userCount,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'same_day_viewed',
       parameters: {
         'user_count': userCount ?? 0,
@@ -245,7 +258,7 @@ class AnalyticsService {
     required String errorMessage,
     String? screenName,
   }) async {
-    await _analytics.logEvent(
+    await _analytics?.logEvent(
       name: 'app_error',
       parameters: {
         'error_type': errorType,
@@ -261,7 +274,7 @@ class AnalyticsService {
 
   /// Définir l'ID utilisateur
   Future<void> setUserId(String? userId) async {
-    await _analytics.setUserId(id: userId);
+    await _analytics?.setUserId(id: userId);
   }
 
   /// Définir une propriété utilisateur
@@ -269,7 +282,7 @@ class AnalyticsService {
     required String name,
     required String? value,
   }) async {
-    await _analytics.setUserProperty(
+    await _analytics?.setUserProperty(
       name: name,
       value: value,
     );

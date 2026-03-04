@@ -11,7 +11,7 @@ import 'utils/notification_permission_helper.dart';
 /// OU
 /// 1. Modifier manuellement la date système de votre téléphone
 class NotificationTestScreen extends StatefulWidget {
-  const NotificationTestScreen({Key? key}) : super(key: key);
+  const NotificationTestScreen({super.key});
 
   @override
   State<NotificationTestScreen> createState() => _NotificationTestScreenState();

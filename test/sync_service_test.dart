@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:b_link/services/sync_service.dart';
 import 'package:b_link/services/db_interface.dart';
 import 'package:b_link/services/profile_service.dart';
-import 'dart:async';
 import 'dart:convert';
 import 'package:b_link/models/user_profile.dart';
 
@@ -43,6 +42,7 @@ class FakeDB implements DBInterface {
     if (idx != -1) {
       _items[idx]['attempts'] = attempts;
       _items[idx]['lastError'] = error;
+      _items[idx]['status'] = 'pending'; // Reset to pending for retry
     }
   }
 

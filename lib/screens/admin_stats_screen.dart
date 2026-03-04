@@ -228,7 +228,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
         );
       }
     } catch (e) {
-      print('❌ Erreur test notification: $e');
+      debugPrint('❌ Erreur test notification: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -299,7 +299,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
         _loading = false;
       });
     } catch (e) {
-      print('❌ Erreur chargement données admin: $e');
+      debugPrint('❌ Erreur chargement données admin: $e');
       setState(() => _loading = false);
     }
   }
@@ -447,7 +447,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFEB1555).withOpacity(0.3),
+            color: const Color(0xFFEB1555).withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -488,7 +488,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                 .translate('lastUpdate')
                 .replaceAll('{date}', formattedDate),
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 12,
             ),
           ),
@@ -505,7 +505,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -524,7 +524,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 14,
             ),
             textAlign: TextAlign.center,
@@ -561,7 +561,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -869,10 +869,10 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
           width: 1,
         ),
       ),

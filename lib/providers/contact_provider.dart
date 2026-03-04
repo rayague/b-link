@@ -41,7 +41,7 @@ class ContactProvider extends ChangeNotifier {
     try {
       final imported = await _db.importMessagesIfEmpty();
       if (imported > 0) {
-        print('Imported $imported messages into local database');
+        debugPrint('Imported $imported messages into local database');
       }
     } catch (_) {}
 
@@ -72,7 +72,7 @@ class ContactProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print('🔄 Synchronisation avec Firebase...');
+      debugPrint('🔄 Synchronisation avec Firebase...');
 
       // Récupérer les contacts depuis Firebase
       final firebaseContacts = await _firebaseSync!.getAllContacts();
@@ -96,9 +96,9 @@ class ContactProvider extends ChangeNotifier {
         }
       }
 
-      print('✅ Synchronisation Firebase terminée');
+      debugPrint('✅ Synchronisation Firebase terminée');
     } catch (e) {
-      print('❌ Erreur synchronisation Firebase: $e');
+      debugPrint('❌ Erreur synchronisation Firebase: $e');
     } finally {
       _syncing = false;
       notifyListeners();

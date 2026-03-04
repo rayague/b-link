@@ -1,48 +1,68 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:convert';
-// Suppression du stockage local et du hashage, tout passe par Firebase Auth
+import 'package:google_sign_in/google_sign_in.dart';
 import '../services/analytics_service.dart';
 
 class AuthProvider extends ChangeNotifier {
+  bool _googleInitialized = false;
+
   bool get isRegistered => FirebaseAuth.instance.currentUser != null;
   String? get userEmail => FirebaseAuth.instance.currentUser?.email;
   String? get userId => FirebaseAuth.instance.currentUser?.uid;
+  String? get displayName => FirebaseAuth.instance.currentUser?.displayName;
+  String? get photoUrl => FirebaseAuth.instance.currentUser?.photoURL;
 
   AuthProvider();
 
-  Future<void> register(String email, String password) async {
-    try {
-      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      notifyListeners();
-    } catch (e) {
-      rethrow;
+  /// Initialise le SDK GoogleSignIn une seule fois.
+  Future<void> _ensureGoogleInitialized() async {
+    if (!_googleInitialized) {
+      await GoogleSignIn.instance.initialize();
+      _googleInitialized = true;
     }
   }
 
-  Future<bool> login(String email, String password) async {
+  /// Sign in with Google and link to Firebase Auth.
+  /// Returns `true` on success, `false` if the user cancelled or an error occurred.
+  Future<bool> signInWithGoogle() async {
     try {
-      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+      await _ensureGoogleInitialized();
+
+      final googleUser = await GoogleSignIn.instance.authenticate();
+
+      final googleAuth = googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
       );
-      // Analytics: Set user ID
-      final uid = cred.user?.uid;
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final uid = userCredential.user?.uid;
       if (uid != null) {
         AnalyticsService().setUserId(uid);
       }
       notifyListeners();
       return true;
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        return false; // user cancelled
+      }
+      debugPrint('Google sign-in error: $e');
+      return false;
     } catch (e) {
+      debugPrint('Google sign-in error: $e');
       return false;
     }
   }
 
   /// Déconnexion
   Future<void> logout() async {
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {
+      // Google sign-out may fail if not initialized; ignore.
+    }
     await FirebaseAuth.instance.signOut();
     notifyListeners();
   }
@@ -55,7 +75,6 @@ class AuthProvider extends ChangeNotifier {
       final cred = await FirebaseAuth.instance.signInAnonymously();
       return cred.user?.uid;
     } catch (e) {
-      // ignore errors here, upstream code should handle null uid
       return null;
     }
   }

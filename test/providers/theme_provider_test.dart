@@ -4,29 +4,30 @@ import 'package:flutter/material.dart';
 
 void main() {
   group('ThemeProvider Tests', () {
-    test('Mode initial est light', () {
+    test('Mode initial est system', () {
       final provider = ThemeProvider();
-      expect(provider.mode, ThemeMode.light);
+      expect(provider.mode, ThemeMode.system);
     });
 
-    test('toggleTheme change le mode', () {
+    test('setMode change le mode', () {
       final provider = ThemeProvider();
+      provider.setMode(ThemeMode.light);
       expect(provider.mode, ThemeMode.light);
 
+      provider.setMode(ThemeMode.dark);
+      expect(provider.mode, ThemeMode.dark);
+    });
+
+    test('toggleTheme alterne entre light et dark', () {
+      final provider = ThemeProvider();
+      // From system, toggle goes to dark (since it's not dark)
       provider.toggleTheme();
       expect(provider.mode, ThemeMode.dark);
 
       provider.toggleTheme();
       expect(provider.mode, ThemeMode.light);
-    });
 
-    test('Plusieurs toggles fonctionnent correctement', () {
-      final provider = ThemeProvider();
-
-      provider.toggleTheme(); // dark
-      provider.toggleTheme(); // light
-      provider.toggleTheme(); // dark
-
+      provider.toggleTheme();
       expect(provider.mode, ThemeMode.dark);
     });
 
@@ -39,6 +40,18 @@ void main() {
       });
 
       provider.toggleTheme();
+      expect(listenerCalled, true);
+    });
+
+    test('notifyListeners est appelé lors de setMode', () {
+      final provider = ThemeProvider();
+      bool listenerCalled = false;
+
+      provider.addListener(() {
+        listenerCalled = true;
+      });
+
+      provider.setMode(ThemeMode.dark);
       expect(listenerCalled, true);
     });
   });

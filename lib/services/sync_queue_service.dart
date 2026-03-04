@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/db_helper.dart';
 import 'connectivity_service.dart';
@@ -48,37 +49,37 @@ class SyncQueueService {
         jsonEncode(data),
       );
 
-      print('📤 Opération ajoutée à la queue: $action');
+      debugPrint('📤 Opération ajoutée à la queue: $action');
 
       // Si en ligne, traiter immédiatement
       if (await _connectivity.isConnected() && !_isProcessing) {
         processSyncQueue();
       }
     } catch (e) {
-      print('❌ Erreur ajout queue: $e');
+      debugPrint('❌ Erreur ajout queue: $e');
     }
   }
 
   /// Traiter toute la queue de synchronisation
   Future<void> processSyncQueue() async {
     if (_isProcessing) {
-      print('⏳ Sync déjà en cours, skip');
+      debugPrint('⏳ Sync déjà en cours, skip');
       return;
     }
 
     if (!await _connectivity.isConnected()) {
-      print('⚠️ Pas de connexion, sync annulée');
+      debugPrint('⚠️ Pas de connexion, sync annulée');
       return;
     }
 
     _isProcessing = true;
-    print('🔄 Traitement de la queue de synchronisation...');
+    debugPrint('🔄 Traitement de la queue de synchronisation...');
 
     try {
       _analytics.logSyncTriggered();
 
       final items = await _db.getPendingSyncItems(limit: 50);
-      print('📥 ${items.length} éléments à synchroniser');
+      debugPrint('📥 ${items.length} éléments à synchroniser');
 
       int successCount = 0;
       int failedCount = 0;
@@ -88,18 +89,18 @@ class SyncQueueService {
           await _processItem(item);
           await _db.markSyncItemDone(item['id'] as int);
           successCount++;
-          print('✅ Sync réussie: ${item['action']} (${item['id']})');
+          debugPrint('✅ Sync réussie: ${item['action']} (${item['id']})');
         } catch (e) {
           failedCount++;
           await _db.markSyncItemFailed(item['id'] as int, e.toString());
-          print('❌ Erreur sync ${item['action']}: $e');
+          debugPrint('❌ Erreur sync ${item['action']}: $e');
         }
 
         // Pause pour éviter de surcharger Firebase
         await Future.delayed(Duration(milliseconds: 100));
       }
 
-      print('🎉 Sync terminée: $successCount succès, $failedCount échecs');
+      debugPrint('🎉 Sync terminée: $successCount succès, $failedCount échecs');
 
       if (successCount > 0) {
         _analytics.logSyncCompleted(
@@ -108,7 +109,7 @@ class SyncQueueService {
         );
       }
     } catch (e) {
-      print('💥 Erreur fatale lors de la sync: $e');
+      debugPrint('💥 Erreur fatale lors de la sync: $e');
       _analytics.logError(
         errorType: 'SyncQueue',
         errorMessage: 'Sync queue error: $e',
@@ -132,7 +133,7 @@ class SyncQueueService {
       throw Exception('Invalid JSON data: $e');
     }
 
-    print('🔧 Processing: $action for user $userId');
+    debugPrint('🔧 Processing: $action for user $userId');
 
     switch (action) {
       case 'add_contact':
@@ -156,7 +157,7 @@ class SyncQueueService {
         break;
 
       default:
-        print('⚠️ Action inconnue: $action');
+        debugPrint('⚠️ Action inconnue: $action');
     }
   }
 
@@ -225,6 +226,6 @@ class SyncQueueService {
   Future<void> clearQueue() async {
     final db = await _db.database;
     await db.delete('sync_queue');
-    print('🗑️ Queue de synchronisation vidée');
+    debugPrint('🗑️ Queue de synchronisation vidée');
   }
 }

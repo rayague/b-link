@@ -110,7 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
               ),
             ),
           ),
@@ -122,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -143,7 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       // Correction overflow: limiter la hauteur du contenu
                       return Align(
                         alignment: Alignment.center,
-                        child: Container(
+                        child: SizedBox(
                           height: constraints.maxHeight,
                           width: double.infinity,
                           child: Column(
@@ -166,7 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
+                                          color: Colors.black.withValues(alpha: 0.2),
                                           blurRadius: 20,
                                           offset: const Offset(0, 10),
                                         ),
@@ -400,7 +400,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         );
       }
       // Ne pas sortir du mode édition en cas d'erreur
-      print('❌ Erreur sauvegarde profil: $e');
+      debugPrint('❌ Erreur sauvegarde profil: $e');
     }
   }
 
@@ -411,7 +411,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -523,7 +523,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF8B5CF6).withOpacity(0.4),
+                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -816,12 +816,12 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF8B5CF6).withOpacity(0.3),
+          color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.1),
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -926,7 +926,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -1221,7 +1221,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: selectedPlatform,
+                    initialValue: selectedPlatform,
                     decoration: InputDecoration(
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
@@ -1348,7 +1348,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF8B5CF6).withOpacity(0.4),
+                                color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
@@ -1408,7 +1408,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF3B82F6).withOpacity(0.3),
+          color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -1521,7 +1521,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       }
                     });
                   },
-                  activeColor: const Color(0xFF10B981),
+                  activeThumbColor: const Color(0xFF10B981),
                 ),
               ],
             ),
@@ -1626,7 +1626,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             Switch(
               value: value,
               onChanged: onChanged,
-              activeColor: const Color(0xFF3B82F6),
+              activeThumbColor: const Color(0xFF3B82F6),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ],

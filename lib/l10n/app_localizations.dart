@@ -157,6 +157,10 @@ class AppLocalizations {
       'enterEmailForReset': 'Please enter your email to reset password',
       'resetEmailSent': '✅ Password reset email sent! Check your inbox.',
       'emailNotFound': 'No account found with this email',
+      'signInWithGoogle': 'Continue with Google',
+      'signInSubtitle': 'Sign in with your Google account to get started',
+      'signInCancelled': 'Sign-in was cancelled. Please try again.',
+      'authDisclaimer': 'By continuing, you agree to our Terms of Service and Privacy Policy.',
     },
     'fr': {
       // Profile Screen additions
@@ -312,6 +316,10 @@ class AppLocalizations {
       'resetEmailSent':
           '✅ Email de réinitialisation envoyé! Vérifiez votre boîte mail.',
       'emailNotFound': 'Aucun compte trouvé avec cet email',
+      'signInWithGoogle': 'Continuer avec Google',
+      'signInSubtitle': 'Connectez-vous avec votre compte Google pour commencer',
+      'signInCancelled': 'Connexion annulée. Veuillez réessayer.',
+      'authDisclaimer': 'En continuant, vous acceptez nos Conditions d\'utilisation et notre Politique de confidentialité.',
       // Same Day Screen
       'messageFor': 'Message pour',
       'category': 'Catégorie',

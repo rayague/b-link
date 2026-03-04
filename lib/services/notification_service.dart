@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tzdata;
@@ -45,13 +46,13 @@ class NotificationService {
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    print('Notification tapped: ${response.payload}');
+    debugPrint('Notification tapped: ${response.payload}');
 
     // Si le payload contient un message, on le stocke pour que l'app puisse l'afficher
     if (response.payload != null && response.payload!.startsWith('message::')) {
       final message = response.payload!.substring(9); // Enlever "message::"
       _lastTappedMessage = message;
-      print(
+      debugPrint(
           '📋 Message disponible pour copie: ${message.substring(0, message.length > 50 ? 50 : message.length)}...');
     }
   }
@@ -99,7 +100,7 @@ class NotificationService {
       payload: 'test_notification',
     );
 
-    print('✅ Notification de test envoyée avec succès');
+    debugPrint('✅ Notification de test envoyée avec succès');
   }
 
   /// Envoie une notification de test avec un vrai message depuis la base de données
@@ -163,9 +164,9 @@ class NotificationService {
       payload: 'message::$message', // On stocke le message dans le payload
     );
 
-    print(
+    debugPrint(
         '✅ Notification test envoyée pour ${contact.name} (${contact.relation})');
-    print('📝 Message complet: $message');
+    debugPrint('📝 Message complet: $message');
   }
 
   /// Schedule birthday reminders for a contact
@@ -175,7 +176,7 @@ class NotificationService {
 
     // Vérifier que le contact a un ID
     if (contact.id == null) {
-      print(
+      debugPrint(
           '⚠️ Cannot schedule reminders: contact ID is null for ${contact.name}');
       return;
     }
@@ -184,7 +185,7 @@ class NotificationService {
     try {
       birthDate = DateTime.parse(contact.date);
     } catch (e) {
-      print('Invalid date format for contact ${contact.name}');
+      debugPrint('Invalid date format for contact ${contact.name}');
       return;
     }
 

@@ -4,9 +4,9 @@ import 'package:b_link/providers/locale_provider.dart';
 
 void main() {
   group('LocaleProvider Tests', () {
-    test('Locale initial est français', () {
+    test('Locale initial est anglais', () {
       final provider = LocaleProvider();
-      expect(provider.locale.languageCode, 'fr');
+      expect(provider.locale.languageCode, 'en');
     });
 
     test('setLocale change la langue', () {

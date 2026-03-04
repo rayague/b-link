@@ -1,15 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:b_link/providers/auth_provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() {
   late MockFirebaseAuth mockAuth;
-  late AuthProvider authProvider;
 
   setUp(() {
     mockAuth = MockFirebaseAuth(signedIn: false);
-    authProvider = AuthProvider();
   });
 
   group('AuthProvider Firebase Tests', () {
@@ -17,33 +14,33 @@ void main() {
       expect(mockAuth.currentUser, isNull);
     });
 
-    test('should sign up and login with Firebase', () async {
-      // Register
-      final userCred = await mockAuth.createUserWithEmailAndPassword(
-        email: 'test@example.com',
-        password: 'password123',
+    test('should sign in with credential (Google flow)', () async {
+      // Simulate the Firebase credential sign-in that happens after Google auth
+      final credential = GoogleAuthProvider.credential(
+        idToken: 'mock-id-token',
       );
+      final userCred = await mockAuth.signInWithCredential(credential);
       expect(userCred.user, isNotNull);
-      expect(userCred.user!.email, 'test@example.com');
-
-      // Login
-      await mockAuth.signOut();
-      final loginCred = await mockAuth.signInWithEmailAndPassword(
-        email: 'test@example.com',
-        password: 'password123',
-      );
-      expect(loginCred.user, isNotNull);
-      expect(loginCred.user!.email, 'test@example.com');
+      expect(mockAuth.currentUser, isNotNull);
     });
 
     test('should clear user when sign out', () async {
-      final userCred = await mockAuth.createUserWithEmailAndPassword(
-        email: 'test@example.com',
-        password: 'password123',
+      // Sign in first
+      final credential = GoogleAuthProvider.credential(
+        idToken: 'mock-id-token',
       );
+      await mockAuth.signInWithCredential(credential);
       expect(mockAuth.currentUser, isNotNull);
+
+      // Sign out should clear user
       await mockAuth.signOut();
       expect(mockAuth.currentUser, isNull);
+    });
+
+    test('should sign in anonymously', () async {
+      final userCred = await mockAuth.signInAnonymously();
+      expect(userCred.user, isNotNull);
+      expect(mockAuth.currentUser, isNotNull);
     });
   });
 
@@ -77,6 +74,6 @@ void main() {
 }
 
 bool _isValidEmail(String email) {
-  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  final emailRegex = RegExp(r'^[\w\+\-\.]+@([\w-]+\.)+[\w-]{2,4}$');
   return emailRegex.hasMatch(email);
 }

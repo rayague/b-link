@@ -7,18 +7,18 @@ class NotificationPermissionHelper {
     final status = await Permission.notification.status;
 
     if (status.isGranted) {
-      print('✅ Permissions notifications: ACCORDÉES');
+      debugPrint('✅ Permissions notifications: ACCORDÉES');
       return true;
     }
 
     if (status.isDenied) {
-      print('⚠️ Permissions notifications: REFUSÉES - Demande...');
+      debugPrint('⚠️ Permissions notifications: REFUSÉES - Demande...');
       final result = await Permission.notification.request();
       return result.isGranted;
     }
 
     if (status.isPermanentlyDenied) {
-      print('❌ Permissions notifications: BLOQUÉES DÉFINITIVEMENT');
+      debugPrint('❌ Permissions notifications: BLOQUÉES DÉFINITIVEMENT');
       // Afficher dialogue pour aller dans les paramètres
       if (context.mounted) {
         showDialog(

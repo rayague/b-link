@@ -124,17 +124,15 @@ class NetworkErrorHandler {
           // Dernière tentative échouée
           final message = getFirebaseErrorMessage(e);
 
-          if (showErrorDialog) {
+          if (showErrorDialog && context.mounted) {
             await NetworkErrorHandler.showErrorDialog(
               context,
               title: 'Erreur',
               message: message,
               showRetry: false,
             );
-          } else {
-            if (context.mounted) {
-              showErrorSnackBar(context, message);
-            }
+          } else if (context.mounted) {
+            showErrorSnackBar(context, message);
           }
           return null;
         }

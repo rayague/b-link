@@ -1,19 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:b_link/services/admin_service.dart';
-import 'package:b_link/services/admin_auth_service.dart';
 import 'package:b_link/models/admin_user.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 
 void main() {
   late FakeFirebaseFirestore fakeFirestore;
   late AdminService adminService;
-  late AdminAuthService adminAuthService;
 
   setUp(() {
     fakeFirestore = FakeFirebaseFirestore();
     adminService = AdminService(firestore: fakeFirestore);
-    adminAuthService = AdminAuthService();
   });
 
   group('AdminService Tests', () {

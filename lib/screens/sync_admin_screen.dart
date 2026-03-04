@@ -184,6 +184,7 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
   Future<void> _revokeAdmin() async {
     try {
       if (_adminUid != null) {
+        // ignore: deprecated_member_use_from_same_package
         await _adminService.revokeAdmin(_adminUid!);
       }
       setState(() => _adminUid = null);
@@ -221,8 +222,9 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
       DateTime cutoff = DateTime.now();
       if (_ageFilter == '1d') cutoff = cutoff.subtract(const Duration(days: 1));
       if (_ageFilter == '7d') cutoff = cutoff.subtract(const Duration(days: 7));
-      if (_ageFilter == '30d')
+      if (_ageFilter == '30d') {
         cutoff = cutoff.subtract(const Duration(days: 30));
+      }
       clauses.add('createdAt >= ?');
       args.add(cutoff.toIso8601String());
     }
@@ -464,8 +466,7 @@ class _SyncAdminScreenState extends State<SyncAdminScreen> {
                     const DropdownMenuItem(
                         value: 'all', child: Text('All actions')),
                     ..._actions
-                        .map((a) => DropdownMenuItem(value: a, child: Text(a)))
-                        .toList(),
+                        .map((a) => DropdownMenuItem(value: a, child: Text(a))),
                   ],
                   onChanged: (v) {
                     if (v == null) return;

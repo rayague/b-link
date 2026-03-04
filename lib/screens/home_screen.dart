@@ -112,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen>
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.cake_outlined,
@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen>
                               height: 200,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.1),
+                                color: Colors.white.withValues(alpha: 0.1),
                               ),
                             ),
                           ),
@@ -154,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen>
                               height: 150,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.08),
+                                color: Colors.white.withValues(alpha: 0.08),
                               ),
                             ),
                           ),
@@ -262,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black26 : Colors.grey.withOpacity(0.1),
+            color: isDark ? Colors.black26 : Colors.grey.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -343,9 +343,9 @@ class _HomeScreenState extends State<HomeScreen>
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -429,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
+            color: Colors.grey.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -446,11 +446,11 @@ class _HomeScreenState extends State<HomeScreen>
                 Color((math.Random(contact.name.hashCode).nextDouble() *
                             0xFFFFFF)
                         .toInt())
-                    .withOpacity(1.0),
+                    .withValues(alpha: 1.0),
                 Color((math.Random(contact.name.hashCode + 1).nextDouble() *
                             0xFFFFFF)
                         .toInt())
-                    .withOpacity(1.0),
+                    .withValues(alpha: 1.0),
               ],
             ),
             borderRadius: BorderRadius.circular(12),
@@ -504,7 +504,7 @@ class _HomeScreenState extends State<HomeScreen>
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFEC4899).withOpacity(0.1),
+            color: const Color(0xFFEC4899).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -561,7 +561,7 @@ class _HomeScreenState extends State<HomeScreen>
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEC4899).withOpacity(0.2),
+                    color: const Color(0xFFEC4899).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -647,7 +647,7 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       );
     } catch (e) {
-      print('❌ Erreur génération message: $e');
+      debugPrint('❌ Erreur génération message: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -709,7 +709,7 @@ class _HomeScreenState extends State<HomeScreen>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: action.gradient[0].withOpacity(0.3),
+                  color: action.gradient[0].withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -756,7 +756,7 @@ class _HomeScreenState extends State<HomeScreen>
       final adminService = AdminService();
       return await adminService.isUserAdmin(user.uid);
     } catch (e) {
-      print('❌ Erreur vérification admin: $e');
+      debugPrint('❌ Erreur vérification admin: $e');
       return false;
     }
   }
@@ -1040,7 +1040,7 @@ class CustomSettingsSheet extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: isSelected
-                ? color.withOpacity(0.15)
+                ? color.withValues(alpha: 0.15)
                 : (isDark ? const Color(0xFF374151) : Colors.grey[100]),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
@@ -1092,7 +1092,7 @@ class CustomSettingsSheet extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isSelected
-                ? const Color(0xFF3B82F6).withOpacity(0.15)
+                ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
                 : (isDark ? const Color(0xFF374151) : Colors.grey[100]),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(

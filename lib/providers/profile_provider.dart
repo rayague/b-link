@@ -49,10 +49,10 @@ class ProfileProvider extends ChangeNotifier {
         _profile = firebaseProfile;
         await _service.saveLocally(_profile!);
         notifyListeners();
-        print('✅ Profil récupéré depuis Firebase');
+        debugPrint('✅ Profil récupéré depuis Firebase');
       }
     } catch (e) {
-      print('❌ Erreur récupération profil Firebase: $e');
+      debugPrint('❌ Erreur récupération profil Firebase: $e');
     } finally {
       _syncing = false;
       notifyListeners();
@@ -91,9 +91,9 @@ class ProfileProvider extends ChangeNotifier {
 
         try {
           await _firebaseSync.saveUserProfile(_profile!);
-          print('✅ Profil sauvegardé dans Firebase');
+          debugPrint('✅ Profil sauvegardé dans Firebase');
         } catch (e) {
-          print('❌ Erreur sauvegarde profil Firebase: $e');
+          debugPrint('❌ Erreur sauvegarde profil Firebase: $e');
         } finally {
           _syncing = false;
           notifyListeners();

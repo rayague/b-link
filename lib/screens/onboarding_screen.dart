@@ -22,17 +22,100 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   void initState() {
     super.initState();
-    
+
     AnalyticsService().logScreenView(
       screenName: 'OnboardingScreen',
       screenClass: 'OnboardingScreen',
     );
-    
+
     _floatingController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat(reverse: true);
 
+    _pulseController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _rotateController = AnimationController(
+      duration: const Duration(seconds: 20),
+      vsync: this,
+    )..repeat();
+
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _floatingController.dispose();
+    _pulseController.dispose();
+    _rotateController.dispose();
+    _slideController.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onPageChanged(int page) {
+    setState(() {
+      _currentPage = page;
+    });
+    _slideController.reset();
+    _slideController.forward();
+  }
+
+  void _navigateToAuth() {
+    Navigator.of(context).pushReplacementNamed('/auth');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final pages = [
+      _OnboardingPageData(
+        icon: Icons.cake_rounded,
+        title: loc.translate('onboarding1Title'),
+        description: loc.translate('onboarding1Body'),
+        gradient: const [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+        illustration: '🎂',
+      ),
+      _OnboardingPageData(
+        icon: Icons.people_rounded,
+        title: loc.translate('onboarding2Title'),
+        description: loc.translate('onboarding2Body'),
+        gradient: const [Color(0xFF667EEA), Color(0xFF764BA2)],
+        illustration: '👥',
+      ),
+      _OnboardingPageData(
+        icon: Icons.notifications_rounded,
+        title: loc.translate('onboarding3Title'),
+        description: loc.translate('onboarding3Body'),
+        gradient: const [Color(0xFF11998E), Color(0xFF38EF7D)],
+        illustration: '🔔',
+      ),
+    ];
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Animated gradient background
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 500),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+                    : [Colors.white, Colors.grey.shade50],
+              ),
+            ),
+          ),
           SafeArea(
             child: Column(
               children: [
@@ -59,7 +142,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                     borderRadius: BorderRadius.circular(16),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: pages[_currentPage].gradient[0].withOpacity(0.4),
+                                        color: pages[_currentPage].gradient[0].withValues(alpha: 0.4),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
@@ -104,8 +187,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                   backgroundColor: isDark
-                                      ? Colors.white.withOpacity(0.1)
-                                      : Colors.black.withOpacity(0.05),
+                                      ? Colors.white.withValues(alpha: 0.1)
+                                      : Colors.black.withValues(alpha: 0.05),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -159,102 +242,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         ),
                       ),
                       // Modern dots indicator with liquid animation
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                            pages.length,
-                            (index) => AnimatedContainer(
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.easeInOutCubic,
-                              margin: const EdgeInsets.symmetric(horizontal: 5),
-                              width: _currentPage == index ? 40 : 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(5),
-                                gradient: _currentPage == index
-                                    ? LinearGradient(colors: pages[_currentPage].gradient)
-                                    : null,
-                                color: _currentPage == index
-                                    ? null
-                                    : isDark
-                                        ? Colors.white.withOpacity(0.2)
-                                        : Colors.black.withOpacity(0.1),
-                                boxShadow: _currentPage == index
-                                    ? [
-                                        BoxShadow(
-                                          color: pages[_currentPage].gradient[0].withOpacity(0.4),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Bottom button with morphing animation
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.easeInOutCubic,
-                          width: double.infinity,
-                          height: 60,
-                          child: _currentPage == pages.length - 1
-                              ? AnimatedBuilder(
-                                  animation: _pulseController,
-                                  builder: (context, child) {
-                                    return Transform.scale(
-                                      scale: 1.0 + (_pulseController.value * 0.02),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: pages[_currentPage].gradient,
-                                          ),
-                                          borderRadius: BorderRadius.circular(20),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: pages[_currentPage].gradient[0].withOpacity(0.5),
-                                              blurRadius: 20,
-                                              offset: const Offset(0, 8),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            onTap: _navigateToAuth,
-                                            borderRadius: BorderRadius.circular(20),
-                                            child: Center(
-                                              child: Text(
-                                                loc.translate('getStarted'),
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                )
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-                // Modern dots indicator with liquid animation
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Row(
@@ -275,12 +262,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           color: _currentPage == index
                               ? null
                               : isDark
-                                  ? Colors.white.withOpacity(0.2)
-                                  : Colors.black.withOpacity(0.1),
+                                  ? Colors.white.withValues(alpha: 0.2)
+                                  : Colors.black.withValues(alpha: 0.1),
                           boxShadow: _currentPage == index
                               ? [
                                   BoxShadow(
-                                    color: pages[_currentPage].gradient[0].withOpacity(0.4),
+                                    color: pages[_currentPage].gradient[0].withValues(alpha: 0.4),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -314,7 +301,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: pages[_currentPage].gradient[0].withOpacity(0.5),
+                                        color: pages[_currentPage].gradient[0].withValues(alpha: 0.5),
                                         blurRadius: 20,
                                         offset: const Offset(0, 8),
                                       ),
@@ -362,8 +349,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               ),
                               gradient: LinearGradient(
                                 colors: [
-                                  pages[_currentPage].gradient[0].withOpacity(0.1),
-                                  pages[_currentPage].gradient[1].withOpacity(0.1),
+                                  pages[_currentPage].gradient[0].withValues(alpha: 0.1),
+                                  pages[_currentPage].gradient[1].withValues(alpha: 0.1),
                                 ],
                               ),
                             ),
@@ -419,7 +406,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
         ],
       ),
-    );
+    ),                   // closes SafeArea
+        ],               // closes Stack.children
+      ),                 // closes Stack
+    );                   // closes Scaffold
   }
 }
 
@@ -486,10 +476,10 @@ class _OnboardingPage extends StatelessWidget {
                             shape: BoxShape.circle,
                             gradient: SweepGradient(
                               colors: [
-                                data.gradient[0].withOpacity(0.0),
-                                data.gradient[0].withOpacity(0.3),
-                                data.gradient[1].withOpacity(0.3),
-                                data.gradient[0].withOpacity(0.0),
+                                data.gradient[0].withValues(alpha: 0.0),
+                                data.gradient[0].withValues(alpha: 0.3),
+                                data.gradient[1].withValues(alpha: 0.3),
+                                data.gradient[0].withValues(alpha: 0.0),
                               ],
                               stops: const [0.0, 0.3, 0.7, 1.0],
                             ),
@@ -504,9 +494,9 @@ class _OnboardingPage extends StatelessWidget {
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
-                              data.gradient[0].withOpacity(0.0),
-                              data.gradient[0].withOpacity(0.15),
-                              data.gradient[1].withOpacity(0.15),
+                              data.gradient[0].withValues(alpha: 0.0),
+                              data.gradient[0].withValues(alpha: 0.15),
+                              data.gradient[1].withValues(alpha: 0.15),
                             ],
                           ),
                         ),
@@ -527,12 +517,12 @@ class _OnboardingPage extends StatelessWidget {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: data.gradient[0].withOpacity(0.4),
+                              color: data.gradient[0].withValues(alpha: 0.4),
                               blurRadius: 40,
                               offset: const Offset(0, 20),
                             ),
                             BoxShadow(
-                              color: data.gradient[1].withOpacity(0.3),
+                              color: data.gradient[1].withValues(alpha: 0.3),
                               blurRadius: 30,
                               offset: const Offset(0, -10),
                             ),
@@ -546,8 +536,8 @@ class _OnboardingPage extends StatelessWidget {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.white.withOpacity(0.2),
-                                Colors.white.withOpacity(0.05),
+                                Colors.white.withValues(alpha: 0.2),
+                                Colors.white.withValues(alpha: 0.05),
                               ],
                             ),
                           ),
@@ -577,7 +567,7 @@ class _OnboardingPage extends StatelessWidget {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: data.gradient[index % 2].withOpacity(0.6),
+                                  color: data.gradient[index % 2].withValues(alpha: 0.6),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -655,14 +645,14 @@ class _OnboardingPage extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              data.gradient[0].withOpacity(1 - (index * 0.3)),
-                              data.gradient[1].withOpacity(1 - (index * 0.3)),
+                              data.gradient[0].withValues(alpha: 1 - (index * 0.3)),
+                              data.gradient[1].withValues(alpha: 1 - (index * 0.3)),
                             ],
                           ),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: data.gradient[0].withOpacity(0.5),
+                              color: data.gradient[0].withValues(alpha: 0.5),
                               blurRadius: 8,
                             ),
                           ],

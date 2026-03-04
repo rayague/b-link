@@ -7,7 +7,7 @@ List<Map<String,String>> parseMessagesFromContent(String content) {
   // keys that commonly hold message text in various seeds
   final keyPatterns = ['content', 'text', 'message', 'body', 'description'];
   // Build patterns with escaped backslashes so Dart string parsing works reliably
-  final keyPatternStr = '(?:(?:' + keyPatterns.join('|') + '))\\s*:\\s*(?:`|"|\')([\\s\\S]*?)(?:`|"|\')';
+  final keyPatternStr = '(?:(?:${keyPatterns.join('|')}))\\s*:\\s*(?:`|"|\')([\\s\\S]*?)(?:`|"|\')';
   final keyRegex = RegExp(keyPatternStr, dotAll: true, multiLine: true);
   final stringLiteralPattern = '`([\\s\\S]*?)`|"([\\s\\S]*?)"|\'([\\s\\S]*?)\'';
   final stringLiteralRegex = RegExp(stringLiteralPattern, dotAll: true, multiLine: true);

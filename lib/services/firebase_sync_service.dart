@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/contact.dart';
@@ -24,7 +25,7 @@ class FirebaseSyncService {
   /// Sauvegarder le profil utilisateur dans Firebase
   Future<void> saveUserProfile(UserProfile profile) async {
     if (_userId == null) {
-      print('⚠️ Impossible de sauvegarder: utilisateur non connecté');
+      debugPrint('⚠️ Impossible de sauvegarder: utilisateur non connecté');
       return;
     }
 
@@ -42,9 +43,9 @@ class FirebaseSyncService {
       // Mettre à jour les statistiques globales
       await _updateGlobalStats();
 
-      print('✅ Profil sauvegardé dans Firebase');
+      debugPrint('✅ Profil sauvegardé dans Firebase');
     } catch (e) {
-      print('❌ Erreur sauvegarde profil: $e');
+      debugPrint('❌ Erreur sauvegarde profil: $e');
       rethrow;
     }
   }
@@ -52,7 +53,7 @@ class FirebaseSyncService {
   /// Récupérer le profil utilisateur depuis Firebase
   Future<UserProfile?> getUserProfile() async {
     if (_userId == null) {
-      print('⚠️ Impossible de récupérer: utilisateur non connecté');
+      debugPrint('⚠️ Impossible de récupérer: utilisateur non connecté');
       return null;
     }
 
@@ -60,15 +61,15 @@ class FirebaseSyncService {
       final doc = await _firestore.collection('users').doc(_userId).get();
 
       if (!doc.exists) {
-        print('ℹ️ Aucun profil trouvé dans Firebase');
+        debugPrint('ℹ️ Aucun profil trouvé dans Firebase');
         return null;
       }
 
       final data = doc.data()!;
-      print('✅ Profil récupéré depuis Firebase');
+      debugPrint('✅ Profil récupéré depuis Firebase');
       return UserProfile.fromJson(data);
     } catch (e) {
-      print('❌ Erreur récupération profil: $e');
+      debugPrint('❌ Erreur récupération profil: $e');
       return null;
     }
   }
@@ -106,9 +107,9 @@ class FirebaseSyncService {
           .doc(contactId)
           .set(data, SetOptions(merge: true));
 
-      print('✅ Contact "${contact.name}" sauvegardé dans Firebase');
+      debugPrint('✅ Contact "${contact.name}" sauvegardé dans Firebase');
     } catch (e) {
-      print('❌ Erreur sauvegarde contact: $e');
+      debugPrint('❌ Erreur sauvegarde contact: $e');
     }
   }
 
@@ -136,9 +137,9 @@ class FirebaseSyncService {
       }
 
       await batch.commit();
-      print('✅ ${contacts.length} contacts sauvegardés dans Firebase');
+      debugPrint('✅ ${contacts.length} contacts sauvegardés dans Firebase');
     } catch (e) {
-      print('❌ Erreur sauvegarde batch contacts: $e');
+      debugPrint('❌ Erreur sauvegarde batch contacts: $e');
     }
   }
 
@@ -160,10 +161,10 @@ class FirebaseSyncService {
         return Contact.fromJson(data);
       }).toList();
 
-      print('✅ ${contacts.length} contacts récupérés depuis Firebase');
+      debugPrint('✅ ${contacts.length} contacts récupérés depuis Firebase');
       return contacts;
     } catch (e) {
-      print('❌ Erreur récupération contacts: $e');
+      debugPrint('❌ Erreur récupération contacts: $e');
       return [];
     }
   }
@@ -180,9 +181,9 @@ class FirebaseSyncService {
           .doc(contactId.toString())
           .delete();
 
-      print('✅ Contact supprimé de Firebase');
+      debugPrint('✅ Contact supprimé de Firebase');
     } catch (e) {
-      print('❌ Erreur suppression contact: $e');
+      debugPrint('❌ Erreur suppression contact: $e');
     }
   }
 
@@ -214,11 +215,11 @@ class FirebaseSyncService {
     List<Contact>? contacts,
   }) async {
     if (_userId == null) {
-      print('⚠️ Impossible de synchroniser: utilisateur non connecté');
+      debugPrint('⚠️ Impossible de synchroniser: utilisateur non connecté');
       return;
     }
 
-    print('🔄 Début synchronisation vers Firebase...');
+    debugPrint('🔄 Début synchronisation vers Firebase...');
 
     try {
       // Sauvegarder le profil
@@ -231,9 +232,9 @@ class FirebaseSyncService {
         await saveAllContacts(contacts);
       }
 
-      print('✅ Synchronisation vers Firebase terminée');
+      debugPrint('✅ Synchronisation vers Firebase terminée');
     } catch (e) {
-      print('❌ Erreur synchronisation: $e');
+      debugPrint('❌ Erreur synchronisation: $e');
       rethrow;
     }
   }
@@ -242,18 +243,18 @@ class FirebaseSyncService {
   /// Utilisé après réinstallation ou première connexion
   Future<void> syncFromFirebase() async {
     if (_userId == null) {
-      print('⚠️ Impossible de synchroniser: utilisateur non connecté');
+      debugPrint('⚠️ Impossible de synchroniser: utilisateur non connecté');
       return;
     }
 
-    print('🔄 Début récupération depuis Firebase...');
+    debugPrint('🔄 Début récupération depuis Firebase...');
 
     try {
       // Récupérer le profil
       final profile = await getUserProfile();
       if (profile != null) {
         // Sauvegarder en local (à implémenter dans ProfileProvider)
-        print('📥 Profil récupéré: ${profile.name}');
+        debugPrint('📥 Profil récupéré: ${profile.name}');
       }
 
       // Récupérer les contacts
@@ -263,13 +264,13 @@ class FirebaseSyncService {
         for (final contact in contacts) {
           await _db.insertContact(contact);
         }
-        print(
+        debugPrint(
             '📥 ${contacts.length} contacts récupérés et sauvegardés localement');
       }
 
-      print('✅ Synchronisation depuis Firebase terminée');
+      debugPrint('✅ Synchronisation depuis Firebase terminée');
     } catch (e) {
-      print('❌ Erreur récupération: $e');
+      debugPrint('❌ Erreur récupération: $e');
       rethrow;
     }
   }
@@ -282,7 +283,7 @@ class FirebaseSyncService {
   }) async {
     if (_userId == null) return;
 
-    print('🔄 Synchronisation intelligente...');
+    debugPrint('🔄 Synchronisation intelligente...');
 
     try {
       // 1. Récupérer les données Firebase
@@ -294,7 +295,7 @@ class FirebaseSyncService {
         await saveUserProfile(localProfile);
       } else if (firebaseProfile != null) {
         // Sauvegarder le profil Firebase en local
-        print('📥 Profil Firebase récupéré');
+        debugPrint('📥 Profil Firebase récupéré');
       }
 
       // 3. Fusionner les contacts
@@ -307,7 +308,7 @@ class FirebaseSyncService {
           .toList();
       if (onlyLocal.isNotEmpty) {
         await saveAllContacts(onlyLocal);
-        print('📤 ${onlyLocal.length} contacts locaux envoyés à Firebase');
+        debugPrint('📤 ${onlyLocal.length} contacts locaux envoyés à Firebase');
       }
 
       // Contacts uniquement sur Firebase → sauvegarder en local
@@ -318,13 +319,13 @@ class FirebaseSyncService {
         for (final contact in onlyFirebase) {
           await _db.insertContact(contact);
         }
-        print(
+        debugPrint(
             '📥 ${onlyFirebase.length} contacts Firebase sauvegardés localement');
       }
 
-      print('✅ Synchronisation intelligente terminée');
+      debugPrint('✅ Synchronisation intelligente terminée');
     } catch (e) {
-      print('❌ Erreur synchronisation intelligente: $e');
+      debugPrint('❌ Erreur synchronisation intelligente: $e');
     }
   }
 
@@ -361,7 +362,7 @@ class FirebaseSyncService {
         }
       });
     } catch (e) {
-      print('❌ Erreur mise à jour stats: $e');
+      debugPrint('❌ Erreur mise à jour stats: $e');
     }
   }
 
@@ -376,7 +377,7 @@ class FirebaseSyncService {
 
       return doc.data()!;
     } catch (e) {
-      print('❌ Erreur récupération stats: $e');
+      debugPrint('❌ Erreur récupération stats: $e');
       return {'totalUsers': 0};
     }
   }
@@ -392,7 +393,7 @@ class FirebaseSyncService {
         return data;
       }).toList();
     } catch (e) {
-      print('❌ Erreur récupération utilisateurs: $e');
+      debugPrint('❌ Erreur récupération utilisateurs: $e');
       return [];
     }
   }
@@ -432,9 +433,9 @@ class FirebaseSyncService {
       batch.delete(_firestore.collection('users').doc(_userId));
 
       await batch.commit();
-      print('✅ Données utilisateur supprimées de Firebase');
+      debugPrint('✅ Données utilisateur supprimées de Firebase');
     } catch (e) {
-      print('❌ Erreur suppression données: $e');
+      debugPrint('❌ Erreur suppression données: $e');
     }
   }
 }

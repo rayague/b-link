@@ -116,6 +116,7 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
           TextButton(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: msg));
+              if (!dialogCtx.mounted) return;
               Navigator.of(dialogCtx).pop();
               messenger.showSnackBar(
                   const SnackBar(content: Text('Message copied')));

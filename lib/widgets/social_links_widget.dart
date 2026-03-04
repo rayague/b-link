@@ -54,7 +54,7 @@ class SocialLinksWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: colors[0].withOpacity(0.3),
+              color: colors[0].withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -85,12 +85,12 @@ class SocialLinksWidget extends StatelessWidget {
             color: isDark ? const Color(0xFF374151) : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: colors[0].withOpacity(0.3),
+              color: colors[0].withValues(alpha: 0.3),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -150,8 +150,9 @@ class SocialLinksWidget extends StatelessWidget {
     final lower = platform.toLowerCase();
     if (lower.contains('facebook')) return Icons.facebook;
     if (lower.contains('instagram')) return Icons.camera_alt;
-    if (lower.contains('twitter') || lower.contains('x.com'))
+    if (lower.contains('twitter') || lower.contains('x.com')) {
       return Icons.alternate_email;
+    }
     if (lower.contains('linkedin')) return Icons.business;
     if (lower.contains('youtube')) return Icons.play_arrow;
     if (lower.contains('tiktok')) return Icons.music_note;
@@ -169,36 +170,51 @@ class SocialLinksWidget extends StatelessWidget {
 
   List<Color> _getSocialColors(String platform) {
     final lower = platform.toLowerCase();
-    if (lower.contains('facebook'))
+    if (lower.contains('facebook')) {
       return [const Color(0xFF1877F2), const Color(0xFF42A5F5)];
-    if (lower.contains('instagram'))
+    }
+    if (lower.contains('instagram')) {
       return [const Color(0xFFE4405F), const Color(0xFFFCAF45)];
-    if (lower.contains('twitter') || lower.contains('x.com'))
+    }
+    if (lower.contains('twitter') || lower.contains('x.com')) {
       return [const Color(0xFF1DA1F2), const Color(0xFF42A5F5)];
-    if (lower.contains('linkedin'))
+    }
+    if (lower.contains('linkedin')) {
       return [const Color(0xFF0A66C2), const Color(0xFF42A5F5)];
-    if (lower.contains('youtube'))
+    }
+    if (lower.contains('youtube')) {
       return [const Color(0xFFFF0000), const Color(0xFFE57373)];
-    if (lower.contains('tiktok'))
+    }
+    if (lower.contains('tiktok')) {
       return [const Color(0xFF000000), const Color(0xFF69C9D0)];
-    if (lower.contains('snapchat'))
+    }
+    if (lower.contains('snapchat')) {
       return [const Color(0xFFFFFC00), const Color(0xFFFDD835)];
-    if (lower.contains('whatsapp'))
+    }
+    if (lower.contains('whatsapp')) {
       return [const Color(0xFF25D366), const Color(0xFF66BB6A)];
-    if (lower.contains('telegram'))
+    }
+    if (lower.contains('telegram')) {
       return [const Color(0xFF0088CC), const Color(0xFF42A5F5)];
-    if (lower.contains('github'))
+    }
+    if (lower.contains('github')) {
       return [const Color(0xFF181717), const Color(0xFF424242)];
-    if (lower.contains('discord'))
+    }
+    if (lower.contains('discord')) {
       return [const Color(0xFF5865F2), const Color(0xFF7289DA)];
-    if (lower.contains('reddit'))
+    }
+    if (lower.contains('reddit')) {
       return [const Color(0xFFFF4500), const Color(0xFFFF6B35)];
-    if (lower.contains('pinterest'))
+    }
+    if (lower.contains('pinterest')) {
       return [const Color(0xFFE60023), const Color(0xFFE57373)];
-    if (lower.contains('twitch'))
+    }
+    if (lower.contains('twitch')) {
       return [const Color(0xFF9146FF), const Color(0xFFAB47BC)];
-    if (lower.contains('spotify'))
+    }
+    if (lower.contains('spotify')) {
       return [const Color(0xFF1DB954), const Color(0xFF66BB6A)];
+    }
     return [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)];
   }
 
