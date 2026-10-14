@@ -30,6 +30,11 @@ class FirebaseSyncService {
     }
 
     try {
+      // Ensure birthDayKey (MM-DD) is present so the "Same Day" query can match.
+      if (profile.birthDayKey == null || profile.birthDayKey!.isEmpty) {
+        profile.birthDayKey =
+            '${profile.birthDate.month.toString().padLeft(2, '0')}-${profile.birthDate.day.toString().padLeft(2, '0')}';
+      }
       final data = profile.toJson();
       data['userId'] = _userId;
       data['lastUpdated'] = FieldValue.serverTimestamp();
@@ -40,8 +45,8 @@ class FirebaseSyncService {
           .doc(_userId)
           .set(data, SetOptions(merge: true));
 
-      // Mettre à jour les statistiques globales
-      await _updateGlobalStats();
+      // Les statistiques globales sont maintenues côté serveur (Cloud Function
+      // `onUserCreated`) ; le client n'écrit plus dans `app_stats`.
 
       debugPrint('✅ Profil sauvegardé dans Firebase');
     } catch (e) {
@@ -330,41 +335,8 @@ class FirebaseSyncService {
   }
 
   // ==================== STATISTIQUES GLOBALES ====================
-
-  /// Mettre à jour les statistiques globales (nombre total d'utilisateurs, etc.)
-  Future<void> _updateGlobalStats() async {
-    try {
-      final statsRef = _firestore.collection('app_stats').doc('global');
-
-      await _firestore.runTransaction((transaction) async {
-        final snapshot = await transaction.get(statsRef);
-
-        if (!snapshot.exists) {
-          // Créer le document de stats
-          transaction.set(statsRef, {
-            'totalUsers': 1,
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
-        } else {
-          // Incrémenter si nouvel utilisateur
-          final data = snapshot.data()!;
-          final currentUsers = data['totalUsers'] ?? 0;
-
-          // Vérifier si c'est un nouvel utilisateur
-          final userDoc =
-              await _firestore.collection('users').doc(_userId).get();
-          if (!userDoc.exists || !data.containsKey('userIds')) {
-            transaction.update(statsRef, {
-              'totalUsers': currentUsers + 1,
-              'lastUpdated': FieldValue.serverTimestamp(),
-            });
-          }
-        }
-      });
-    } catch (e) {
-      debugPrint('❌ Erreur mise à jour stats: $e');
-    }
-  }
+  // L'écriture de `app_stats` est réservée au serveur (Cloud Function
+  // `onUserCreated`). Le client ne fait que lire les statistiques.
 
   /// Récupérer les statistiques globales
   Future<Map<String, dynamic>> getGlobalStats() async {

@@ -52,10 +52,10 @@ class ProfileService {
     }
   }
 
-  /// Push profile to Firestore under collection `profiles` with doc id = uid or auto
+  /// Push profile to Firestore under collection `users` with doc id = uid or auto
   Future<void> pushToFirestore(UserProfile profile) async {
     if (firestore == null) return;
-    final collection = firestore!.collection('profiles');
+    final collection = firestore!.collection('users');
     final docRef = (profile.uid == null || profile.uid!.isEmpty) ? collection.doc() : collection.doc(profile.uid);
     final data = profile.toJson();
     data['lastSyncedAt'] = DateTime.now().toIso8601String();
@@ -74,7 +74,7 @@ class ProfileService {
 
   Future<UserProfile?> fetchFromFirestore(String uid) async {
     if (firestore == null) return null;
-    final doc = await firestore!.collection('profiles').doc(uid).get();
+    final doc = await firestore!.collection('users').doc(uid).get();
     if (!doc.exists) return null;
     return UserProfile.fromJson(doc.data()!);
   }

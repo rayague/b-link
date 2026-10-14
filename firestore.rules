@@ -3,93 +3,58 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ==================== HELPER FUNCTIONS ====================
-    // Fonction pour vérifier si l'utilisateur est admin
+    // Un utilisateur est admin si un document admins/{uid} existe.
     function isAdmin() {
-      return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // ==================== USERS COLLECTION ====================
-    // Chaque utilisateur peut lire/écrire son propre profil
+    // Profil utilisateur + contacts. Le profil sert aussi au "Same Day".
     match /users/{userId} {
-      // Lecture : propriétaire, admin ou si profil public
+      // Lecture : propriétaire, admin, ou profil explicitement public.
       allow read: if request.auth != null && (
         request.auth.uid == userId
         || isAdmin()
-        || (resource.data.keys().hasAny(['isPublic']) && resource.data.isPublic == true)
+        || resource.data.isPublic == true
       );
 
-      // Création : propriétaire uniquement
-      allow create: if request.auth != null && request.auth.uid == userId;
+      // Écriture : propriétaire uniquement.
+      allow create, update, delete: if request.auth != null
+        && request.auth.uid == userId;
 
-      // Mise à jour : propriétaire uniquement
-      allow update: if request.auth != null && request.auth.uid == userId;
-
-      // Suppression : propriétaire uniquement
-      allow delete: if request.auth != null && request.auth.uid == userId;
-
-      // ==================== CONTACTS SUBCOLLECTION ====================
-      // Les contacts sont privés à chaque utilisateur
+      // Contacts : strictement privés au propriétaire.
       match /contacts/{contactId} {
-        // Lecture : propriétaire uniquement
-        allow read: if request.auth != null && request.auth.uid == userId;
-
-        // Création : propriétaire uniquement
-        allow create: if request.auth != null && request.auth.uid == userId;
-
-        // Mise à jour : propriétaire uniquement
-        allow update: if request.auth != null && request.auth.uid == userId;
-
-        // Suppression : propriétaire uniquement
-        allow delete: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
     // ==================== ADMINS COLLECTION ====================
-    // Collection des administrateurs
+    // La création/suppression d'admins se fait côté serveur (Cloud Function /
+    // console). Le client peut uniquement lire et mettre à jour sa dernière
+    // connexion.
     match /admins/{adminId} {
-      // Lecture : l'admin lui-même peut lire ses infos, ou un autre admin peut lire tous les admins
       allow read: if request.auth != null && (
         request.auth.uid == adminId
         || isAdmin()
       );
 
-      // Création : autorisée SEULEMENT si la collection admins est vide (premier admin)
-      // On vérifie que l'utilisateur créé correspond à l'utilisateur authentifié
-      allow create: if request.auth != null 
-        && request.auth.uid == adminId
-        && request.resource.data.uid == request.auth.uid;
+      allow create, delete: if false;
 
-      // Mise à jour : seulement pour mettre à jour lastLogin
-      allow update: if request.auth != null 
+      allow update: if request.auth != null
         && request.auth.uid == adminId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']);
-
-      // Suppression : impossible depuis le client
-      allow delete: if false;
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['lastLogin']);
     }
 
-    // ==================== APP STATS (ADMIN ONLY) ====================
-    // Collection pour les statistiques globales
+    // ==================== APP STATS ====================
+    // Lecture publique (authentifiée) ; écriture réservée au serveur.
     match /app_stats/{document} {
-      // Lecture : tous les utilisateurs authentifiés
       allow read: if request.auth != null;
-
-      // Écriture : seulement pour le système (via Cloud Functions)
-      // Pour l'instant, on permet à tous les utilisateurs authentifiés
-      allow write: if request.auth != null;
+      allow write: if false;
     }
 
-    // ==================== SYNC QUEUE (Legacy) ====================
-    // Pour compatibilité avec l'ancien système
-    match /sync_queue/{entry} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /profiles/{userId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Deny everything else by default
+    // Deny everything else by default (profiles, sync_queue Firestore, etc.)
     match /{document=**} {
       allow read, write: if false;
     }

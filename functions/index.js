@@ -4,50 +4,90 @@ const admin = require('firebase-admin');
 admin.initializeApp();
 const db = admin.firestore();
 // Compatibility: some emulator environments may not expose FieldValue the same way,
-// so resolve FieldValue and Timestamp from the admin SDK and fall back safely.
-const { FieldValue, Timestamp } = require('firebase-admin').firestore || {};
+// so resolve FieldValue from the admin SDK with a safe fallback.
+const { FieldValue } = require('firebase-admin').firestore || {};
 
-// Allowed keys that clients may set
-const ALLOWED_KEYS = [
-  'displayName', 'name', 'birthDate', 'birthDayKey', 'photoUrl',
-  'isPublic', 'visibility', 'updatedAt', 'createdAt', 'lastSyncedAt'
-];
+const serverTimestamp = () =>
+  (FieldValue && typeof FieldValue.serverTimestamp === 'function')
+    ? FieldValue.serverTimestamp()
+    : new Date().toISOString();
 
-// Remove server-only fields and normalize timestamps/fields on create
-exports.onProfileCreate = functions.firestore
-  .document('profiles/{userId}')
-  .onCreate(async (snap, context) => {
-    const data = snap.data() || {};
-    const userId = context.params.userId;
+/**
+ * Grant (or update) an admin role for a given Firebase Auth uid.
+ *
+ * Security:
+ * - Only an existing, active `super_admin` can call this function.
+ * - The document id is always the target uid (`admins/{uid}`).
+ *
+ * Bootstrap of the FIRST super_admin must be done out-of-band (Firebase
+ * console or admin SDK script), because no admin exists yet to authorize
+ * the call. Never seed credentials from the client app.
+ */
+exports.grantAdmin = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Authentication required.'
+    );
+  }
 
-    const sanitized = {};
-    // Copy only allowed keys
-    for (const k of ALLOWED_KEYS) {
-      if (Object.prototype.hasOwnProperty.call(data, k)) sanitized[k] = data[k];
+  const callerDoc = await db.collection('admins').doc(context.auth.uid).get();
+  const caller = callerDoc.exists ? callerDoc.data() : null;
+  if (!caller || caller.role !== 'super_admin' || caller.isActive === false) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Only an active super_admin can grant admin access.'
+    );
+  }
+
+  const uid = typeof data.uid === 'string' ? data.uid.trim() : '';
+  if (!uid) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'A target `uid` is required.'
+    );
+  }
+
+  const role = data.role === 'super_admin' ? 'super_admin' : 'admin';
+  let email = typeof data.email === 'string' ? data.email : '';
+  if (!email) {
+    try {
+      const userRecord = await admin.auth().getUser(uid);
+      email = userRecord.email || '';
+    } catch (_) {
+      email = '';
     }
+  }
 
-    // Enforce server fields
-    // Use FieldValue.serverTimestamp when available (preferred). Otherwise fall back to a Timestamp.
-    const now = (FieldValue && typeof FieldValue.serverTimestamp === 'function')
-      ? FieldValue.serverTimestamp()
-      : (Timestamp && typeof Timestamp.now === 'function' ? Timestamp.now() : null);
-    if (!sanitized.createdAt) sanitized.createdAt = now;
-    sanitized.lastNormalizedAt = now;
+  await db.collection('admins').doc(uid).set(
+    {
+      uid,
+      email,
+      role,
+      isActive: true,
+      createdAt: serverTimestamp(),
+      lastLogin: null,
+    },
+    { merge: true }
+  );
 
-    // Ensure forbidden fields removed if present (best-effort)
-    // If client tried to set isAdmin/role/admin, remove them and log via a metadata field
-    const forbidden = ['isAdmin', 'role', 'admin'];
-    let hadForbidden = false;
-    for (const f of forbidden) {
-      if (Object.prototype.hasOwnProperty.call(data, f)) hadForbidden = true;
-    }
-    if (hadForbidden) {
-      sanitized._clientTampered = true;
-      sanitized._clientTamperedAt = now;
-    }
+  return { success: true, uid, role };
+});
 
-    // Merge sanitized data back to document (merge to avoid removing server fields set by other systems)
-    await snap.ref.set(sanitized, { merge: true });
-    // Optionally write an audit log (omitted to keep this function small)
+/**
+ * Maintain the global user counter server-side.
+ * Replaces the previous client-side write to `app_stats/global`.
+ */
+exports.onUserCreated = functions.firestore
+  .document('users/{userId}')
+  .onCreate(async () => {
+    const statsRef = db.collection('app_stats').doc('global');
+    await statsRef.set(
+      {
+        totalUsers: FieldValue.increment(1),
+        lastUpdated: serverTimestamp(),
+      },
+      { merge: true }
+    );
     return null;
   });

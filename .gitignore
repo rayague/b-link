@@ -78,4 +78,9 @@ b-link-3b2d5-firebase-adminsdk-fbsvc-eecbdb3897.json
 # Admin credentials (NEVER commit!)
 ADMIN_CREDENTIALS.txt
 **/admin_credentials.*
-**/ADMIN_CREDENTIALS.* 
+**/ADMIN_CREDENTIALS.*
+
+# Android release signing (NEVER commit!)
+**/key.properties
+*.jks
+*.keystore 

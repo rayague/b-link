@@ -109,7 +109,7 @@ class _SameDayScreenState extends State<SameDayScreen>
 
       // Récupérer le count total
       final countQuery = await fs
-          .collection('profiles')
+          .collection('users')
           .where('birthDayKey', isEqualTo: key)
           .where('isPublic', isEqualTo: true)
           .count()
@@ -119,7 +119,7 @@ class _SameDayScreenState extends State<SameDayScreen>
 
       // Récupérer les premiers documents
       final q = await fs
-          .collection('profiles')
+          .collection('users')
           .where('birthDayKey', isEqualTo: key)
           .where('isPublic', isEqualTo: true)
           .limit(_limit)
@@ -184,7 +184,7 @@ class _SameDayScreenState extends State<SameDayScreen>
     try {
       final fs = FirebaseFirestore.instance;
       final q = await fs
-          .collection('profiles')
+          .collection('users')
           .where('birthDayKey', isEqualTo: key)
           .where('isPublic', isEqualTo: true)
           .startAfterDocument(_lastDocument!)

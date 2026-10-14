@@ -23,7 +23,9 @@ dependencies:
   permission_handler: any
 
   # Notifications
-  flutter_local_notifications: any
+  # Pinned to <20: the 20.0.0 major converted positional params to named and
+  # requires a migration of notification_service.dart (see P2 backlog).
+  flutter_local_notifications: ^19.0.0
 
   # Linking / calls
   url_launcher: any

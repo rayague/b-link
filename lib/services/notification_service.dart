@@ -42,6 +42,14 @@ class NotificationService {
           ?.requestNotificationsPermission();
     } catch (_) {}
 
+    // Android 12+ : autorisation des alarmes exactes (rappels à l'heure)
+    try {
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestExactAlarmsPermission();
+    } catch (_) {}
+
     _initialized = true;
   }
 

@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/theme_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/contact_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../test_notifications.dart';
-import 'init_admin_screen.dart';
 import '../services/message_repository.dart';
-import '../services/admin_service.dart';
 import '../services/analytics_service.dart';
 import '../widgets/offline_banner.dart';
 import 'dart:math' as math;
@@ -163,30 +160,6 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                   actions: [
-                    // Bouton admin sécurisé - visible uniquement pour les admins
-                    FutureBuilder<bool>(
-                      future: _isAdminUser(),
-                      builder: (context, snapshot) {
-                        // Afficher uniquement si l'utilisateur est admin
-                        if (snapshot.data == true) {
-                          return IconButton(
-                            icon: const Icon(Icons.admin_panel_settings,
-                                color: Colors.amber),
-                            tooltip: 'Administration',
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const InitAdminScreen(),
-                                ),
-                              );
-                            },
-                          );
-                        }
-                        // Ne rien afficher si ce n'est pas un admin
-                        return const SizedBox.shrink();
-                      },
-                    ),
                     IconButton(
                       icon: const Icon(Icons.settings_outlined,
                           color: Colors.white),
@@ -745,20 +718,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       builder: (context) => const CustomSettingsSheet(),
     );
-  }
-
-  /// Vérifier si l'utilisateur actuel est administrateur
-  Future<bool> _isAdminUser() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return false;
-
-    try {
-      final adminService = AdminService();
-      return await adminService.isUserAdmin(user.uid);
-    } catch (e) {
-      debugPrint('❌ Erreur vérification admin: $e');
-      return false;
-    }
   }
 }
 
