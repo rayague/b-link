@@ -1,11 +1,12 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+// FieldValue via the modular subpath export: the admin namespace's
+// `firestore.FieldValue` static is not always exposed (e.g. under the
+// Functions emulator), whereas this export is always available.
+const { FieldValue } = require('firebase-admin/firestore');
 
 admin.initializeApp();
 const db = admin.firestore();
-// Compatibility: some emulator environments may not expose FieldValue the same way,
-// so resolve FieldValue from the admin SDK with a safe fallback.
-const { FieldValue } = require('firebase-admin').firestore || {};
 
 const serverTimestamp = () =>
   (FieldValue && typeof FieldValue.serverTimestamp === 'function')
