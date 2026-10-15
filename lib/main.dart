@@ -28,6 +28,7 @@ import 'screens/zodiac_screen.dart';
 // import 'screens/public_profile_screen.dart'; // Unused
 import 'providers/profile_provider.dart';
 import 'services/background_sync.dart';
+import 'widgets/consent_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +41,8 @@ void main() async {
 
   // Connectivité (bannière hors ligne). La synchro est gérée par Firestore.
   ConnectivityService().initialize();
+  // RGPD : applique le choix enregistré avant tout événement analytics.
+  await AnalyticsService().loadConsent();
 
   runApp(const RootApp());
 }
@@ -164,6 +167,9 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
       return;
     }
     setState(() => _ready = true);
+    // RGPD : demander le consentement aux statistiques (une seule fois).
+    await askAnalyticsConsentIfNeeded(context);
+    if (!mounted) return;
     // start loading contacts (this will import messages)
     await contacts.loadContacts(locale: locale.locale.languageCode);
 

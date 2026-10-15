@@ -30,6 +30,9 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- RGPD : Analytics désactivé tant que l'utilisateur n'a pas accepté
+             (activé à la demande par AnalyticsService.setConsent). -->
+        <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
         <!-- flutter_local_notifications : indispensables pour afficher les
              notifications programmées et les reprogrammer après un
              redémarrage ou une mise à jour de l'app. -->

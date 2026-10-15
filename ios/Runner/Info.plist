@@ -55,5 +55,8 @@
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
+	<!-- RGPD : Analytics désactivé jusqu'au consentement. -->
+	<key>FIREBASE_ANALYTICS_COLLECTION_ENABLED</key>
+	<false/>
 </dict>
 </plist>

@@ -930,6 +930,20 @@ class _ProfileScreenState extends State<ProfileScreen>
           },
         ),
         const SizedBox(height: 12),
+        // RGPD : consentement aux statistiques, réversible à tout moment.
+        SwitchListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+          secondary: const Icon(Icons.insights_outlined),
+          title: Text(AppLocalizations.of(context).translate('analyticsSetting')),
+          subtitle:
+              Text(AppLocalizations.of(context).translate('analyticsSettingDesc')),
+          value: AnalyticsService().consent == true,
+          onChanged: (granted) async {
+            await AnalyticsService().setConsent(granted);
+            if (mounted) setState(() {});
+          },
+        ),
+        const SizedBox(height: 12),
         _buildActionButton(
           icon: Icons.logout_rounded,
           title: AppLocalizations.of(context).translate('logout'),

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service centralisé pour Firebase Analytics
 class AnalyticsService {
@@ -10,8 +11,59 @@ class AnalyticsService {
   FirebaseAnalytics? _analyticsInstance;
   bool _initFailed = false;
 
-  /// Lazy-init to avoid crash when Firebase is not initialized (e.g. in tests)
-  FirebaseAnalytics? get _analytics {
+  // ========== CONSENTEMENT (RGPD) ==========
+  // La collecte est désactivée par défaut côté natif (AndroidManifest.xml,
+  // Info.plist) et n'est activée qu'après un accord explicite.
+
+  static const consentPrefsKey = 'analytics_consent';
+
+  /// null = pas encore demandé, true = accepté, false = refusé.
+  bool? _consent;
+  bool? get consent => _consent;
+  bool get needsConsentDecision => _consent == null;
+
+  /// Lit le choix enregistré et l'applique au SDK.
+  Future<void> loadConsent() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _consent = prefs.getBool(consentPrefsKey);
+    } catch (_) {
+      _consent = null;
+    }
+    await _applyConsent();
+  }
+
+  /// Enregistre le choix de l'utilisateur (réversible depuis le profil).
+  Future<void> setConsent(bool granted) async {
+    _consent = granted;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(consentPrefsKey, granted);
+    } catch (_) {}
+    await _applyConsent();
+  }
+
+  Future<void> _applyConsent() async {
+    final granted = _consent == true;
+    final analytics = _sdk;
+    if (analytics == null) return;
+    try {
+      await analytics.setConsent(
+        analyticsStorageConsentGranted: granted,
+        // Aucune publicité dans l'app : toujours refusé.
+        adStorageConsentGranted: false,
+        adUserDataConsentGranted: false,
+        adPersonalizationSignalsConsentGranted: false,
+      );
+      await analytics.setAnalyticsCollectionEnabled(granted);
+      if (!granted) await analytics.resetAnalyticsData();
+    } catch (e) {
+      debugPrint('⚠️ Consentement analytics non appliqué: $e');
+    }
+  }
+
+  /// Instance du SDK, sans tenir compte du consentement.
+  FirebaseAnalytics? get _sdk {
     if (_initFailed) return null;
     try {
       return _analyticsInstance ??= FirebaseAnalytics.instance;
@@ -21,9 +73,17 @@ class AnalyticsService {
     }
   }
 
+  /// Instance utilisée pour les événements : null sans consentement, donc
+  /// tous les `log*` deviennent des no-op.
+  FirebaseAnalytics? get _analytics => _consent == true ? _sdk : null;
+
   /// Observer pour navigation automatique
   FirebaseAnalyticsObserver getAnalyticsObserver() {
-    return FirebaseAnalyticsObserver(analytics: _analytics ?? FirebaseAnalytics.instance);
+    return FirebaseAnalyticsObserver(
+      analytics: _sdk ?? FirebaseAnalytics.instance,
+      // Pas de suivi des écrans sans consentement.
+      routeFilter: (route) => _consent == true && defaultRouteFilter(route),
+    );
   }
 
   // ========== TRACKING ÉCRANS ==========
