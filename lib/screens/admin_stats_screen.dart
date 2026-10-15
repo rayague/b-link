@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firebase_sync_service.dart';
-import '../services/db_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../services/admin_service.dart';
 import '../services/notification_service.dart';
@@ -22,7 +21,7 @@ class AdminStatsScreen extends StatefulWidget {
 }
 
 class _AdminStatsScreenState extends State<AdminStatsScreen> {
-  final FirebaseSyncService _firebaseSync = FirebaseSyncService(DBHelper());
+  final FirebaseSyncService _firebaseSync = FirebaseSyncService();
   Map<String, dynamic>? _stats;
   List<Map<String, dynamic>>? _allUsers;
   bool _loading = true;
