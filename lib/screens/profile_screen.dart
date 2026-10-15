@@ -916,17 +916,17 @@ class _ProfileScreenState extends State<ProfileScreen>
         const SizedBox(height: 16),
         _buildActionButton(
           icon: Icons.share_rounded,
-          title: 'Recommander l\'application',
-          subtitle: 'Partagez B-Link avec vos amis',
+          title: AppLocalizations.of(context).translate('recommendApp'),
+          subtitle: AppLocalizations.of(context).translate('recommendAppDesc'),
           gradient: const [Color(0xFF3B82F6), Color(0xFF60A5FA)],
           isDark: isDark,
           onTap: () async {
             final profile = context.read<ProfileProvider>().profile;
             final shareText = profile == null
-                ? 'Rejoins-moi sur B-Link ! 🎂'
-                : 'Je suis ${profile.name}, rejoins-moi sur B-Link pour ne plus oublier les anniversaires! 🎉';
-            await SharePlus.instance
-                .share(ShareParams(text: shareText, subject: 'Rejoins B-Link'));
+                ? AppLocalizations.of(context).translate('shareDefaultText')
+                : AppLocalizations.of(context).translate('shareProfileText').replaceAll('{name}', profile.name);
+            await SharePlus.instance.share(ShareParams(
+                text: shareText, subject: AppLocalizations.of(context).translate('shareDefaultText')));
           },
         ),
         const SizedBox(height: 12),
@@ -1197,8 +1197,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 const SizedBox(height: 12),
                 Text(
                   _isEditing
-                      ? 'Cliquez sur + pour ajouter un réseau social'
-                      : 'Aucun réseau social ajouté',
+                      ? AppLocalizations.of(context).translate('noSocialAddHint')
+                      : AppLocalizations.of(context).translate('noSocialYet'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,

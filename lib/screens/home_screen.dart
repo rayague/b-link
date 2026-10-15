@@ -451,8 +451,8 @@ class _HomeScreenState extends State<HomeScreen>
               ElevatedButton.icon(
                 onPressed: () => _generateBirthdayMessage(context, contact),
                 icon: const Icon(Icons.card_giftcard, size: 16),
-                label: const Text('Générer message 🎁',
-                    style: TextStyle(fontSize: 12)),
+                label: Text(AppLocalizations.of(context).translate('generateMessage'),
+                    style: const TextStyle(fontSize: 12)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFEC4899),
                   foregroundColor: Colors.white,
@@ -531,7 +531,7 @@ class _HomeScreenState extends State<HomeScreen>
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '📝 Catégorie: $relation',
+                    '📝 ${AppLocalizations.of(context).translate('category')}: $relation',
                     style: const TextStyle(
                       color: Color(0xFFEC4899),
                       fontSize: 12,
@@ -574,21 +574,21 @@ class _HomeScreenState extends State<HomeScreen>
                 await Clipboard.setData(ClipboardData(text: message));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Row(
                         children: [
-                          Icon(Icons.check_circle, color: Colors.white),
-                          SizedBox(width: 12),
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              '✅ Message copié ! Collez-le dans votre app de messagerie',
-                              style: TextStyle(fontSize: 13),
+                              AppLocalizations.of(context).translate('messageCopied'),
+                              style: const TextStyle(fontSize: 13),
                             ),
                           ),
                         ],
                       ),
                       backgroundColor: Colors.green,
-                      duration: Duration(seconds: 3),
+                      duration: const Duration(seconds: 3),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
@@ -596,17 +596,17 @@ class _HomeScreenState extends State<HomeScreen>
                 }
               },
               icon: const Icon(Icons.copy_all, color: Color(0xFFEC4899)),
-              label: const Text(
-                'Copier le message',
-                style: TextStyle(
+              label: Text(
+                AppLocalizations.of(context).translate('copyMessage'),
+                style: const TextStyle(
                     color: Color(0xFFEC4899), fontWeight: FontWeight.bold),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Fermer',
-                style: TextStyle(color: Colors.white70),
+              child: Text(
+                AppLocalizations.of(context).translate('close'),
+                style: const TextStyle(color: Colors.white70),
               ),
             ),
           ],

@@ -103,9 +103,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      AppLocalizations.of(context).locale.languageCode == 'fr'
-                          ? 'Créez votre profil'
-                          : 'Create your profile',
+                      AppLocalizations.of(context).translate('regCreateYourProfile'),
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -114,9 +112,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      AppLocalizations.of(context).locale.languageCode == 'fr'
-                          ? 'Complétez vos informations pour commencer'
-                          : 'Complete your information to get started',
+                      AppLocalizations.of(context).translate('regCompleteYourInformationToGet'),
                       style: TextStyle(
                         fontSize: 15,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -146,20 +142,10 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           // Given Name
                           _buildTextField(
                             controller: _givenCtrl,
-                            label: AppLocalizations.of(context)
-                                        .locale
-                                        .languageCode ==
-                                    'fr'
-                                ? 'Prénom'
-                                : 'Given name (first)',
+                            label: AppLocalizations.of(context).translate('regGivenNameFirst'),
                             icon: Icons.person_outline,
                             validator: (v) => v == null || v.isEmpty
-                                ? (AppLocalizations.of(context)
-                                            .locale
-                                            .languageCode ==
-                                        'fr'
-                                    ? 'Requis'
-                                    : 'Required')
+                                ? AppLocalizations.of(context).translate('regRequired')
                                 : null,
                           ),
                           const SizedBox(height: 16),
@@ -167,20 +153,10 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           // Family Name
                           _buildTextField(
                             controller: _familyCtrl,
-                            label: AppLocalizations.of(context)
-                                        .locale
-                                        .languageCode ==
-                                    'fr'
-                                ? 'Nom de famille'
-                                : 'Family name (last)',
+                            label: AppLocalizations.of(context).translate('regFamilyNameLast'),
                             icon: Icons.family_restroom_outlined,
                             validator: (v) => v == null || v.isEmpty
-                                ? (AppLocalizations.of(context)
-                                            .locale
-                                            .languageCode ==
-                                        'fr'
-                                    ? 'Requis'
-                                    : 'Required')
+                                ? AppLocalizations.of(context).translate('regRequired')
                                 : null,
                           ),
                           const SizedBox(height: 16),
@@ -200,12 +176,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           // Birth Place
                           _buildTextField(
                             controller: _birthPlaceCtrl,
-                            label: AppLocalizations.of(context)
-                                        .locale
-                                        .languageCode ==
-                                    'fr'
-                                ? 'Lieu de naissance (ville, pays)'
-                                : 'Birth place (city, country)',
+                            label: AppLocalizations.of(context).translate('regBirthPlaceCityCountry'),
                             icon: Icons.location_on_outlined,
                             required: false,
                           ),
@@ -214,12 +185,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                           // Social Link
                           _buildTextField(
                             controller: _socialCtrl,
-                            label: AppLocalizations.of(context)
-                                        .locale
-                                        .languageCode ==
-                                    'fr'
-                                ? 'Lien social public (optionnel)'
-                                : 'Public social link (optional)',
+                            label: AppLocalizations.of(context).translate('regPublicSocialLinkOptional'),
                             icon: Icons.link_outlined,
                             required: false,
                           ),
@@ -303,9 +269,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
             Expanded(
               child: Text(
                 _birthDate == null
-                    ? (AppLocalizations.of(context).locale.languageCode == 'fr'
-                        ? 'Date de naissance *'
-                        : 'Birth date *')
+                    ? AppLocalizations.of(context).translate('regBirthDate')
                     : _birthDate!.toLocal().toString().split(' ')[0],
                 style: TextStyle(
                   fontSize: 16,
@@ -346,9 +310,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
             Expanded(
               child: Text(
                 _birthTime == null
-                    ? (AppLocalizations.of(context).locale.languageCode == 'fr'
-                        ? 'Heure de naissance (optionnel)'
-                        : 'Birth time (optional)')
+                    ? AppLocalizations.of(context).translate('regBirthTimeOptional')
                     : _birthTime!.format(context),
                 style: TextStyle(
                   fontSize: 16,
@@ -382,9 +344,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
               Icon(Icons.privacy_tip_outlined, color: const Color(0xFF6366F1)),
               const SizedBox(width: 12),
               Text(
-                AppLocalizations.of(context).locale.languageCode == 'fr'
-                    ? 'Confidentialité'
-                    : 'Privacy',
+                AppLocalizations.of(context).translate('regPrivacy'),
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -397,9 +357,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(
-              AppLocalizations.of(context).locale.languageCode == 'fr'
-                  ? 'Rendre mon profil public'
-                  : 'Make my profile public',
+              AppLocalizations.of(context).translate('regMakeMyProfilePublic'),
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
             subtitle: _canBePublic
@@ -414,30 +372,22 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
           if (_isPublic && _canBePublic) ...[
             const Divider(),
             _buildCheckbox(
-              AppLocalizations.of(context).locale.languageCode == 'fr'
-                  ? 'Afficher mon nom'
-                  : 'Show my name',
+              AppLocalizations.of(context).translate('regShowMyName'),
               _publicName,
               (v) => setState(() => _publicName = v ?? false),
             ),
             _buildCheckbox(
-              AppLocalizations.of(context).locale.languageCode == 'fr'
-                  ? "Afficher ma date de naissance complète (avec l'année)"
-                  : 'Show my full birth date (with year)',
+              AppLocalizations.of(context).translate('regShowMyFullBirthDate'),
               _publicBirthDate,
               (v) => setState(() => _publicBirthDate = v ?? false),
             ),
             _buildCheckbox(
-              AppLocalizations.of(context).locale.languageCode == 'fr'
-                  ? 'Afficher mon lieu de naissance'
-                  : 'Show my birth place',
+              AppLocalizations.of(context).translate('regShowMyBirthPlace'),
               _publicBirthPlace,
               (v) => setState(() => _publicBirthPlace = v ?? false),
             ),
             _buildCheckbox(
-              AppLocalizations.of(context).locale.languageCode == 'fr'
-                  ? 'Afficher mes liens sociaux'
-                  : 'Show my social links',
+              AppLocalizations.of(context).translate('regShowMySocialLinks'),
               _publicSocials,
               (v) => setState(() => _publicSocials = v ?? false),
             ),
@@ -538,9 +488,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              AppLocalizations.of(context).locale.languageCode == 'fr'
-                  ? 'Enregistrer mon profil'
-                  : 'Save profile',
+              AppLocalizations.of(context).translate('regSaveProfile'),
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -559,7 +507,7 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_birthDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please pick your birth date')));
+          SnackBar(content: Text(AppLocalizations.of(context).translate('birthDateRequired'))));
       return;
     }
     final provider = Provider.of<ProfileProvider>(context, listen: false);

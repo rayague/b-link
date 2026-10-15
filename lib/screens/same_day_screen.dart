@@ -756,9 +756,9 @@ class _SameDayScreenState extends State<SameDayScreen>
                                               },
                                               icon: const Icon(Icons.copy_all,
                                                   color: Color(0xFFEC4899)),
-                                              label: const Text(
-                                                'Copier le message',
-                                                style: TextStyle(
+                                              label: Text(
+                                                AppLocalizations.of(context).translate('copyMessage'),
+                                                style: const TextStyle(
                                                     color: Color(0xFFEC4899),
                                                     fontWeight:
                                                         FontWeight.bold),
@@ -767,9 +767,9 @@ class _SameDayScreenState extends State<SameDayScreen>
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(context),
-                                              child: const Text(
-                                                'Fermer',
-                                                style: TextStyle(
+                                              child: Text(
+                                                AppLocalizations.of(context).translate('close'),
+                                                style: const TextStyle(
                                                     color: Colors.white70),
                                               ),
                                             ),

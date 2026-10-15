@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/contact_provider.dart';
 import '../models/contact.dart';
 import '../utils/birthday.dart';
+import '../l10n/app_localizations.dart';
 // message_generator not used here; repository is preferred
 import '../services/message_repository.dart';
 import '../services/analytics_service.dart';
@@ -31,9 +32,9 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
     final prov = Provider.of<ContactProvider>(context);
     final list = prov.upcoming(5);
     return Scaffold(
-      appBar: AppBar(title: const Text('Celebrations')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).translate('celebrations'))),
       body: list.isEmpty
-          ? const Center(child: Text('No upcoming birthdays'))
+          ? Center(child: Text(AppLocalizations.of(context).translate('noUpcomingBirthdays')))
           : ListView.builder(
               itemCount: list.length,
               itemBuilder: (_, i) {
@@ -47,7 +48,7 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
                             c.name.isNotEmpty ? c.name[0].toUpperCase() : '?')),
                     title: Text(c.name),
                     subtitle:
-                        Text('In ${_daysRemaining(c)} days • ${c.relation}'),
+                        Text('${AppLocalizations.of(context).translate('inDaysShort').replaceAll('{count}', '${_daysRemaining(c)}')} • ${c.relation}'),
                     trailing: Wrap(spacing: 8, children: [
                       IconButton(
                           icon: const Icon(Icons.call, color: Colors.green),
