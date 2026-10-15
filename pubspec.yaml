@@ -1,5 +1,5 @@
 name: b_link
-description: "A new Flutter project."
+description: "B-Link : retrouvez les personnes nées le même jour que vous et n'oubliez plus les anniversaires de vos proches."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -36,20 +36,11 @@ dependencies:
   # State management
   provider: any
   workmanager: any
-  background_fetch: any
-
   # Dates / i18n
   intl: any
 
-  # UI helpers
-  flutter_slidable: any
-  flutter_svg: any
-  # Secure storage and crypto
-  flutter_secure_storage: any
-  crypto: any
   # Timezone support for scheduled notifications
   timezone: any
-  flutter_native_timezone: any
   # Firebase
   firebase_core: any
   firebase_analytics: any
@@ -59,7 +50,8 @@ dependencies:
   share_plus: any
   
   # Connectivity
-  connectivity_plus: ^5.0.2
+  connectivity_plus: ^7.3.1
+  flutter_timezone: ^5.1.1
 
 dev_dependencies:
   flutter_test:
@@ -67,8 +59,8 @@ dev_dependencies:
   flutter_lints: any
   integration_test:
     sdk: flutter
-  fake_cloud_firestore: ^2.4.1+1
-  firebase_auth_mocks: ^0.13.0
+  fake_cloud_firestore: 4.3.0
+  firebase_auth_mocks: 0.15.2
 
 flutter:
   uses-material-design: true

@@ -6,6 +6,8 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Lit google-services.json (version déclarée dans settings.gradle.kts).
+    id("com.google.gms.google-services")
 }
 
 // Load release signing config from android/key.properties (git-ignored).
@@ -18,14 +20,10 @@ if (hasReleaseSigning) {
     FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
 }
 
-// Apply the Google Services plugin to enable reading google-services.json.
-// In Groovy Gradle you would add "apply plugin: 'com.google.gms.google-services'",
-// in Kotlin DSL we use the plugin id here as well if the classpath is available.
-apply(plugin = "com.google.gms.google-services")
-
 android {
     namespace = "com.example.b_link"
-    compileSdk = flutter.compileSdkVersion
+    // 37 : exigé par permission_handler_android 14.x (rétrocompatible).
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -33,10 +31,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
         // Enable core library desugaring (required by flutter_local_notifications v19+)
         isCoreLibraryDesugaringEnabled = true
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
     defaultConfig {
@@ -71,6 +65,12 @@ android {
                 signingConfigs.getByName("debug")
             }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 }
 

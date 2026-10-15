@@ -5,19 +5,6 @@ allprojects {
     }
 }
 
-// Add Google services classpath so the Android app can apply the plugin when
-// using the manual Firebase setup. This uses the Gradle buildscript block.
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        // Use a recent version; adjust if needed when Gradle sync complains.
-        classpath("com.google.gms:google-services:4.3.15")
-    }
-}
-
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
@@ -36,8 +23,8 @@ subprojects {
     }
     
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        kotlinOptions {
-            jvmTarget = "11"
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
         }
     }
     
