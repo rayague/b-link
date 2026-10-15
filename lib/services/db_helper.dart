@@ -15,7 +15,7 @@ class DBHelper {
   DBHelper._internal();
 
   /// Incrémenter pour réimporter assets/messages.txt après une mise à jour.
-  static const int messagesVersion = 3;
+  static const int messagesVersion = 4;
 
   /// Banques de messages par langue (la première sert de repli).
   static const Map<String, String> messageAssets = {

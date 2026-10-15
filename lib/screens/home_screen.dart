@@ -6,6 +6,7 @@ import '../providers/theme_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/contact_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/relations.dart';
 import '../utils/birthday.dart';
 import '../test_notifications.dart';
 import '../services/message_repository.dart';
@@ -532,7 +533,7 @@ class _HomeScreenState extends State<HomeScreen>
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '📝 ${AppLocalizations.of(context).translate('category')}: $relation',
+                    '📝 ${AppLocalizations.of(context).translate('category')}: ${relationLabel(AppLocalizations.of(context), relation)}',
                     style: const TextStyle(
                       color: Color(0xFFEC4899),
                       fontSize: 12,

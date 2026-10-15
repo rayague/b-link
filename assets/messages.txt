@@ -2498,3 +2498,10 @@ default|default¦god-mother¦Wishing you a magical birthday! Your love is a guid
 default|default¦god-mother¦Happy birthday! Your presence brings joy to my life. May this year be filled with everything your heart desires and more.
 default|default¦god-mother¦To my dear godmother, happy birthday! Your kindness and support have shaped my life in countless ways. May your special day be filled with love and laughter.
 default|default¦god-mother¦Happy birthday to my beloved godmother! Your strength and love inspire me every day. May this year bring you all the happiness and joy you deserve.
+default|default¦wife¦My love, you are the most beautiful chapter of my life, the one I read again every day with the same wonder. Happy birthday to the woman I love.
+default|default¦wife¦Happy birthday, my darling. Your smile is my favourite light, your voice my favourite song, and you are my favourite place in the whole world.
+default|default¦wife¦My wife, my partner, my soulmate: thank you for lighting up my days and calming my nights. May this year be as wonderful as you are.
+default|default¦wife¦If love had a face, it would be yours. Happy birthday, my love. I love you more than words will ever know how to say.
+default|default¦wife¦Every year by your side reminds me how lucky I am. Happy birthday, my love. You are the best yes of my life.
+default|default¦wife¦You make ordinary days extraordinary. Happy birthday to the woman of my life, today and forever.
+default|default¦wife¦May your day be as gentle as your tenderness and as bright as your eyes. I love you, today more than ever. Happy birthday, my love.

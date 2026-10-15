@@ -6,6 +6,7 @@ import '../models/contact.dart';
 import '../providers/contact_provider.dart';
 import '../providers/locale_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/relations.dart';
 import 'dart:math' as math;
 import '../services/analytics_service.dart';
 
@@ -49,31 +50,7 @@ class _ListScreenState extends State<ListScreen> {
     final phoneCtl = TextEditingController();
     String? imagePath;
     String? selectedRelation;
-    final relations = [
-      'SON',
-      'DAUGHTER',
-      'SISTER',
-      'BROTHER',
-      'FRIEND',
-      'NEIGHBOR',
-      'BESTFRIEND',
-      'BOYFRIEND',
-      'GIRLFRIEND',
-      'HUSBAND',
-      'FATHER',
-      'MOTHER',
-      'AUNTIE',
-      'UNCLE',
-      'COUSIN',
-      'NIECE',
-      'NEPHEW',
-      'GRAND-SON',
-      'GRAND-DAUGHTER',
-      'GRAND-FATHER',
-      'GRAND-MOTHER',
-      'GOD-FATHER',
-      'GOD-MOTHER'
-    ];
+    const relations = kRelations;
 
     showModalBottomSheet(
       context: ctx,
@@ -294,7 +271,7 @@ class _ListScreenState extends State<ListScreen> {
                             items: relations
                                 .map((r) => DropdownMenuItem(
                                       value: r,
-                                      child: Text(r),
+                                      child: Text(relationLabel(AppLocalizations.of(context), r)),
                                     ))
                                 .toList(),
                             onChanged: (v) {
@@ -540,7 +517,10 @@ class _ListScreenState extends State<ListScreen> {
     final filteredContacts = prov.contacts.where((c) {
       if (_searchQuery.isEmpty) return true;
       return c.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          c.relation.toLowerCase().contains(_searchQuery.toLowerCase());
+          c.relation.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          relationLabel(AppLocalizations.of(context), c.relation)
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase());
     }).toList();
 
     return Scaffold(
@@ -779,7 +759,7 @@ class _ListScreenState extends State<ListScreen> {
                                       const SizedBox(width: 4),
                                       Flexible(
                                         child: Text(
-                                          c.relation,
+                                          relationLabel(AppLocalizations.of(context), c.relation),
                                           style: TextStyle(
                                             color: isDark
                                                 ? Colors.grey[400]

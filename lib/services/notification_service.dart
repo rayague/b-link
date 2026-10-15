@@ -228,22 +228,26 @@ class NotificationService {
     if (isBirthdayDay) {
       return fr
           ? (
-              title: '🎉 C\'est l\'anniversaire de $name !',
-              body: 'Touchez pour lui envoyer un message.'
+              title: '🎉 Aujourd\'hui, c\'est l\'anniversaire de $name !',
+              body: 'Quelques mots de vous peuvent illuminer toute sa journée. '
+                  'Touchez pour trouver le message parfait 💛'
             )
           : (
-              title: '🎉 It\'s $name\'s birthday!',
-              body: 'Tap to send them a message.'
+              title: '🎉 Today is $name\'s birthday!',
+              body: 'A few words from you can light up their whole day. '
+                  'Tap to find the perfect message 💛'
             );
     }
     return fr
         ? (
-            title: '🎂 Demain : anniversaire de $name',
-            body: 'Pensez à préparer un petit mot.'
+            title: '🎂 Demain, c\'est l\'anniversaire de $name',
+            body: 'Préparez-lui un mot doux : ce genre d\'attention '
+                'ne s\'oublie jamais ✨'
           )
         : (
-            title: '🎂 Tomorrow: $name\'s birthday',
-            body: 'Don\'t forget to prepare a message.'
+            title: '🎂 Tomorrow is $name\'s birthday',
+            body: 'Get a sweet message ready: this kind of attention '
+                'is never forgotten ✨'
           );
   }
 

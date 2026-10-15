@@ -6,6 +6,7 @@ import '../models/contact.dart';
 import '../providers/contact_provider.dart';
 import '../providers/locale_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/relations.dart';
 import '../services/analytics_service.dart';
 
 class ContactDetailScreen extends StatefulWidget {
@@ -24,31 +25,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
   final _phone = TextEditingController();
   String? _imagePath;
   String? _selectedRelation;
-  final relations = [
-    'SON',
-    'DAUGHTER',
-    'SISTER',
-    'BROTHER',
-    'FRIEND',
-    'NEIGHBOR',
-    'BESTFRIEND',
-    'BOYFRIEND',
-    'GIRLFRIEND',
-    'HUSBAND',
-    'FATHER',
-    'MOTHER',
-    'AUNTIE',
-    'UNCLE',
-    'COUSIN',
-    'NIECE',
-    'NEPHEW',
-    'GRAND-SON',
-    'GRAND-DAUGHTER',
-    'GRAND-FATHER',
-    'GRAND-MOTHER',
-    'GOD-FATHER',
-    'GOD-MOTHER'
-  ];
+  final relations = kRelations;
   Contact? _contact;
   bool _isEditing = false;
 
@@ -628,7 +605,9 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
             ),
           ),
           child: DropdownButtonFormField<String>(
-            initialValue: _selectedRelation,
+            initialValue: relations.contains(_selectedRelation)
+                ? _selectedRelation
+                : null,
             decoration: InputDecoration(
               prefixIcon: Icon(
                 Icons.people_outline,
@@ -649,7 +628,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen>
             items: relations
                 .map((r) => DropdownMenuItem(
                       value: r,
-                      child: Text(r),
+                      child: Text(relationLabel(AppLocalizations.of(context), r)),
                     ))
                 .toList(),
             onChanged: _isEditing

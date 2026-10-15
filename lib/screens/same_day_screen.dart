@@ -8,6 +8,7 @@ import 'public_profile_screen.dart';
 import 'dart:math' as math;
 import '../services/message_repository.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/relations.dart';
 import 'package:flutter/services.dart';
 import '../services/analytics_service.dart';
 import '../services/safety_service.dart';
@@ -666,7 +667,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                                                               8),
                                                     ),
                                                     child: Text(
-                                                      '${l10n.translate('category')}: $relation',
+                                                      '${l10n.translate('category')}: ${relationLabel(l10n, relation)}',
                                                       style: const TextStyle(
                                                         color:
                                                             Color(0xFFEC4899),

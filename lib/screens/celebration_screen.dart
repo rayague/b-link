@@ -6,6 +6,7 @@ import '../providers/contact_provider.dart';
 import '../models/contact.dart';
 import '../utils/birthday.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/relations.dart';
 // message_generator not used here; repository is preferred
 import '../services/message_repository.dart';
 import '../services/analytics_service.dart';
@@ -48,7 +49,7 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
                             c.name.isNotEmpty ? c.name[0].toUpperCase() : '?')),
                     title: Text(c.name),
                     subtitle:
-                        Text('${AppLocalizations.of(context).translate('inDaysShort').replaceAll('{count}', '${_daysRemaining(c)}')} • ${c.relation}'),
+                        Text('${AppLocalizations.of(context).translate('inDaysShort').replaceAll('{count}', '${_daysRemaining(c)}')} • ${relationLabel(AppLocalizations.of(context), c.relation)}'),
                     trailing: Wrap(spacing: 8, children: [
                       IconButton(
                           icon: const Icon(Icons.call, color: Colors.green),

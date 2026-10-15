@@ -4,6 +4,7 @@
 //   default|default¦<relation>¦<texte>   (format actuel du fichier)
 //   <relation>|<texte>
 //   {"relation": "...", "text": "..."}
+// Les lignes vides et celles qui commencent par # sont ignorées.
 // Les doublons (même relation et même texte) sont ignorés.
 
 import 'dart:convert';
@@ -16,7 +17,8 @@ class ParsedMessage {
 
 ParsedMessage? parseMessageLine(String rawLine) {
   final line = rawLine.trim();
-  if (line.isEmpty) return null;
+  // Lignes vides et commentaires (# titre de section) ignorés.
+  if (line.isEmpty || line.startsWith('#')) return null;
 
   if (line.startsWith('{')) {
     try {
