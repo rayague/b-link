@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/contact_provider.dart';
 import '../providers/profile_provider.dart';
+import '../services/safety_service.dart';
 
 /// Actions de compte partagées par les écrans (menu, profil).
 
@@ -39,6 +40,7 @@ Future<void> _clearLocalAndExit(BuildContext context) async {
   await context.read<ContactProvider>().reset();
   if (!context.mounted) return;
   await context.read<ProfileProvider>().reset();
+  await SafetyService().clearLocalCache();
   navigator.pushNamedAndRemoveUntil('/onboarding', (_) => false);
 }
 

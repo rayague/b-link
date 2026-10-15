@@ -14,6 +14,7 @@ import '../services/analytics_service.dart';
 import '../utils/zodiac.dart';
 import 'package:country_picker/country_picker.dart';
 import '../utils/account_actions.dart' as account;
+import '../services/safety_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
@@ -968,6 +969,16 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         const SizedBox(height: 12),
         _buildActionButton(
+          icon: Icons.block_rounded,
+          title: AppLocalizations.of(context).translate('blockedProfiles'),
+          subtitle:
+              AppLocalizations.of(context).translate('blockedProfilesDesc'),
+          gradient: const [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+          isDark: isDark,
+          onTap: _showBlockedProfiles,
+        ),
+        const SizedBox(height: 12),
+        _buildActionButton(
           icon: Icons.logout_rounded,
           title: AppLocalizations.of(context).translate('logout'),
           subtitle: AppLocalizations.of(context).translate('logoutConfirm'),
@@ -1665,6 +1676,55 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   /// Vérifier si l'utilisateur actuel est l'administrateur
+  /// Liste des profils bloqués, avec déblocage.
+  Future<void> _showBlockedProfiles() async {
+    final l10n = AppLocalizations.of(context);
+    final safety = SafetyService();
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) =>
+            FutureBuilder<List<BlockedProfile>>(
+          future: safety.blockedProfiles(),
+          builder: (_, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final blocked = snap.data ?? const <BlockedProfile>[];
+            if (blocked.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(l10n.translate('noBlockedProfiles'),
+                    textAlign: TextAlign.center),
+              );
+            }
+            return ListView(
+              shrinkWrap: true,
+              children: [
+                for (final b in blocked)
+                  ListTile(
+                    leading: const Icon(Icons.person_off_outlined),
+                    title: Text(b.name ?? l10n.translate('anonymousProfile')),
+                    trailing: TextButton(
+                      onPressed: () async {
+                        await safety.unblock(b.uid);
+                        setSheetState(() {}); // recharge la liste
+                      },
+                      child: Text(l10n.translate('unblock')),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   /// Sélecteur du pays de résidence (code ISO, noms traduits).
   Widget _buildCountryField(bool isDark) {
     final l10n = AppLocalizations.of(context);

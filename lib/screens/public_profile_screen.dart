@@ -63,7 +63,8 @@ class PublicProfileScreen extends StatelessWidget {
       ),
     );
     if (ok != true) return;
-    await SafetyService().block(profile.uid!);
+    await SafetyService().block(profile.uid!,
+        name: profile.publicName ? profile.name : null);
     messenger.showSnackBar(
         SnackBar(content: Text(l10n.translate('profileBlocked'))));
     navigator.pop(true);

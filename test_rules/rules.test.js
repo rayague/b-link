@@ -252,3 +252,24 @@ test('un admin masque et rétablit un profil, et traite les signalements', async
   await assertSucceeds(deleteDoc(doc(google('boss'), 'public_profiles/alice')));
   await assertSucceeds(deleteDoc(doc(google('boss'), 'moderation/alice')));
 });
+
+// ---------- blocages synchronisés ----------
+
+test('un utilisateur gère sa liste de blocages', async () => {
+  const ref = doc(google('bob'), 'users/bob/blocks/alice');
+  await assertSucceeds(setDoc(ref, { name: 'Alice', blockedAt: serverTimestamp() }));
+  await assertSucceeds(getDoc(ref));
+  await assertSucceeds(deleteDoc(ref));
+});
+
+test('personne ne voit qui un autre utilisateur a bloqué', async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'users/bob/blocks/alice'), { name: 'Alice' }));
+  await assertFails(getDoc(doc(google('alice'), 'users/bob/blocks/alice')));
+  await assertFails(getDocs(query(collection(google('carol'), 'users/bob/blocks'), limit(10))));
+});
+
+test('on ne peut ni se bloquer soi-même ni ajouter des champs arbitraires', async () => {
+  await assertFails(setDoc(doc(google('bob'), 'users/bob/blocks/bob'), { name: 'Moi' }));
+  await assertFails(setDoc(doc(google('bob'), 'users/bob/blocks/alice'), { name: 'A', note: 'x' }));
+});

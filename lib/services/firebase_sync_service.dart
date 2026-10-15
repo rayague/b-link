@@ -230,15 +230,18 @@ class FirebaseSyncService {
     if (_userId == null) return;
     final userRef = _firestore.collection('users').doc(_userId);
 
-    // Un batch Firestore est limité à 500 opérations : on découpe.
-    final contacts = await userRef.collection('contacts').get();
-    const chunkSize = 400;
-    for (var i = 0; i < contacts.docs.length; i += chunkSize) {
-      final batch = _firestore.batch();
-      for (final doc in contacts.docs.skip(i).take(chunkSize)) {
-        batch.delete(doc.reference);
+    // Sous-collections privées. Un batch Firestore est limité à 500
+    // opérations : on découpe.
+    for (final sub in ['contacts', 'blocks']) {
+      final docs = (await userRef.collection(sub).get()).docs;
+      const chunkSize = 400;
+      for (var i = 0; i < docs.length; i += chunkSize) {
+        final batch = _firestore.batch();
+        for (final doc in docs.skip(i).take(chunkSize)) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
       }
-      await batch.commit();
     }
 
     await _firestore.collection('public_profiles').doc(_userId).delete();

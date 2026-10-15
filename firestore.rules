@@ -35,6 +35,14 @@ service cloud.firestore {
       match /contacts/{contactId} {
         allow read, write: if isOwner(userId);
       }
+
+      // Profils bloqués : privés, synchronisés entre appareils.
+      match /blocks/{blockedId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && blockedId != userId
+          && request.resource.data.keys().hasOnly(['name', 'blockedAt']);
+      }
     }
 
     // ==================== PUBLIC PROFILES ====================
