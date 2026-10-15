@@ -9,7 +9,7 @@
 - La fenêtre est reprogrammée à chaque ouverture de l'app
   (`ContactProvider.loadContacts`), à chaque changement de langue, et une fois
   par jour en arrière-plan par WorkManager (`lib/services/background_sync.dart`,
-  tâche `reminders-daily-refresh`).
+  tâche `com.rayague.b-link.reminders-refresh`).
 - Les rappels utilisent `AndroidScheduleMode.inexactAllowWhileIdle` : pas de
   permission d'alarme exacte, réservée par Google Play aux réveils et agendas.
 - Toucher un rappel ouvre la fiche du contact (payload `contact:<id>`).

@@ -5,7 +5,9 @@ import '../providers/locale_provider.dart';
 import 'db_helper.dart';
 import 'notification_service.dart';
 
-const String _uniqueName = 'reminders-daily-refresh';
+// Sur iOS, c'est l'identifiant BGTaskScheduler (voir ios/Runner/AppDelegate.swift
+// et Info.plist) : les trois doivent rester identiques.
+const String _uniqueName = 'com.rayague.b-link.reminders-refresh';
 const String _taskName = 'b_link_refresh_reminders';
 
 /// Rafraîchit chaque jour la fenêtre des rappels d'anniversaire, même si
@@ -14,6 +16,10 @@ const String _taskName = 'b_link_refresh_reminders';
 Future<void> initializeBackgroundReminders() async {
   try {
     await Workmanager().initialize(callbackDispatcher);
+    // Tâches des versions précédentes (synchro toutes les 15 min, ancien nom).
+    for (final legacy in ['sync-periodic', 'reminders-daily-refresh']) {
+      await Workmanager().cancelByUniqueName(legacy);
+    }
     await Workmanager().registerPeriodicTask(
       _uniqueName,
       _taskName,
