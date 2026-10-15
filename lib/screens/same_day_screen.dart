@@ -11,6 +11,10 @@ import '../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import '../services/analytics_service.dart';
 import '../services/safety_service.dart';
+import '../services/directory_service.dart';
+import '../utils/app_links.dart';
+import 'package:country_picker/country_picker.dart';
+import 'package:share_plus/share_plus.dart';
 
 class SameDayScreen extends StatefulWidget {
   const SameDayScreen({super.key});
@@ -26,7 +30,9 @@ class _SameDayScreenState extends State<SameDayScreen>
   bool _loading = true;
   int _count = 0;
   bool _hasMore = true;
-  final int _limit = 50;
+  final int _limit = DirectoryService.pageSize;
+  DirectoryPeriod _period = DirectoryPeriod.day;
+  bool _myCountryOnly = false;
   DocumentSnapshot? _lastDocument;
   Set<String> _blocked = {};
   final ScrollController _scrollController = ScrollController();
@@ -104,7 +110,7 @@ class _SameDayScreenState extends State<SameDayScreen>
 
     try {
       _blocked = await SafetyService().blockedUids();
-      final q = await _query(UserProfile.dayKeyOf(profile.birthDate)).get();
+      final q = await _query(profile).get();
       if (mounted) {
         setState(() {
           _items = _withoutMe(q.docs);
@@ -123,11 +129,36 @@ class _SameDayScreenState extends State<SameDayScreen>
 
   /// Annuaire public : seule collection lisible par les autres utilisateurs.
   /// Les règles Firestore imposent une limite <= 50 par requête.
-  Query<Map<String, dynamic>> _query(String dayKey) => FirebaseFirestore
-      .instance
-      .collection('public_profiles')
-      .where('birthDayKey', isEqualTo: dayKey)
-      .limit(_limit);
+  Query<Map<String, dynamic>> _query(UserProfile me) =>
+      DirectoryService().query(
+        me.birthDate,
+        _period,
+        countryCode: _myCountryOnly ? me.countryCode : null,
+      );
+
+  void _setFilters({DirectoryPeriod? period, bool? myCountryOnly}) {
+    setState(() {
+      _period = period ?? _period;
+      _myCountryOnly = myCountryOnly ?? _myCountryOnly;
+      _items = [];
+      _lastDocument = null;
+      _hasMore = true;
+    });
+    _load();
+  }
+
+  /// Invite des proches nés à la même date : le seul moyen de remplir
+  /// l'annuaire au lancement.
+  Future<void> _invite(UserProfile me) async {
+    final date = '${me.birthDate.day.toString().padLeft(2, '0')}/'
+        '${me.birthDate.month.toString().padLeft(2, '0')}';
+    await SharePlus.instance.share(ShareParams(
+      text: l10n
+          .translate('inviteText')
+          .replaceAll('{date}', date)
+          .replaceAll('{link}', AppLinks.store),
+    ));
+  }
 
   /// On ne se compte pas soi-même, ni les profils bloqués.
   List<Map<String, dynamic>> _withoutMe(
@@ -155,7 +186,7 @@ class _SameDayScreenState extends State<SameDayScreen>
     }
 
     try {
-      final q = await _query(UserProfile.dayKeyOf(profile.birthDate))
+      final q = await _query(profile)
           .startAfterDocument(_lastDocument!)
           .get();
 
@@ -382,6 +413,10 @@ class _SameDayScreenState extends State<SameDayScreen>
                             ],
                           ),
                         ),
+                        const SizedBox(height: 16),
+
+                        // Filtres : période et pays
+                        _buildFilters(profile),
                         const SizedBox(height: 24),
 
                         // List Header
@@ -437,6 +472,14 @@ class _SameDayScreenState extends State<SameDayScreen>
                             color: Colors.grey[500],
                           ),
                         ),
+                        if (profile != null) ...[
+                          const SizedBox(height: 20),
+                          FilledButton.icon(
+                            onPressed: () => _invite(profile),
+                            icon: const Icon(Icons.share),
+                            label: Text(l10n.translate('inviteFriends')),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -780,6 +823,58 @@ class _SameDayScreenState extends State<SameDayScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFilters(UserProfile? me) {
+    final hasCountry = UserProfile.isValidCountryCode(me?.countryCode);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SegmentedButton<DirectoryPeriod>(
+          segments: [
+            ButtonSegment(
+                value: DirectoryPeriod.day,
+                label: Text(l10n.translate('periodDay'))),
+            ButtonSegment(
+                value: DirectoryPeriod.week,
+                label: Text(l10n.translate('periodWeek'))),
+            ButtonSegment(
+                value: DirectoryPeriod.month,
+                label: Text(l10n.translate('periodMonth'))),
+          ],
+          selected: {_period},
+          onSelectionChanged: (s) => _setFilters(period: s.first),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            FilterChip(
+              label: Text(hasCountry
+                  ? '${l10n.translate('myCountry')} '
+                      '${Country.tryParse(me!.countryCode!)?.flagEmoji ?? ''}'
+                  : l10n.translate('myCountry')),
+              selected: _myCountryOnly && hasCountry,
+              // Sans pays dans le profil, le filtre n'a pas de sens.
+              onSelected: hasCountry
+                  ? (v) => _setFilters(myCountryOnly: v)
+                  : null,
+            ),
+            const Spacer(),
+            if (me != null)
+              TextButton.icon(
+                onPressed: () => _invite(me),
+                icon: const Icon(Icons.share, size: 18),
+                label: Text(l10n.translate('inviteFriends')),
+              ),
+          ],
+        ),
+        if (!hasCountry)
+          Text(
+            l10n.translate('setCountryHint'),
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+          ),
+      ],
     );
   }
 

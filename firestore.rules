@@ -52,8 +52,12 @@ service cloud.firestore {
              'birthplace', 'birthCountry', 'birthCity', 'zodiac',
              'socialLinks', 'isPublic', 'publicName', 'publicBirthDate',
              'publicBirthTime', 'publicBirthPlace', 'publicBirthCountry',
-             'publicBirthCity', 'publicSocials', 'publicZodiac', 'updatedAt'
+             'publicBirthCity', 'publicSocials', 'publicZodiac', 'updatedAt',
+             'countryCode', 'publicCountry'
            ])
+        // Pays de résidence : code ISO 3166-1 alpha-2 (filtre "Mon pays").
+        && (!('countryCode' in request.resource.data)
+            || request.resource.data.countryCode.matches('^[A-Z]{2}$'))
         && request.resource.data.uid == userId
         && request.resource.data.isPublic == true
         && request.resource.data.birthDayKey is string

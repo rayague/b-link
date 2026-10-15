@@ -44,6 +44,18 @@ void main() {
       expect(json.containsKey('birthDate'), isFalse);
     });
 
+    test('country is shared only when opted in and well-formed', () {
+      final p = _profile()..countryCode = 'FR';
+      expect(p.toPublicJson().containsKey('countryCode'), isFalse);
+
+      p.publicCountry = true;
+      expect(p.toPublicJson()['countryCode'], 'FR');
+
+      // Un code invalide ferait refuser tout le batch par les règles.
+      p.countryCode = 'France';
+      expect(p.toPublicJson().containsKey('countryCode'), isFalse);
+    });
+
     test('birth time is only shared together with the birth date', () {
       final p = _profile()..publicBirthTime = true;
       expect(p.toPublicJson().containsKey('birthTime'), isFalse);
@@ -55,7 +67,7 @@ void main() {
         'birthCountry', 'birthCity', 'zodiac', 'socialLinks', 'isPublic',
         'publicName', 'publicBirthDate', 'publicBirthTime', 'publicBirthPlace',
         'publicBirthCountry', 'publicBirthCity', 'publicSocials',
-        'publicZodiac', 'updatedAt',
+        'publicZodiac', 'updatedAt', 'countryCode', 'publicCountry',
       };
       final p = _profile(
           publicName: true, publicBirthDate: true, publicSocials: true)
@@ -66,7 +78,9 @@ void main() {
         ..publicZodiac = true
         ..birthCountry = 'France'
         ..birthCity = 'Paris'
-        ..zodiac = 'Balance';
+        ..zodiac = 'Balance'
+        ..countryCode = 'FR'
+        ..publicCountry = true;
       expect(allowed.containsAll(p.toPublicJson().keys), isTrue);
     });
   });

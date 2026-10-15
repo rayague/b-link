@@ -183,3 +183,39 @@ test('seuls les admins lisent les signalements', async () => {
   await assertFails(getDocs(query(collection(google('bob'), 'reports'), limit(10))));
   await assertSucceeds(getDocs(query(collection(google('boss'), 'reports'), limit(10))));
 });
+
+// ---------- phase 6 : pays de résidence, semaine, mois ----------
+
+const { orderBy } = require('firebase/firestore');
+
+test('un code pays ISO est accepté dans la projection', async () => {
+  await assertSucceeds(setDoc(doc(google('bob'), 'public_profiles/bob'),
+    publicProfile('bob', { countryCode: 'CI', publicCountry: true })));
+});
+
+test('un code pays non ISO est refusé', async () => {
+  await assertFails(setDoc(doc(google('bob'), 'public_profiles/bob'),
+    publicProfile('bob', { countryCode: 'France', publicCountry: true })));
+});
+
+test('requête semaine (whereIn) paginée autorisée', async () => {
+  const q = query(collection(google('bob'), 'public_profiles'),
+    where('birthDayKey', 'in', ['10-12', '10-13', '10-14', '10-15', '10-16', '10-17', '10-18']),
+    limit(50));
+  await assertSucceeds(getDocs(q));
+});
+
+test('requête mois + pays paginée autorisée', async () => {
+  const q = query(collection(google('bob'), 'public_profiles'),
+    where('countryCode', '==', 'FR'),
+    where('birthDayKey', '>=', '10-01'), where('birthDayKey', '<=', '10-31'),
+    orderBy('birthDayKey'), limit(50));
+  await assertSucceeds(getDocs(q));
+});
+
+test('requête mois sans limite refusée', async () => {
+  const q = query(collection(google('bob'), 'public_profiles'),
+    where('birthDayKey', '>=', '10-01'), where('birthDayKey', '<=', '10-31'),
+    orderBy('birthDayKey'));
+  await assertFails(getDocs(q));
+});

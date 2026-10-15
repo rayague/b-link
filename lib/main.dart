@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:country_picker/country_picker.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
@@ -94,6 +95,8 @@ class _App extends StatelessWidget {
       supportedLocales: const [Locale('en'), Locale('fr')],
       localizationsDelegates: const [
         AppLocalizationsDelegate(),
+        // Noms de pays traduits (sélecteur de pays de résidence).
+        CountryLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,

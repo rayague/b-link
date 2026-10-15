@@ -1,4 +1,4 @@
-﻿{
+{
   "emulators": {
     "auth": {
       "port": 9099,
@@ -17,7 +17,7 @@
     "source": "functions"
   },
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }
-

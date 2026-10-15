@@ -26,6 +26,6 @@ echo "Tests des règles Firestore..."
 (cd test_rules && npm ci --no-audit --no-fund && npm test)
 
 echo "Déploiement des règles et des Cloud Functions sur $PROJECT_ID..."
-firebase deploy --only firestore:rules,functions --project "$PROJECT_ID"
+firebase deploy --only firestore:rules,firestore:indexes,functions --project "$PROJECT_ID"
 
 echo "Déploiement terminé."

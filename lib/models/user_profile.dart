@@ -12,6 +12,7 @@ class UserProfile {
   String? birthplace; // Ville de naissance
   String? birthCountry; // Pays de naissance
   String? birthCity; // Ville actuelle
+  String? countryCode; // Pays de résidence, ISO 3166-1 alpha-2 (ex. "FR")
   Map<String, String>? socialLinks; // platform -> url
   String? bio;
   DateTime? lastSyncedAt;
@@ -26,6 +27,7 @@ class UserProfile {
   bool publicBirthCity;
   bool publicSocials;
   bool publicZodiac;
+  bool publicCountry;
 
   String? birthDayKey; // MM-DD for indexing
 
@@ -41,6 +43,7 @@ class UserProfile {
     this.birthplace,
     this.birthCountry,
     this.birthCity,
+    this.countryCode,
     this.socialLinks,
     this.bio,
     this.lastSyncedAt,
@@ -53,6 +56,7 @@ class UserProfile {
     this.publicBirthCity = false,
     this.publicSocials = false,
     this.publicZodiac = false,
+    this.publicCountry = false,
     this.birthDayKey,
   });
 
@@ -77,6 +81,7 @@ class UserProfile {
       birthplace: map['birthplace'] as String?,
       birthCountry: map['birthCountry'] as String?,
       birthCity: map['birthCity'] as String?,
+      countryCode: map['countryCode'] as String?,
       socialLinks: map['socialLinks'] == null
           ? null
           : Map<String, String>.from(map['socialLinks'] as Map),
@@ -93,6 +98,7 @@ class UserProfile {
       publicBirthCity: toBool(map['publicBirthCity']),
       publicSocials: toBool(map['publicSocials']),
       publicZodiac: toBool(map['publicZodiac']),
+      publicCountry: toBool(map['publicCountry']),
       birthDayKey: map['birthDayKey'] as String?,
     );
   }
@@ -132,6 +138,7 @@ class UserProfile {
         'birthplace': birthplace,
         'birthCountry': birthCountry,
         'birthCity': birthCity,
+        'countryCode': countryCode,
         'socialLinks': socialLinks,
         'bio': bio,
         'lastSyncedAt': lastSyncedAt?.toIso8601String(),
@@ -144,6 +151,7 @@ class UserProfile {
         'publicBirthCity': publicBirthCity,
         'publicSocials': publicSocials,
         'publicZodiac': publicZodiac,
+        'publicCountry': publicCountry,
         'birthDayKey': birthDayKey,
       };
 
@@ -152,6 +160,11 @@ class UserProfile {
 
   /// Âge minimum pour apparaître dans l'annuaire public (RGPD : 16 ans).
   static const int minPublicAge = 16;
+
+  /// Le code pays n'est accepté par les règles Firestore que s'il est au
+  /// format ISO 3166-1 alpha-2.
+  static bool isValidCountryCode(String? code) =>
+      code != null && RegExp(r'^[A-Z]{2}$').hasMatch(code);
 
   static String dayKeyOf(DateTime d) =>
       '${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -189,6 +202,7 @@ class UserProfile {
       'publicBirthCity': publicBirthCity,
       'publicSocials': publicSocials,
       'publicZodiac': publicZodiac,
+      'publicCountry': publicCountry,
     };
     void put(bool allowed, String key, Object? value) {
       if (allowed && value != null) data[key] = value;
@@ -201,6 +215,8 @@ class UserProfile {
     put(publicBirthCountry, 'birthCountry', birthCountry);
     put(publicBirthCity, 'birthCity', birthCity);
     put(publicZodiac, 'zodiac', zodiac);
+    put(publicCountry && isValidCountryCode(countryCode), 'countryCode',
+        countryCode);
     if (publicSocials && socialLinks != null && socialLinks!.isNotEmpty) {
       data['socialLinks'] = socialLinks;
     }

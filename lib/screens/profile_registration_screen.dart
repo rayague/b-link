@@ -1,6 +1,9 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:country_picker/country_picker.dart';
 import '../providers/profile_provider.dart';
 import '../models/user_profile.dart';
 import '../utils/zodiac.dart';
@@ -28,6 +31,14 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
   bool _publicBirthDate = false;
   bool _publicBirthPlace = false;
   bool _publicSocials = false;
+  bool _publicCountry = false;
+  /// Pays de résidence, pré-rempli avec celui de l'appareil (modifiable).
+  String? _countryCode = _deviceCountry();
+
+  static String? _deviceCountry() {
+    final code = PlatformDispatcher.instance.locale.countryCode?.toUpperCase();
+    return UserProfile.isValidCountryCode(code) ? code : null;
+  }
 
   @override
   void initState() {
@@ -180,6 +191,10 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
 
                           // Birth Time
                           _buildTimePicker(),
+                          const SizedBox(height: 16),
+
+                          // Pays de résidence
+                          _buildCountryPicker(),
                           const SizedBox(height: 16),
 
                           // Birth Place
@@ -426,8 +441,56 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
               _publicSocials,
               (v) => setState(() => _publicSocials = v ?? false),
             ),
+            _buildCheckbox(
+              AppLocalizations.of(context).translate('showMyCountry'),
+              _publicCountry,
+              (v) => setState(() => _publicCountry = v ?? false),
+            ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildCountryPicker() {
+    final country =
+        _countryCode == null ? null : Country.tryParse(_countryCode!);
+    final name = country == null
+        ? null
+        : CountryLocalizations.of(context)
+                ?.countryName(countryCode: country.countryCode) ??
+            country.name;
+    final l10n = AppLocalizations.of(context);
+    return InkWell(
+      onTap: () => showCountryPicker(
+        context: context,
+        onSelect: (c) => setState(() => _countryCode = c.countryCode),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          children: [
+            Text(country?.flagEmoji ?? '🌍', style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                name == null
+                    ? l10n.translate('countryOfResidence')
+                    : '${l10n.translate('countryOfResidence')} : $name',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: name == null ? Colors.grey.shade600 : Colors.black87,
+                ),
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400),
+          ],
+        ),
       ),
     );
   }
@@ -518,6 +581,8 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       publicBirthDate: _publicBirthDate,
       publicBirthPlace: _publicBirthPlace,
       publicSocials: _publicSocials,
+      countryCode: _countryCode,
+      publicCountry: _publicCountry,
     );
     try {
       await provider.save(profile, push: true);

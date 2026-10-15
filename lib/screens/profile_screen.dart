@@ -12,6 +12,7 @@ import 'admin_stats_screen.dart';
 import '../services/admin_service.dart';
 import '../services/analytics_service.dart';
 import '../utils/zodiac.dart';
+import 'package:country_picker/country_picker.dart';
 import '../utils/account_actions.dart' as account;
 
 class ProfileScreen extends StatefulWidget {
@@ -42,6 +43,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _publicBirthPlace = false;
   bool _publicBirthCountry = false;
   bool _publicBirthCity = false;
+  String? _countryCode; // pays de résidence (ISO alpha-2)
+  bool _publicCountry = false;
   bool _publicSocials = false;
   bool _publicZodiac = false;
 
@@ -80,6 +83,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     _publicBirthPlace = p?.publicBirthPlace ?? false;
     _publicBirthCountry = p?.publicBirthCountry ?? false;
     _publicBirthCity = p?.publicBirthCity ?? false;
+    _countryCode = p?.countryCode;
+    _publicCountry = p?.publicCountry ?? false;
     _publicSocials = p?.publicSocials ?? false;
     _publicZodiac = p?.publicZodiac ?? false;
 
@@ -372,6 +377,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         publicBirthPlace: _publicBirthPlace,
         publicBirthCountry: _publicBirthCountry,
         publicBirthCity: _publicBirthCity,
+        countryCode: _countryCode,
+        publicCountry: _publicCountry,
         publicSocials: _publicSocials,
         publicZodiac: _publicZodiac,
       );
@@ -515,6 +522,10 @@ class _ProfileScreenState extends State<ProfileScreen>
             isDark: isDark,
             enabled: _isEditing,
           ),
+          const SizedBox(height: 16),
+
+          // Pays de résidence (filtre "Mon pays" de l'annuaire)
+          _buildCountryField(isDark),
           const SizedBox(height: 24),
 
           // Privacy Settings Section
@@ -1551,6 +1562,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         _publicBirthPlace = false;
                         _publicBirthCountry = false;
                         _publicBirthCity = false;
+                        _publicCountry = false;
                         _publicSocials = false;
                         _publicZodiac = false;
                       }
@@ -1597,6 +1609,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                 Icons.home_outlined, isDark, (val) {
               setState(() => _publicBirthCity = val);
             }),
+            _buildPrivacySwitch(l10n.translate('showMyCountry'), _publicCountry,
+                Icons.flag_outlined, isDark, (val) {
+              setState(() => _publicCountry = val);
+            }),
             _buildPrivacySwitch(l10n.translate('myZodiac'), _publicZodiac,
                 Icons.stars_rounded, isDark, (val) {
               setState(() => _publicZodiac = val);
@@ -1612,6 +1628,39 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   /// Vérifier si l'utilisateur actuel est l'administrateur
+  /// Sélecteur du pays de résidence (code ISO, noms traduits).
+  Widget _buildCountryField(bool isDark) {
+    final l10n = AppLocalizations.of(context);
+    final country =
+        _countryCode == null ? null : Country.tryParse(_countryCode!);
+    final name = country == null
+        ? null
+        : CountryLocalizations.of(context)
+                ?.countryName(countryCode: country.countryCode) ??
+            country.name;
+    return ListTile(
+      enabled: _isEditing,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+      ),
+      leading: Text(country?.flagEmoji ?? '🌍',
+          style: const TextStyle(fontSize: 24)),
+      title: Text(l10n.translate('countryOfResidence'),
+          style: const TextStyle(fontSize: 13)),
+      subtitle: Text(name ?? l10n.translate('chooseCountry')),
+      trailing: _isEditing ? const Icon(Icons.arrow_drop_down) : null,
+      onTap: !_isEditing
+          ? null
+          : () => showCountryPicker(
+                context: context,
+                onSelect: (c) => setState(() => _countryCode = c.countryCode),
+              ),
+    );
+  }
+
   /// Moins de 16 ans : pas d'annuaire public (voir UserProfile.minPublicAge).
   bool get _canBePublic =>
       _birthDate == null || UserProfile.canBePublic(_birthDate!);
