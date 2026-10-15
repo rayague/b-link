@@ -38,7 +38,8 @@ class FirebaseSyncService {
       final batch = _firestore.batch();
       batch.set(_firestore.collection('users').doc(_userId), data,
           SetOptions(merge: true));
-      _writePublicProfile(batch, profile);
+      _writePublicProfile(batch, profile,
+          hiddenByModeration: await isHiddenByModeration());
       await batch.commit();
 
       // Les statistiques globales sont maintenues côté serveur (Cloud Function
@@ -51,11 +52,30 @@ class FirebaseSyncService {
     }
   }
 
+  /// Le profil a-t-il été masqué de l'annuaire par la modération
+  /// (moderation/{uid}, écrit par le serveur ou un admin) ? En cas d'erreur
+  /// de lecture, on considère que non : les règles refuseront de toute façon
+  /// une republication interdite.
+  Future<bool> isHiddenByModeration() async {
+    if (_userId == null) return false;
+    try {
+      final doc =
+          await _firestore.collection('moderation').doc(_userId).get();
+      return doc.exists && doc.data()?['hidden'] == true;
+    } catch (e) {
+      debugPrint('⚠️ Lecture modération: $e');
+      return false;
+    }
+  }
+
   /// Seule la collection `public_profiles` est lisible par les autres
   /// utilisateurs. `set` sans merge : un champ décoché disparaît vraiment.
-  void _writePublicProfile(WriteBatch batch, UserProfile profile) {
+  /// Un profil masqué par la modération n'est jamais republié (les règles
+  /// refuseraient tout le batch, y compris le profil privé).
+  void _writePublicProfile(WriteBatch batch, UserProfile profile,
+      {required bool hiddenByModeration}) {
     final ref = _firestore.collection('public_profiles').doc(_userId);
-    if (profile.shouldBePublished) {
+    if (profile.shouldBePublished && !hiddenByModeration) {
       batch.set(ref, {
         ...profile.toPublicJson(),
         'uid': _userId,
@@ -70,8 +90,10 @@ class FirebaseSyncService {
   /// l'introduction de `public_profiles`.
   Future<void> publishPublicProfile(UserProfile profile) async {
     if (_userId == null) return;
+    final hidden = await isHiddenByModeration();
+    if (hidden) return; // rien à republier
     final batch = _firestore.batch();
-    _writePublicProfile(batch, profile);
+    _writePublicProfile(batch, profile, hiddenByModeration: false);
     await batch.commit();
   }
 

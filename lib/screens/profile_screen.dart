@@ -529,6 +529,29 @@ class _ProfileScreenState extends State<ProfileScreen>
           const SizedBox(height: 24),
 
           // Privacy Settings Section
+          // Profil masqué par la modération : l'expliquer plutôt que de
+          // laisser croire que l'interrupteur "public" ne fonctionne pas.
+          if (context.watch<ProfileProvider>().hiddenByModeration) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.visibility_off_outlined, color: Colors.orange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(AppLocalizations.of(context)
+                        .translate('profileHiddenByModeration')),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           if (_isEditing) _buildPrivacySection(context, isDark),
           if (_isEditing) const SizedBox(height: 24),
 

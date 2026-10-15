@@ -16,6 +16,7 @@ class ProfileProvider extends ChangeNotifier {
   final ProfileService _service;
   final FirebaseSyncService _firebaseSync;
   bool _syncing = false;
+  bool _hiddenByModeration = false;
 
   ProfileProvider({ProfileService? service, FirebaseSyncService? firebaseSync})
       : _service = service ?? ProfileService(),
@@ -23,6 +24,9 @@ class ProfileProvider extends ChangeNotifier {
 
   UserProfile? get profile => _profile;
   bool get syncing => _syncing;
+
+  /// Profil masqué de l'annuaire suite à des signalements (moderation/{uid}).
+  bool get hiddenByModeration => _hiddenByModeration;
 
   /// Charge le profil (local puis Firebase).
   ///
@@ -54,6 +58,7 @@ class ProfileProvider extends ChangeNotifier {
     try {
       final firebaseProfile =
           await _firebaseSync.getUserProfile(rethrowErrors: true);
+      _hiddenByModeration = await _firebaseSync.isHiddenByModeration();
       if (firebaseProfile != null) {
         _profile = firebaseProfile;
         await _service.saveLocally(_profile!);

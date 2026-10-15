@@ -219,3 +219,36 @@ test('requête mois sans limite refusée', async () => {
     orderBy('birthDayKey'));
   await assertFails(getDocs(q));
 });
+
+// ---------- modération ----------
+
+const hide = (uid) => env.withSecurityRulesDisabled((ctx) =>
+  setDoc(doc(ctx.firestore(), `moderation/${uid}`), { hidden: true, reason: 'auto' }));
+
+test('un profil masqué par la modération ne peut pas être republié', async () => {
+  await hide('bob');
+  await assertFails(setDoc(doc(google('bob'), 'public_profiles/bob'), publicProfile('bob')));
+});
+
+test('un profil masqué peut toujours retirer sa projection publique', async () => {
+  await hide('alice');
+  await assertSucceeds(deleteDoc(doc(google('alice'), 'public_profiles/alice')));
+});
+
+test('le propriétaire lit sa décision de modération, pas celle des autres', async () => {
+  await hide('bob');
+  await assertSucceeds(getDoc(doc(google('bob'), 'moderation/bob')));
+  await assertFails(getDoc(doc(google('carol'), 'moderation/bob')));
+});
+
+test('un utilisateur ne peut pas lever son propre masquage', async () => {
+  await hide('bob');
+  await assertFails(deleteDoc(doc(google('bob'), 'moderation/bob')));
+  await assertFails(setDoc(doc(google('bob'), 'moderation/bob'), { hidden: false }));
+});
+
+test('un admin masque et rétablit un profil, et traite les signalements', async () => {
+  await assertSucceeds(setDoc(doc(google('boss'), 'moderation/alice'), { hidden: true }));
+  await assertSucceeds(deleteDoc(doc(google('boss'), 'public_profiles/alice')));
+  await assertSucceeds(deleteDoc(doc(google('boss'), 'moderation/alice')));
+});

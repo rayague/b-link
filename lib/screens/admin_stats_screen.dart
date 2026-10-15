@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firebase_sync_service.dart';
+import 'admin_reports_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../services/admin_service.dart';
 import '../services/notification_service.dart';
@@ -385,6 +386,12 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
         backgroundColor: const Color(0xFF1D1E33),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.flag, color: Colors.redAccent),
+            tooltip: 'Signalements',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const AdminReportsScreen())),
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_active, color: Colors.amber),
             onPressed: _testNotification,

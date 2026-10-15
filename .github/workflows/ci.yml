@@ -42,6 +42,12 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Cloud Functions unit tests
+        working-directory: functions
+        run: |
+          npm ci
+          npm test
+
       # firebase-tools (émulateurs) exige Java 21+ ; l'étape Flutter ci-dessus
       # utilise Java 17 (Android Gradle Plugin).
       - name: Set up JDK 21 for Firebase emulators
