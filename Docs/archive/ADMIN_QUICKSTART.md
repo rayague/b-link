@@ -35,7 +35,7 @@ L'écran affichera:
 Vous verrez:
 ✅ Premier admin créé avec succès!
 Email: rayague03@gmail.com
-Mot de passe: Admin@BLink2025!
+Mot de passe: [RETIRÉ — mot de passe révoqué]
 ```
 
 ### 5️⃣ Testez la connexion admin
@@ -43,7 +43,7 @@ Mot de passe: Admin@BLink2025!
 1. Déconnectez-vous de votre compte actuel
 2. Connectez-vous avec:
    - Email: rayague03@gmail.com
-   - Mot de passe: Admin@BLink2025!
+   - Mot de passe: [RETIRÉ — mot de passe révoqué]
 3. Allez dans "Mon Profil"
 4. Le bouton ORANGE ⚙️ "Admin" apparaît!
 5. Cliquez dessus → Accès à l'espace admin
@@ -59,7 +59,7 @@ Mot de passe: Admin@BLink2025!
 {
   "uid": "ABC123DEF456...",
   "email": "rayague03@gmail.com",
-  "passwordHash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+  "passwordHash": "[hash retiré]",
   "role": "super_admin",
   "createdAt": "2025-11-17T14:30:00.000Z",
   "lastLogin": null,
@@ -82,7 +82,7 @@ Mot de passe: Admin@BLink2025!
 
 ```
 Email: rayague03@gmail.com
-Mot de passe: Admin@BLink2025!
+Mot de passe: [RETIRÉ — mot de passe révoqué]
 ```
 
 ⚠️ **IMPORTANT:**
@@ -112,8 +112,8 @@ Mot de passe: Admin@BLink2025!
 
 ### Hash SHA-256
 ```
-Mot de passe original: Admin@BLink2025!
-Hash stocké: ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
+Mot de passe original: [RETIRÉ — mot de passe révoqué]
+Hash stocké: [hash retiré]
 
 ✅ Impossible de retrouver le mot de passe depuis le hash
 ✅ Chaque connexion recalcule le hash pour comparaison

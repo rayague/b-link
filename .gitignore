@@ -11,7 +11,7 @@ tool/*.json
 .dart_tool/
 .packages
 build/
-pubspec.lock
+# pubspec.lock est versionné : builds reproductibles pour une application.
 .flutter-plugins-dependencies
 
 # Firebase
@@ -84,3 +84,6 @@ ADMIN_CREDENTIALS.txt
 **/key.properties
 *.jks
 *.keystore 
+
+# Firestore rules tests
+/test_rules/node_modules/

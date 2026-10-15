@@ -21,7 +21,7 @@ set GCLOUD_PROJECT=my-prod-project
 firebase deploy --only functions --project my-prod-project
 ```
 
-Note: Functions may require Node 18 as specified in `functions/package.json`.
+Note: Functions run on Node 22 (`functions/package.json`).
 
 3) Deploy Firestore rules (tighten create validation)
 - After functions are deployed and tested, update `firestore.rules` to the strict production variant (we keep `firestore.rules.prod` in the repo).

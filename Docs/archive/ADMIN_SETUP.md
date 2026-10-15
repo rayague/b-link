@@ -10,7 +10,7 @@
 3. **Remplissez:**
    ```
    Email: rayague03@gmail.com
-   Mot de passe: Admin@BLink2025!
+   Mot de passe: [RETIRÉ — mot de passe révoqué]
    ```
    ⚠️ **NOTEZ CE MOT DE PASSE!** C'est différent de votre mot de passe utilisateur normal.
 
@@ -49,7 +49,7 @@
 3. **Connectez-vous avec:**
    ```
    Email: rayague03@gmail.com
-   Mot de passe: Admin@BLink2025!
+   Mot de passe: [RETIRÉ — mot de passe révoqué]
    ```
 
 4. **Allez dans "Mon Profil"**
@@ -65,7 +65,7 @@
 ## 🔑 Credentials Admin
 
 **Email:** rayague03@gmail.com  
-**Mot de passe:** Admin@BLink2025!
+**Mot de passe:** [RETIRÉ — mot de passe révoqué]
 
 ⚠️ **IMPORTANT:** Ce mot de passe est **DIFFÉRENT** de votre mot de passe utilisateur normal!
 

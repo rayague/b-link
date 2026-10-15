@@ -86,9 +86,9 @@ flutter analyze lib/screens/home_screen.dart
 
 ```
 Email: rayague03@gmail.com
-Mot de passe: Admin@BLink2025!
+Mot de passe: [RETIRÉ — mot de passe révoqué]
 Rôle: super_admin
-Hash SHA-256: ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
+Hash SHA-256: [hash retiré]
 ```
 
 ---
@@ -150,7 +150,7 @@ Message de succès s'affiche avec les credentials
 ### 5. Tester la connexion
 ```
 1. Déconnectez-vous de l'app
-2. Connectez-vous avec rayague03@gmail.com / Admin@BLink2025!
+2. Connectez-vous avec rayague03@gmail.com / [RETIRÉ — mot de passe révoqué]
 3. Allez dans "Mon Profil"
 4. Bouton ORANGE ⚙️ visible
 5. Cliquez → Accès à AdminStatsScreen

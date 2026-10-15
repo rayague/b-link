@@ -558,7 +558,7 @@ SON, DAUGHTER, SISTER, BROTHER, FRIEND, NEIGHBOR, BESTFRIEND, BOYFRIEND, GIRLFRI
 - ✅ Avertissement clair sur l'usage unique
 - ✅ Affichage des credentials:
   - Email: rayague03@gmail.com
-  - Mot de passe: Admin@BLink2025!
+  - Mot de passe: [RETIRÉ — mot de passe révoqué]
 - ✅ Bouton de création sécurisé
 - ✅ Indicateur de chargement
 - ✅ Messages de succès/erreur

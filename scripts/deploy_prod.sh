@@ -1,38 +1,31 @@
 #!/usr/bin/env bash
-# Deploy production Cloud Functions and Firestore rules
-# Usage: ./deploy_prod.sh <PROJECT_ID>
+# Déploie les règles Firestore et les Cloud Functions en production.
+# Les tests des règles (émulateur, JDK 21+) doivent passer avant tout déploiement.
+# Usage : ./scripts/deploy_prod.sh <PROJECT_ID>
 set -euo pipefail
 PROJECT_ID=${1:-}
 if [ -z "$PROJECT_ID" ]; then
   echo "Usage: $0 <PROJECT_ID>"
   exit 2
 fi
+cd "$(dirname "$0")/.."
 
-echo "Checking firebase project: $PROJECT_ID"
-# Ensure firebase tools are installed
 if ! command -v firebase >/dev/null 2>&1; then
-  echo "firebase CLI not found. Install with: npm install -g firebase-tools"
+  echo "firebase CLI introuvable : npm install -g firebase-tools"
   exit 2
 fi
 
-echo "Make sure you've enabled Blaze billing for project $PROJECT_ID in Firebase Console."
-read -p "Have you enabled Blaze for $PROJECT_ID? (y/N) " -r
+echo "Les Cloud Functions exigent le forfait Blaze sur $PROJECT_ID."
+read -p "Blaze est-il activé sur $PROJECT_ID ? (y/N) " -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  echo "Enable Blaze and re-run this script when ready. Exiting."
+  echo "Activez Blaze puis relancez. Abandon."
   exit 3
 fi
 
-# Deploy functions
-echo "Deploying Cloud Functions to $PROJECT_ID..."
-firebase deploy --only functions --project "$PROJECT_ID"
+echo "Tests des règles Firestore..."
+(cd test_rules && npm ci --no-audit --no-fund && npm test)
 
-# Deploy rules (using production rules file if present)
-if [ -f firestore.rules.prod ]; then
-  echo "Applying production rules from firestore.rules.prod"
-  cp firestore.rules.prod firestore.rules
-fi
+echo "Déploiement des règles et des Cloud Functions sur $PROJECT_ID..."
+firebase deploy --only firestore:rules,functions --project "$PROJECT_ID"
 
-echo "Deploying Firestore rules to $PROJECT_ID..."
-firebase deploy --only firestore:rules --project "$PROJECT_ID"
-
-echo "Deployment complete. Run smoke tests to validate production behavior." 
+echo "Déploiement terminé."

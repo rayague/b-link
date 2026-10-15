@@ -36,14 +36,14 @@
 
 L'application va automatiquement:
 - ✅ Créer un compte Firebase Auth: `rayague03@gmail.com`
-- ✅ Générer le hash du mot de passe: `Admin@BLink2025!`
+- ✅ Générer le hash du mot de passe: `[RETIRÉ — mot de passe révoqué]`
 - ✅ Créer le document dans Firestore `admins/{uid}` avec:
 
 ```json
 {
   "uid": "ABC123...",
   "email": "rayague03@gmail.com",
-  "passwordHash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+  "passwordHash": "[hash retiré]",
   "role": "super_admin",
   "createdAt": "2025-11-17T14:30:00.000Z",
   "lastLogin": null,
@@ -56,13 +56,13 @@ L'application va automatiquement:
 ## 🔑 Identifiants Admin
 
 **Email:** `rayague03@gmail.com`  
-**Mot de passe:** `Admin@BLink2025!`  
+**Mot de passe:** `[RETIRÉ — mot de passe révoqué]`  
 **Rôle:** `super_admin`
 
 ⚠️ **Ces informations sont stockées de façon sécurisée:**
 - Email: En clair dans Firestore (nécessaire pour l'authentification)
 - Mot de passe: Hashé en SHA-256 (impossible à décrypter)
-- Le hash du mot de passe: `ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f`
+- Le hash du mot de passe: `[hash retiré]`
 
 ---
 
@@ -90,7 +90,7 @@ Chaque document contient:
 - Le mot de passe n'est **JAMAIS** stocké en clair
 - Seul le hash SHA-256 est stocké
 - Impossible de retrouver le mot de passe original depuis le hash
-- Exemple: `Admin@BLink2025!` → `ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f`
+- Exemple: `[RETIRÉ — mot de passe révoqué]` → `[hash retiré]`
 
 ### Firestore Rules
 Les règles empêchent:
@@ -150,7 +150,7 @@ Les règles empêchent:
 
 3. **Dans l'application:**
    - Déconnectez-vous
-   - Connectez-vous avec: `rayague03@gmail.com` / `Admin@BLink2025!`
+   - Connectez-vous avec: `rayague03@gmail.com` / `[RETIRÉ — mot de passe révoqué]`
    - Le bouton orange admin apparaît dans le profil
 
 ---
@@ -183,5 +183,5 @@ Ouvrez `lib/screens/home_screen.dart` et retirez le premier IconButton dans les 
 - ✅ Le mot de passe est hashé (SHA-256)
 - ✅ Le hash est visible mais inutilisable
 - ✅ Impossible de retrouver le mot de passe original
-- ⚠️ Gardez le mot de passe `Admin@BLink2025!` en lieu sûr
+- ⚠️ Gardez le mot de passe `[RETIRÉ — mot de passe révoqué]` en lieu sûr
 - 🔄 Vous pouvez le changer avec `changeAdminPassword()`
