@@ -35,32 +35,26 @@ void main() {
     expect(parsed.length, 2);
   });
 
-  test('the shipped asset parses fully into the app relations', () {
-    final content = File('assets/messages.txt').readAsStringSync();
-    final parsed = parseMessagesFile(content);
-    final relations = parsed.map((m) => m.relation).toSet();
-
-    expect(parsed.length, greaterThan(1000));
-    // Relations proposées dans la liste de contacts (en minuscules).
-    for (final r in ['son', 'daughter', 'friend', 'mother', 'father',
-        'grand-son', 'bestfriend', 'god-mother']) {
-      expect(relations, contains(r));
-    }
-    expect(parsed.any((m) => m.text.contains('¦')), isFalse);
+  test('section comments in the banks are not imported as messages', () {
+    final parsed =
+        parseMessagesFile('# --- Fils ---\nson|Joyeux anniversaire !\n\n');
+    expect(parsed.length, 1);
+    expect(parsed.single.relation, 'son');
   });
 
-  test('the French asset covers every relation offered in the app', () {
-    final relationsEn = parseMessagesFile(
-            File('assets/messages.txt').readAsStringSync())
-        .map((m) => m.relation)
-        .toSet();
+  test('English and French banks cover exactly the same relations', () {
+    final en = parseMessagesFile(
+        File('assets/messages_en.txt').readAsStringSync());
     final fr = parseMessagesFile(
         File('assets/messages_fr.txt').readAsStringSync());
+    final relationsEn = en.map((m) => m.relation).toSet();
     final relationsFr = fr.map((m) => m.relation).toSet();
 
-    expect(relationsFr, contains('default'));
-    expect(relationsFr.containsAll(relationsEn), isTrue,
-        reason: 'manquent : ${relationsEn.difference(relationsFr)}');
-    expect(fr.length, greaterThanOrEqualTo(100));
+    expect(relationsEn, contains('default'));
+    expect(relationsEn, equals(relationsFr),
+        reason: 'EN seul : ${relationsEn.difference(relationsFr)}, '
+            'FR seul : ${relationsFr.difference(relationsEn)}');
+    expect(en.length, greaterThanOrEqualTo(140));
+    expect(fr.length, greaterThanOrEqualTo(140));
   });
 }

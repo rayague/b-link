@@ -1,7 +1,7 @@
-// Parser du fichier assets/messages.txt (Dart pur, testable sans Flutter).
+// Parser des banques de messages assets/messages_*.txt (Dart pur, testable).
 //
 // Formats acceptés, une ligne par message :
-//   default|default¦<relation>¦<texte>   (format actuel du fichier)
+//   default|default¦<relation>¦<texte>   (ancien format, toujours accepté)
 //   <relation>|<texte>
 //   {"relation": "...", "text": "..."}
 // Les lignes vides et celles qui commencent par # sont ignorées.

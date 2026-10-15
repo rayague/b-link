@@ -32,7 +32,7 @@ Côté app :
   glissante de 30 jours), rafraîchis chaque jour par WorkManager
   (`background_sync.dart`).
 - `lib/services/db_helper.dart` : SQLite local (contacts, banque de messages
-  importée depuis `assets/messages.txt`).
+  importée depuis `assets/messages_en.txt` et `assets/messages_fr.txt`).
 - `lib/utils/birthday.dart` : calculs de dates (passage d'année, 29 février).
 
 Les règles de sécurité sont dans [`firestore.rules`](firestore.rules) et les

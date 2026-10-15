@@ -35,7 +35,7 @@ void main() {
     expect(relationLabel(en, ''), '');
   });
 
-  for (final asset in ['assets/messages.txt', 'assets/messages_fr.txt']) {
+  for (final asset in ['assets/messages_en.txt', 'assets/messages_fr.txt']) {
     test('$asset has at least 4 messages for every relation', () {
       final counts = <String, int>{};
       for (final m in parseMessagesFile(File(asset).readAsStringSync())) {

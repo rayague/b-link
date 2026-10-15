@@ -1,0 +1,206 @@
+# Birthday messages in English.
+# Format: relation|text. {name} is replaced with the contact's first name.
+# Writing rule: never assume the sender's gender (no "as your wife",
+# "proud to be your husband"); only the person being celebrated.
+
+# --- General ---
+default|Happy birthday, {name}! Today we celebrate the day the world got a little brighter. May this year give you back all the joy you scatter around you.
+default|Happy birthday! May every day of this new year taste like a summer morning: soft, full of promise and bathed in light.
+default|Happy birthday, {name}! I wish you laughter that makes your cheeks ache, dreams that come alive, and people who love you exactly as you are.
+default|Some people make life more beautiful just by being in it. You are one of them. Happy birthday!
+default|One more candle, and still that unique spark in your eyes. May your day be as wonderful as you are. Happy birthday!
+default|May this year bring you the things no one can wrap: peace of heart, unforgettable memories and surprises that make your heart race. Happy birthday, {name}!
+default|Today, savour every moment, every message, every smile. You deserve to be celebrated like the precious person you are. Happy birthday!
+default|Happy birthday! May life hold you close this year and never let go of your hand.
+default|For your birthday, I wish you everything that makes eyes shine: love, courage, tenderness and tomorrows full of song. Happy birthday, {name}!
+default|Time goes by, but some lights never fade. Yours is one of them. Happy birthday, and may this be your most beautiful year yet!
+
+# --- Son ---
+son|My son, the day you were born, my heart learned a whole new way to beat. Every year with you since has been a gift. Happy birthday, my treasure.
+son|Happy birthday, {name}! You've grown so much, but to me you'll always be that little boy who held my finger with all the strength in his tiny hand. I love you endlessly.
+son|My boy, if only you knew the pride that fills me when I watch you become the man you are. May this year give you the courage for every one of your dreams. Happy birthday!
+son|There are no words big enough to say how much I love you, so I'll simply say it again: I love you, my son. Happy birthday, and may life always smile on you.
+son|Happy birthday, son! Wherever life takes you, remember there will always be a heart here waiting for you, believing in you and loving you without conditions.
+son|Happy birthday, champ! Keep laughing loudly, dreaming big and loving without counting. The world needs more people like you.
+son|My son, you are the most beautiful page of my story. May this new year be full of victories, bright encounters and peace. Happy birthday.
+
+# --- Daughter ---
+daughter|My daughter, on the day you were born the sun rose twice: once in the sky, and once in my heart. Happy birthday, my wonder.
+daughter|Happy birthday, {name}! You are my greatest pride, my softest light and the living proof that miracles exist. I love you to infinity.
+daughter|Look at you: strong, beautiful, full of dreams. I wish you a year that looks just like you, radiant and free. Happy birthday, sweetheart.
+daughter|Years ago I held you in my arms for the very first time, and my heart has never stopped being amazed. Happy birthday, my girl.
+daughter|Happy birthday, my daughter! May life give you true friendships, a love that respects you, and mornings that make you want to dance.
+daughter|You grew up far too fast, but every step of your life has been a joy to watch. May this be your most beautiful year so far. Happy birthday, my princess.
+daughter|Never forget how precious you are. Wherever you go, my love will follow you like a star. Happy birthday, my darling daughter.
+
+# --- Mother ---
+mother|Mum, you gave me life, then you taught me how to love it. Today it's my turn to say thank you, from the bottom of my heart. Happy birthday, my dearest mum.
+mother|Happy birthday, Mum! Your arms were my first shelter and your voice my first song. I love you more than all the words in the world.
+mother|Mum, you are the most beautiful proof that angels exist, even without wings. May this year give you back a little of all the love you give. Happy birthday.
+mother|There are a thousand ways to say "I love you", and you taught me every single one. Happy birthday, Mum.
+mother|Happy birthday to the strongest and gentlest woman I know. Mum, you are my compass, my safe place and my greatest role model.
+mother|Today it's your turn to rest, to be spoiled and to receive all the love in the world. Happy birthday, Mum. My heart belongs to you.
+mother|Time can pass all it wants; my hand will always reach for yours. Thank you for being my mum. Happy birthday, I love you endlessly.
+
+# --- Father ---
+father|Dad, you were my first hero, and you still are. Thank you for your quiet strength and your love that never needed to shout. Happy birthday.
+father|Happy birthday, Dad! From your shoulders I saw the world from up high, and thanks to you I learned never to be afraid of walking into it.
+father|Some people talk about love; you have always shown it. May this year give you back everything you have given. Happy birthday, Dad.
+father|Happy birthday, Dad! Thank you for every piece of advice, every reassuring silence, and every time you believed in me before I believed in myself.
+father|Happy birthday to the greatest of dads. You are my landmark, my pride and my example. I love you, even if I don't say it often enough.
+father|Dad, may this new year bring you health, serenity and simple joys, just like the ones you always knew how to give me. Happy birthday.
+father|To the man who taught me how to walk, how to fall and how to get back up: happy birthday, Dad. I love you with all my heart.
+
+# --- Brother ---
+brother|Happy birthday, brother! We grew up side by side, between fights and fits of laughter, and today I know one thing for sure: I wouldn't trade you for anything in the world.
+brother|You're my lifelong ally, my partner in crime and sometimes my bodyguard. May this year be as big as your heart. Happy birthday, bro!
+brother|Happy birthday, {name}! Having a brother like you means having a friend for life, given to me from the very start.
+brother|Whatever happens, you can always count on me, just as I've always been able to count on you. Happy birthday, brother.
+brother|Happy birthday, bro! I wish you adventures, success, love, and plenty of stories to tell me.
+brother|The years go by, but our childhood memories stay untouched in my heart. Happy birthday, brother. You mean the world to me.
+
+# --- Sister ---
+sister|Happy birthday, sister! You are my confidante, my partner in crime and my favourite childhood memory. Life is so much sweeter with you in it.
+sister|We shared secrets, laughter and squabbles. Today I want to share with you all my love. Happy birthday, sis.
+sister|Happy birthday, {name}! A sister is a piece of childhood you get to keep forever. Thank you for being mine.
+sister|You light up every room you walk into. May this year give you back some of the light you give. Happy birthday, sister.
+sister|Happy birthday to my wonderful sister! I wish you a light heart, dreams come true, and a love that treats you like the queen you are.
+sister|Whatever happens, there will always be a shoulder, an ear and a heart here for you. Happy birthday, sister. I love you.
+
+# --- Husband ---
+husband|My love, of all the years life has given me, the ones by your side are the most beautiful. Happy birthday to the man who makes my heart beat.
+husband|Happy birthday, {name}. If I had to start all over again, I would choose you again, and again, and again.
+husband|My husband, my partner, my safe place: thank you for making my life so sweet. May this year be as beautiful as the love you give me. Happy birthday.
+husband|Every morning beside you is a promise kept. Happy birthday, my love. I love you more than yesterday and so much less than tomorrow.
+husband|Happy birthday, my love! May today look just like you: generous, reassuring and full of tenderness. My life has had a lovelier meaning since you became part of it.
+husband|You are my home, wherever we happen to be. Happy birthday to the man of my life.
+husband|Happy birthday, my heart. I wish you a year of laughter, crazy plans and evenings curled up together.
+
+# --- Wife ---
+wife|My love, you are the most beautiful chapter of my life, the one I read again every day with the same wonder. Happy birthday to the woman I love.
+wife|Happy birthday, {name}. Your smile is my favourite light, your voice my favourite song, and you are my favourite place in the whole world.
+wife|My wife, my partner, my soulmate: thank you for lighting up my days and calming my nights. May this year be as wonderful as you are. Happy birthday.
+wife|If love had a face, it would be yours. Happy birthday, my love. I love you more than words will ever know how to say.
+wife|Every year by your side reminds me how lucky I am. Happy birthday, my love. You are the best yes of my life.
+wife|You make ordinary days extraordinary. Happy birthday to the woman of my life, today and forever.
+wife|May your day be as gentle as your tenderness and as bright as your eyes. I love you, today more than ever. Happy birthday, my love.
+
+# --- Boyfriend ---
+boyfriend|Happy birthday, my heart. Ever since you walked into my life, even the grey days smell like sunshine.
+boyfriend|My love, you are the most beautiful surprise life has ever given me. May your birthday be as wonderful as everything you bring me.
+boyfriend|Happy birthday, {name}! I love your laugh, the way you look at me, and the person I become when I'm with you.
+boyfriend|Happy birthday, babe! I can't wait to write a thousand more pages of our story together.
+boyfriend|You are my favourite place in the world. Happy birthday, my love. I wish you all the happiness you deserve, and then a little more.
+boyfriend|If I could, I would give you the stars. Until then, I give you my heart, all of it. Happy birthday, my love.
+boyfriend|Happy birthday to the one who makes my heart beat a little faster every single day. I love you.
+
+# --- Girlfriend ---
+girlfriend|Happy birthday, my darling. Since you came along, my life has taken on colours I never knew existed.
+girlfriend|My love, your smile is the most beautiful thing my eyes have ever seen. May your birthday be as radiant as you are.
+girlfriend|Happy birthday, {name}! You are my most beautiful encounter, my sweetest coincidence and my most obvious certainty.
+girlfriend|Happy birthday, beautiful! If happiness had a name, it would be yours.
+girlfriend|Every day with you feels like a first date: my heart still beats just as hard. Happy birthday, my love.
+girlfriend|I wish you a year as beautiful as you are, which means absolutely wonderful. Happy birthday, my darling. I love you.
+girlfriend|You are my dream come true. Happy birthday to the one who lights up my life.
+
+# --- Friend ---
+friend|Happy birthday, {name}! True friends are like stars: you can't always see them, but you know they're there. Thank you for being one of mine.
+friend|Happy birthday! Thank you for the laughter, the late-night talks and for showing up when the sky turns grey. Your friendship is a treasure.
+friend|Happy birthday! I wish you a year full of adventures, good news and nights we'll still be talking about ten years from now.
+friend|Some friendships make life feel lighter. Yours is one of them. Happy birthday, and enjoy every single second!
+friend|Happy birthday, {name}! May this new year look just like you: generous, funny and full of lovely surprises.
+friend|Happy birthday! We don't choose our family, but we do choose our friends, and I would make that choice a thousand times over.
+friend|For your birthday, I wish you everything that makes life beautiful, and above all, people who care about you as much as I do.
+
+# --- Best friend ---
+bestfriend|Happy birthday to my soulmate in friendship! You know my silences, my laughter and my secrets, and you're always there. I adore you.
+bestfriend|Happy birthday, {name}! With you, the good times are better and the hard times feel lighter. Thank you for being my person.
+bestfriend|Happy birthday! If friendship were a country, you would be its capital.
+bestfriend|Years of memories, silly jokes and unshakeable support... Happy birthday to the person who knows me by heart.
+bestfriend|Happy birthday! I wish you a year as beautiful as our friendship, in other words: unforgettable.
+bestfriend|You are the family my heart chose. Happy birthday. I love you more than you can imagine.
+bestfriend|Happy birthday, {name}! Getting older isn't scary at all, as long as we do it together, laughing at the same silly things.
+
+# --- Cousin ---
+cousin|Happy birthday, {name}! From childhood memories to the laughter at every family gathering, you've always been a bright light in my life.
+cousin|Happy birthday! I wish you a year full of happiness, success and moments that warm your heart.
+cousin|Happy birthday! Family is also made of those precious bonds that stand the test of time, just like ours.
+cousin|Happy birthday, {name}! May life bring you lovely surprises, and may our next family reunion be in your honour.
+cousin|Happy birthday! Thank you for all these years of fun and closeness. I wish you the very best, today and always.
+
+# --- Uncle ---
+uncle|Happy birthday, Uncle! Thank you for your good humour, your stories and your unique way of making every family gathering more joyful.
+uncle|Happy birthday, {name}! May this year bring you health, peace of mind and plenty of beautiful moments with the family.
+uncle|You've always been there with advice, a smile or a joke at just the right moment. Happy birthday, Uncle, with all my affection.
+uncle|Happy birthday to my favourite uncle! May your day be as warm as your heart.
+uncle|Happy birthday, Uncle! Thank you for being such a reassuring and kind presence. Sending you a big hug.
+
+# --- Aunt ---
+auntie|Happy birthday, Auntie! Your tenderness has always been a refuge and your laughter a celebration. I love you so much.
+auntie|Happy birthday, {name}! May this year give you back all the sweetness you share so generously with everyone around you.
+auntie|You're a little bit my second mum, my friend and my confidante. Happy birthday, Auntie, with all my love.
+auntie|Happy birthday to my favourite aunt! I wish you a magical day and a year full of happiness.
+auntie|Happy birthday, Auntie! Thank you for every hug, every piece of advice and every moment we've shared. You mean so much to me.
+
+# --- Nephew ---
+nephew|Happy birthday, nephew! Watching you grow up is a real joy, and I can't wait to see everything life has in store for you.
+nephew|Happy birthday, {name}! Hold on to your curiosity, your energy and your big heart: they are your greatest treasures.
+nephew|Happy birthday! May this new year be full of adventures, achievements and bursts of laughter.
+nephew|You make our family so much happier. Enjoy your day, you deserve it so much. Happy birthday, nephew!
+nephew|Happy birthday! Wherever your dreams take you, know that you have a family here who believes in you.
+
+# --- Niece ---
+niece|Happy birthday, niece! Your smile lights up every family gathering. Never lose it.
+niece|Happy birthday, {name}! I wish you a year as sparkling and bright as you are.
+niece|My dear niece, watching you grow is a wonder every single day. Happy birthday, with all my love.
+niece|Happy birthday! May all your dreams, even the wildest ones, find their way into reality.
+niece|Happy birthday, niece! Stay curious, brave and radiant: the world is waiting for you.
+
+# --- Grandmother ---
+grand-mother|Grandma, your home smells like happiness and your arms can fix anything. Happy birthday. I love you with all my heart.
+grand-mother|Happy birthday, Grandma! Thank you for your stories, your endless patience and a love that never keeps count.
+grand-mother|Grandma, you are the root of our family and the sweetness of our memories. May this year bring you health and peace. Happy birthday.
+grand-mother|Happy birthday, Grandma! Every line on your face tells a love story, and I'm lucky enough to be part of it.
+grand-mother|Happy birthday to the most wonderful grandma in the world! Sending you a thousand kisses and all my tenderness.
+grand-mother|Grandma, no gift could ever match everything you've given me. Thank you for being you. Happy birthday.
+
+# --- Grandfather ---
+grand-father|Grandpa, your hands built our family and your heart holds it together. Happy birthday, with all my admiration.
+grand-father|Happy birthday, Grandpa! Thank you for your wisdom, your stories from the old days and your kind, caring eyes.
+grand-father|Happy birthday, Grandpa! May this year bring you health, peace and many precious moments with the family.
+grand-father|Grandpa, you taught me that true wealth is measured in memories and love. Happy birthday. I love you.
+grand-father|Happy birthday to the best grandpa ever! Having you in my life is a gift I cherish every day.
+grand-father|Grandpa, every moment with you is a treasure I keep close to my heart. Happy birthday, and a thousand thanks.
+
+# --- Grandson ---
+grand-son|Happy birthday, grandson! You are the joy of my days and the pride of the whole family.
+grand-son|Happy birthday, {name}! Watching you grow up is one of the greatest joys of my life. Sending you the biggest hug.
+grand-son|My dear grandson, may this year bring you laughter, discoveries and a head full of dreams. Happy birthday.
+grand-son|Happy birthday! You lit up our lives from your very first day, and you keep doing it a little more every day.
+grand-son|Happy birthday, my boy! Never forget how loved you are, today and forever.
+
+# --- Granddaughter ---
+grand-daughter|Happy birthday, granddaughter! You are a ray of sunshine that warms the whole family.
+grand-daughter|Happy birthday, {name}! Your laugh is my favourite music. Sending you all my love.
+grand-daughter|My darling granddaughter, may this year be full of magic, dreams and wonderful achievements. Happy birthday.
+grand-daughter|Happy birthday! Watching you become the wonderful person you are is an immense joy.
+grand-daughter|Happy birthday, sweetheart! Never forget how loved you are, today and forever.
+
+# --- Godfather ---
+god-father|Happy birthday, Godfather! Thank you for watching over me all these years, like a quiet, reassuring lighthouse.
+god-father|Happy birthday, {name}! Having a godfather like you is a blessing I appreciate a little more every year.
+god-father|Thank you for your trust, your advice and your affection. I wish you a magnificent year. Happy birthday, Godfather.
+god-father|Happy birthday to the best godfather there is! May your day be as generous as you are.
+
+# --- Godmother ---
+god-mother|Happy birthday, Godmother! Your tenderness and kindness have been with me all my life.
+god-mother|Happy birthday, {name}! Having a godmother like you is like having a lucky star for life.
+god-mother|Thank you for your love, your presence and all those precious moments. Happy birthday, Godmother. Sending you a big hug.
+god-mother|Happy birthday to the most wonderful godmother! May this year fill you with happiness.
+
+# --- Neighbour ---
+neighbor|Happy birthday! It's a real pleasure to have you living nearby: your kindness makes everyday life so much nicer.
+neighbor|Happy birthday, {name}! I wish you a bright day and a year full of joy and good health.
+neighbor|Happy birthday! Thank you for your good mood and the smiles that brighten up the whole street.
+neighbor|Wishing you a lovely birthday, surrounded by the people you love.
+neighbor|Happy birthday! May this new year bring you peace, health and wonderful surprises.
