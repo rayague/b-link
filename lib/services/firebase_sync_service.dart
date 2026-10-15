@@ -3,16 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/contact.dart';
 import '../models/user_profile.dart';
-import 'db_helper.dart';
 
-/// Service de synchronisation complète avec Firebase
-/// Gère: Profils utilisateurs, Contacts, Statistiques globales
+/// Accès Firestore : profil (privé + projection publique), contacts,
+/// statistiques. Le SDK Firestore gère lui-même le cache hors ligne et la
+/// file d'écriture : aucune file de synchronisation maison n'est nécessaire.
 class FirebaseSyncService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final DBHelper _db;
-
-  FirebaseSyncService(this._db);
 
   /// Obtenir l'ID utilisateur actuel
   String? get _userId => _auth.currentUser?.uid;
@@ -30,20 +27,19 @@ class FirebaseSyncService {
     }
 
     try {
-      // Ensure birthDayKey (MM-DD) is present so the "Same Day" query can match.
-      if (profile.birthDayKey == null || profile.birthDayKey!.isEmpty) {
-        profile.birthDayKey =
-            '${profile.birthDate.month.toString().padLeft(2, '0')}-${profile.birthDate.day.toString().padLeft(2, '0')}';
-      }
+      profile.uid ??= _userId;
+      profile.birthDayKey = UserProfile.dayKeyOf(profile.birthDate);
       final data = profile.toJson();
       data['userId'] = _userId;
       data['lastUpdated'] = FieldValue.serverTimestamp();
       data['email'] = _auth.currentUser?.email;
 
-      await _firestore
-          .collection('users')
-          .doc(_userId)
-          .set(data, SetOptions(merge: true));
+      // Profil privé + projection publique écrits ensemble (atomique).
+      final batch = _firestore.batch();
+      batch.set(_firestore.collection('users').doc(_userId), data,
+          SetOptions(merge: true));
+      _writePublicProfile(batch, profile);
+      await batch.commit();
 
       // Les statistiques globales sont maintenues côté serveur (Cloud Function
       // `onUserCreated`) ; le client n'écrit plus dans `app_stats`.
@@ -55,8 +51,34 @@ class FirebaseSyncService {
     }
   }
 
-  /// Récupérer le profil utilisateur depuis Firebase
-  Future<UserProfile?> getUserProfile() async {
+  /// Seule la collection `public_profiles` est lisible par les autres
+  /// utilisateurs. `set` sans merge : un champ décoché disparaît vraiment.
+  void _writePublicProfile(WriteBatch batch, UserProfile profile) {
+    final ref = _firestore.collection('public_profiles').doc(_userId);
+    if (profile.shouldBePublished) {
+      batch.set(ref, {
+        ...profile.toPublicJson(),
+        'uid': _userId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      batch.delete(ref);
+    }
+  }
+
+  /// (Re)publie la projection publique, par ex. pour les profils créés avant
+  /// l'introduction de `public_profiles`.
+  Future<void> publishPublicProfile(UserProfile profile) async {
+    if (_userId == null) return;
+    final batch = _firestore.batch();
+    _writePublicProfile(batch, profile);
+    await batch.commit();
+  }
+
+  /// Récupérer le profil utilisateur depuis Firebase.
+  /// Avec [rethrowErrors], une erreur réseau/permission est propagée au lieu
+  /// d'être confondue avec "aucun profil".
+  Future<UserProfile?> getUserProfile({bool rethrowErrors = false}) async {
     if (_userId == null) {
       debugPrint('⚠️ Impossible de récupérer: utilisateur non connecté');
       return null;
@@ -75,20 +97,9 @@ class FirebaseSyncService {
       return UserProfile.fromJson(data);
     } catch (e) {
       debugPrint('❌ Erreur récupération profil: $e');
+      if (rethrowErrors) rethrow;
       return null;
     }
-  }
-
-  /// Écouter les changements du profil en temps réel
-  Stream<UserProfile?> watchUserProfile() {
-    if (_userId == null) {
-      return Stream.value(null);
-    }
-
-    return _firestore.collection('users').doc(_userId).snapshots().map((doc) {
-      if (!doc.exists) return null;
-      return UserProfile.fromJson(doc.data()!);
-    });
   }
 
   // ==================== CONTACTS ====================
@@ -96,20 +107,23 @@ class FirebaseSyncService {
   /// Sauvegarder un contact dans Firebase
   Future<void> saveContact(Contact contact) async {
     if (_userId == null) return;
+    // L'ID local est l'ID du document : sans lui, on créerait un doublon au
+    // prochain chargement (ancien comportement : ID = timestamp).
+    if (contact.id == null) {
+      debugPrint('⚠️ Contact "${contact.name}" sans ID, non synchronisé');
+      return;
+    }
 
     try {
       final data = contact.toJson();
       data['userId'] = _userId;
       data['lastUpdated'] = FieldValue.serverTimestamp();
 
-      final contactId = contact.id?.toString() ??
-          DateTime.now().millisecondsSinceEpoch.toString();
-
       await _firestore
           .collection('users')
           .doc(_userId)
           .collection('contacts')
-          .doc(contactId)
+          .doc(contact.id.toString())
           .set(data, SetOptions(merge: true));
 
       debugPrint('✅ Contact "${contact.name}" sauvegardé dans Firebase');
@@ -126,17 +140,16 @@ class FirebaseSyncService {
       final batch = _firestore.batch();
 
       for (final contact in contacts) {
+        if (contact.id == null) continue;
         final data = contact.toJson();
         data['userId'] = _userId;
         data['lastUpdated'] = FieldValue.serverTimestamp();
 
-        final contactId = contact.id?.toString() ??
-            DateTime.now().millisecondsSinceEpoch.toString();
         final ref = _firestore
             .collection('users')
             .doc(_userId)
             .collection('contacts')
-            .doc(contactId);
+            .doc(contact.id.toString());
 
         batch.set(ref, data, SetOptions(merge: true));
       }
@@ -192,148 +205,6 @@ class FirebaseSyncService {
     }
   }
 
-  /// Écouter les changements des contacts en temps réel
-  Stream<List<Contact>> watchContacts() {
-    if (_userId == null) {
-      return Stream.value([]);
-    }
-
-    return _firestore
-        .collection('users')
-        .doc(_userId)
-        .collection('contacts')
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = int.tryParse(doc.id);
-        return Contact.fromJson(data);
-      }).toList();
-    });
-  }
-
-  // ==================== SYNCHRONISATION COMPLÈTE ====================
-
-  /// Synchronisation complète: Local → Firebase
-  Future<void> syncToFirebase({
-    UserProfile? profile,
-    List<Contact>? contacts,
-  }) async {
-    if (_userId == null) {
-      debugPrint('⚠️ Impossible de synchroniser: utilisateur non connecté');
-      return;
-    }
-
-    debugPrint('🔄 Début synchronisation vers Firebase...');
-
-    try {
-      // Sauvegarder le profil
-      if (profile != null) {
-        await saveUserProfile(profile);
-      }
-
-      // Sauvegarder les contacts
-      if (contacts != null && contacts.isNotEmpty) {
-        await saveAllContacts(contacts);
-      }
-
-      debugPrint('✅ Synchronisation vers Firebase terminée');
-    } catch (e) {
-      debugPrint('❌ Erreur synchronisation: $e');
-      rethrow;
-    }
-  }
-
-  /// Synchronisation complète: Firebase → Local
-  /// Utilisé après réinstallation ou première connexion
-  Future<void> syncFromFirebase() async {
-    if (_userId == null) {
-      debugPrint('⚠️ Impossible de synchroniser: utilisateur non connecté');
-      return;
-    }
-
-    debugPrint('🔄 Début récupération depuis Firebase...');
-
-    try {
-      // Récupérer le profil
-      final profile = await getUserProfile();
-      if (profile != null) {
-        // Sauvegarder en local (à implémenter dans ProfileProvider)
-        debugPrint('📥 Profil récupéré: ${profile.name}');
-      }
-
-      // Récupérer les contacts
-      final contacts = await getAllContacts();
-      if (contacts.isNotEmpty) {
-        // Sauvegarder en local
-        for (final contact in contacts) {
-          await _db.insertContact(contact);
-        }
-        debugPrint(
-            '📥 ${contacts.length} contacts récupérés et sauvegardés localement');
-      }
-
-      debugPrint('✅ Synchronisation depuis Firebase terminée');
-    } catch (e) {
-      debugPrint('❌ Erreur récupération: $e');
-      rethrow;
-    }
-  }
-
-  /// Synchronisation bidirectionnelle intelligente
-  /// Compare local et Firebase, garde la version la plus récente
-  Future<void> smartSync({
-    required UserProfile? localProfile,
-    required List<Contact> localContacts,
-  }) async {
-    if (_userId == null) return;
-
-    debugPrint('🔄 Synchronisation intelligente...');
-
-    try {
-      // 1. Récupérer les données Firebase
-      final firebaseProfile = await getUserProfile();
-      final firebaseContacts = await getAllContacts();
-
-      // 2. Fusionner les profils (garder le plus récent)
-      if (localProfile != null) {
-        await saveUserProfile(localProfile);
-      } else if (firebaseProfile != null) {
-        // Sauvegarder le profil Firebase en local
-        debugPrint('📥 Profil Firebase récupéré');
-      }
-
-      // 3. Fusionner les contacts
-      final localContactIds = localContacts.map((c) => c.id).toSet();
-      final firebaseContactIds = firebaseContacts.map((c) => c.id).toSet();
-
-      // Contacts uniquement en local → envoyer à Firebase
-      final onlyLocal = localContacts
-          .where((c) => !firebaseContactIds.contains(c.id))
-          .toList();
-      if (onlyLocal.isNotEmpty) {
-        await saveAllContacts(onlyLocal);
-        debugPrint('📤 ${onlyLocal.length} contacts locaux envoyés à Firebase');
-      }
-
-      // Contacts uniquement sur Firebase → sauvegarder en local
-      final onlyFirebase = firebaseContacts
-          .where((c) => !localContactIds.contains(c.id))
-          .toList();
-      if (onlyFirebase.isNotEmpty) {
-        for (final contact in onlyFirebase) {
-          await _db.insertContact(contact);
-        }
-        debugPrint(
-            '📥 ${onlyFirebase.length} contacts Firebase sauvegardés localement');
-      }
-
-      debugPrint('✅ Synchronisation intelligente terminée');
-    } catch (e) {
-      debugPrint('❌ Erreur synchronisation intelligente: $e');
-    }
-  }
-
   // ==================== STATISTIQUES GLOBALES ====================
   // L'écriture de `app_stats` est réservée au serveur (Cloud Function
   // `onUserCreated`). Le client ne fait que lire les statistiques.
@@ -370,44 +241,28 @@ class FirebaseSyncService {
     }
   }
 
-  /// Écouter les statistiques en temps réel
-  Stream<Map<String, dynamic>> watchGlobalStats() {
-    return _firestore
-        .collection('app_stats')
-        .doc('global')
-        .snapshots()
-        .map((doc) {
-      if (!doc.exists) return {'totalUsers': 0};
-      return doc.data()!;
-    });
-  }
-
   // ==================== NETTOYAGE ====================
 
-  /// Supprimer toutes les données de l'utilisateur
+  /// Supprimer toutes les données de l'utilisateur.
+  /// Propage les erreurs : la suppression de compte ne doit pas continuer si
+  /// les données n'ont pas été effacées.
   Future<void> deleteUserData() async {
     if (_userId == null) return;
+    final userRef = _firestore.collection('users').doc(_userId);
 
-    try {
-      // Supprimer tous les contacts
-      final contacts = await _firestore
-          .collection('users')
-          .doc(_userId)
-          .collection('contacts')
-          .get();
-
+    // Un batch Firestore est limité à 500 opérations : on découpe.
+    final contacts = await userRef.collection('contacts').get();
+    const chunkSize = 400;
+    for (var i = 0; i < contacts.docs.length; i += chunkSize) {
       final batch = _firestore.batch();
-      for (final doc in contacts.docs) {
+      for (final doc in contacts.docs.skip(i).take(chunkSize)) {
         batch.delete(doc.reference);
       }
-
-      // Supprimer le profil
-      batch.delete(_firestore.collection('users').doc(_userId));
-
       await batch.commit();
-      debugPrint('✅ Données utilisateur supprimées de Firebase');
-    } catch (e) {
-      debugPrint('❌ Erreur suppression données: $e');
     }
+
+    await _firestore.collection('public_profiles').doc(_userId).delete();
+    await userRef.delete();
+    debugPrint('✅ Données utilisateur supprimées de Firebase');
   }
 }

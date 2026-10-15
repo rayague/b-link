@@ -4,6 +4,7 @@ import '../widgets/social_links_widget.dart';
 import '../widgets/birth_insights_widget.dart';
 import '../l10n/app_localizations.dart';
 import '../services/analytics_service.dart';
+import '../services/safety_service.dart';
 
 class PublicProfileScreen extends StatelessWidget {
   static const routeName = '/public-profile';
@@ -13,6 +14,60 @@ class PublicProfileScreen extends StatelessWidget {
     super.key,
     required this.profile,
   });
+
+  Future<void> _report(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.translate('reportReason')),
+        children: [
+          for (final r in SafetyService.reasons)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(ctx).pop(r),
+              child: Text(l10n.translate('reason_$r')),
+            ),
+        ],
+      ),
+    );
+    if (reason == null) return;
+    try {
+      await SafetyService().report(profile.uid!, reason);
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.translate('reportSent'))));
+    } catch (e) {
+      debugPrint('❌ Signalement: $e');
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.translate('actionFailed'))));
+    }
+  }
+
+  /// Bloque le profil puis revient à la liste, en lui signalant de le masquer.
+  Future<void> _block(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(l10n.translate('blockConfirm')),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.translate('cancel'))),
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.translate('block'))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await SafetyService().block(profile.uid!);
+    messenger.showSnackBar(
+        SnackBar(content: Text(l10n.translate('profileBlocked'))));
+    navigator.pop(true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +112,23 @@ class PublicProfileScreen extends StatelessWidget {
                     child: const Icon(Icons.arrow_back, color: Colors.white),
                   ),
                 ),
+                actions: [
+                  if (profile.uid != null)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Colors.white),
+                      onSelected: (value) => value == 'report'
+                          ? _report(context)
+                          : _block(context),
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                            value: 'report',
+                            child: Text(l10n.translate('report'))),
+                        PopupMenuItem(
+                            value: 'block',
+                            child: Text(l10n.translate('block'))),
+                      ],
+                    ),
+                ],
                 flexibleSpace: LayoutBuilder(
                   builder: (context, constraints) {
                     final isCollapsed = constraints.maxHeight < 120;

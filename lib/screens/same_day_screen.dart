@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
-import '../services/db_helper.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/profile_provider.dart';
 import '../models/user_profile.dart';
 import 'public_profile_screen.dart';
@@ -10,6 +10,7 @@ import '../services/message_repository.dart';
 import '../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import '../services/analytics_service.dart';
+import '../services/safety_service.dart';
 
 class SameDayScreen extends StatefulWidget {
   const SameDayScreen({super.key});
@@ -27,6 +28,7 @@ class _SameDayScreenState extends State<SameDayScreen>
   bool _hasMore = true;
   final int _limit = 50;
   DocumentSnapshot? _lastDocument;
+  Set<String> _blocked = {};
   final ScrollController _scrollController = ScrollController();
 
   late AnimationController _animationController;
@@ -100,67 +102,41 @@ class _SameDayScreenState extends State<SameDayScreen>
       return;
     }
 
-    final key =
-        '${profile.birthDate.month.toString().padLeft(2, '0')}-${profile.birthDate.day.toString().padLeft(2, '0')}';
-
-    // Try Firestore first for global count
     try {
-      final fs = FirebaseFirestore.instance;
-
-      // Récupérer le count total
-      final countQuery = await fs
-          .collection('users')
-          .where('birthDayKey', isEqualTo: key)
-          .where('isPublic', isEqualTo: true)
-          .count()
-          .get();
-
-      final totalCount = countQuery.count;
-
-      // Récupérer les premiers documents
-      final q = await fs
-          .collection('users')
-          .where('birthDayKey', isEqualTo: key)
-          .where('isPublic', isEqualTo: true)
-          .limit(_limit)
-          .get();
-
+      _blocked = await SafetyService().blockedUids();
+      final q = await _query(UserProfile.dayKeyOf(profile.birthDate)).get();
       if (mounted) {
         setState(() {
-          _items = q.docs.map((d) => d.data()).toList();
-          _count = totalCount ?? q.size;
+          _items = _withoutMe(q.docs);
+          _count = _items.length;
           _loading = false;
           _hasMore = q.size == _limit;
           _lastDocument = q.docs.isNotEmpty ? q.docs.last : null;
         });
       }
-      _animationController.forward();
-      return;
     } catch (e) {
       debugPrint('Erreur Firestore: $e');
+      if (mounted) setState(() => _loading = false);
     }
+    _animationController.forward();
+  }
 
-    // Fallback to local DB
-    try {
-      final db = DBHelper();
-      final local = await db.queryPublicProfilesByDay(key, limit: _limit);
-      if (mounted) {
-        setState(() {
-          _items = local;
-          _count = local.length;
-          _loading = false;
-          _hasMore = local.length == _limit;
-        });
-      }
-      _animationController.forward();
-    } catch (e) {
-      debugPrint('Erreur DB locale: $e');
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
-    }
+  /// Annuaire public : seule collection lisible par les autres utilisateurs.
+  /// Les règles Firestore imposent une limite <= 50 par requête.
+  Query<Map<String, dynamic>> _query(String dayKey) => FirebaseFirestore
+      .instance
+      .collection('public_profiles')
+      .where('birthDayKey', isEqualTo: dayKey)
+      .limit(_limit);
+
+  /// On ne se compte pas soi-même, ni les profils bloqués.
+  List<Map<String, dynamic>> _withoutMe(
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    return docs
+        .where((d) => d.id != myUid && !_blocked.contains(d.id))
+        .map((d) => d.data())
+        .toList();
   }
 
   Future<void> _loadMore() async {
@@ -178,22 +154,15 @@ class _SameDayScreenState extends State<SameDayScreen>
       return;
     }
 
-    final key =
-        '${profile.birthDate.month.toString().padLeft(2, '0')}-${profile.birthDate.day.toString().padLeft(2, '0')}';
-
     try {
-      final fs = FirebaseFirestore.instance;
-      final q = await fs
-          .collection('users')
-          .where('birthDayKey', isEqualTo: key)
-          .where('isPublic', isEqualTo: true)
+      final q = await _query(UserProfile.dayKeyOf(profile.birthDate))
           .startAfterDocument(_lastDocument!)
-          .limit(_limit)
           .get();
 
       if (mounted && q.docs.isNotEmpty) {
         setState(() {
-          _items.addAll(q.docs.map((d) => d.data()).toList());
+          _items.addAll(_withoutMe(q.docs));
+          _count = _items.length;
           _hasMore = q.size == _limit;
           _lastDocument = q.docs.last;
           _loading = false;
@@ -388,7 +357,7 @@ class _SameDayScreenState extends State<SameDayScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '$_count ${l10n.translate('peopleCount')}',
+                                      '$_count${_hasMore ? '+' : ''} ${l10n.translate('peopleCount')}',
                                       style: TextStyle(
                                         fontSize: 28,
                                         fontWeight: FontWeight.bold,
@@ -814,15 +783,22 @@ class _SameDayScreenState extends State<SameDayScreen>
     );
   }
 
-  void _showProfileDetails(
-      BuildContext context, Map<String, dynamic> profileData, bool isDark) {
+  Future<void> _showProfileDetails(
+      BuildContext context, Map<String, dynamic> profileData, bool isDark) async {
     // Convert Map to UserProfile
     final profile = UserProfile.fromMap(profileData);
 
-    Navigator.of(context).push(
+    final blocked = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => PublicProfileScreen(profile: profile),
       ),
     );
+    if (blocked == true && mounted) {
+      setState(() {
+        _blocked.add(profile.uid!);
+        _items.removeWhere((it) => it['uid'] == profile.uid);
+        _count = _items.length;
+      });
+    }
   }
 }

@@ -1,0 +1,12 @@
+{
+  "name": "b_link_rules_tests",
+  "private": true,
+  "description": "Firestore security rules tests (run against the emulator).",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-b-link \"node --test\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.0.0"
+  }
+}

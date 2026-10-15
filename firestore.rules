@@ -3,30 +3,79 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ==================== HELPER FUNCTIONS ====================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Comptes anonymes exclus de l'annuaire public (limite l'aspiration).
+    function isRealUser() {
+      return isSignedIn()
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     // Un utilisateur est admin si un document admins/{uid} existe.
     function isAdmin() {
-      return request.auth != null
+      return isSignedIn()
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    // ==================== USERS COLLECTION ====================
-    // Profil utilisateur + contacts. Le profil sert aussi au "Same Day".
+    // ==================== USERS (PRIVÉ) ====================
+    // Profil complet (email, date avec l'année, heure de naissance...).
+    // Jamais lisible par les autres utilisateurs : seule la projection
+    // `public_profiles` l'est.
     match /users/{userId} {
-      // Lecture : propriétaire, admin, ou profil explicitement public.
-      allow read: if request.auth != null && (
-        request.auth.uid == userId
-        || isAdmin()
-        || resource.data.isPublic == true
-      );
-
-      // Écriture : propriétaire uniquement.
-      allow create, update, delete: if request.auth != null
-        && request.auth.uid == userId;
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update, delete: if isOwner(userId);
 
       // Contacts : strictement privés au propriétaire.
       match /contacts/{contactId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
+    }
+
+    // ==================== PUBLIC PROFILES ====================
+    // Projection publique écrite par le propriétaire, uniquement les champs
+    // qu'il a choisi de montrer. Le document n'existe que si le profil est
+    // public : le supprimer suffit à disparaître de l'annuaire.
+    match /public_profiles/{userId} {
+      allow get: if isRealUser();
+      // Pagination obligatoire pour éviter l'aspiration en une requête.
+      allow list: if isRealUser() && request.query.limit <= 50;
+
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+             'uid', 'name', 'birthDayKey', 'birthDate', 'birthTime',
+             'birthplace', 'birthCountry', 'birthCity', 'zodiac',
+             'socialLinks', 'isPublic', 'publicName', 'publicBirthDate',
+             'publicBirthTime', 'publicBirthPlace', 'publicBirthCountry',
+             'publicBirthCity', 'publicSocials', 'publicZodiac', 'updatedAt'
+           ])
+        && request.resource.data.uid == userId
+        && request.resource.data.isPublic == true
+        && request.resource.data.birthDayKey is string
+        && request.resource.data.birthDayKey.matches('^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
+
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // ==================== REPORTS ====================
+    // Signalements de profils publics : création par un vrai utilisateur en
+    // son nom, lecture et traitement réservés aux admins.
+    match /reports/{reportId} {
+      allow create: if isRealUser()
+        && request.resource.data.keys().hasOnly(
+             ['reporterUid', 'reportedUid', 'reason', 'createdAt'])
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.reportedUid is string
+        && request.resource.data.reportedUid != request.auth.uid
+        && request.resource.data.reason in
+             ['spam', 'inappropriate', 'fake', 'minor', 'other']
+        && request.resource.data.createdAt == request.time;
+      allow read, delete: if isAdmin();
     }
 
     // ==================== ADMINS COLLECTION ====================
@@ -34,15 +83,11 @@ service cloud.firestore {
     // console). Le client peut uniquement lire et mettre à jour sa dernière
     // connexion.
     match /admins/{adminId} {
-      allow read: if request.auth != null && (
-        request.auth.uid == adminId
-        || isAdmin()
-      );
+      allow read: if isOwner(adminId) || isAdmin();
 
       allow create, delete: if false;
 
-      allow update: if request.auth != null
-        && request.auth.uid == adminId
+      allow update: if isOwner(adminId)
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['lastLogin']);
     }
@@ -50,11 +95,11 @@ service cloud.firestore {
     // ==================== APP STATS ====================
     // Lecture publique (authentifiée) ; écriture réservée au serveur.
     match /app_stats/{document} {
-      allow read: if request.auth != null;
+      allow read: if isSignedIn();
       allow write: if false;
     }
 
-    // Deny everything else by default (profiles, sync_queue Firestore, etc.)
+    // Deny everything else by default (sync_queue Firestore, etc.)
     match /{document=**} {
       allow read, write: if false;
     }
