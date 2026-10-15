@@ -10,6 +10,7 @@ import '../utils/birthday.dart';
 import '../services/message_repository.dart';
 import '../services/analytics_service.dart';
 import '../widgets/offline_banner.dart';
+import '../widgets/reminder_settings_section.dart';
 import '../utils/account_actions.dart' as account;
 import 'dart:math' as math;
 
@@ -706,10 +707,20 @@ class _HomeScreenState extends State<HomeScreen>
   void _showSettingsSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      // Défilable : la feuille contient thème, langue et rappels.
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => const CustomSettingsSheet(),
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.75,
+        maxChildSize: 0.95,
+        builder: (context, controller) => SingleChildScrollView(
+          controller: controller,
+          child: const CustomSettingsSheet(),
+        ),
+      ),
     );
   }
 }
@@ -961,6 +972,9 @@ class CustomSettingsSheet extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const ReminderSettingsSection(),
           const SizedBox(height: 16),
         ],
       ),

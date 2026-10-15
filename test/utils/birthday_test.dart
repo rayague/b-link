@@ -3,6 +3,8 @@ import 'package:b_link/models/contact.dart';
 import 'package:b_link/providers/contact_provider.dart';
 import 'package:b_link/services/notification_service.dart';
 import 'package:b_link/utils/birthday.dart';
+import 'package:b_link/services/reminder_settings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('daysUntilBirthday', () {
@@ -70,13 +72,54 @@ void main() {
 
     test('notification ids fit in 32 bits, even for timestamp-like ids', () {
       for (final id in [1, 99999, 1728912345678]) {
-        for (final day in [true, false]) {
-          final n = NotificationService.notificationId(id, isBirthdayDay: day);
+        for (final kind in ReminderKind.values) {
+          final n = NotificationService.notificationId(id, kind);
           expect(n, inInclusiveRange(0, 0x7FFFFFFF));
         }
       }
-      expect(NotificationService.notificationId(5, isBirthdayDay: true),
-          isNot(NotificationService.notificationId(5, isBirthdayDay: false)));
+      final ids = ReminderKind.values
+          .map((k) => NotificationService.notificationId(5, k))
+          .toSet();
+      expect(ids.length, ReminderKind.values.length);
+    });
+
+    test('ids of existing reminders are unchanged (day = slot 0, eve = 1)', () {
+      expect(NotificationService.notificationId(5, ReminderKind.birthdayDay), 50);
+      expect(NotificationService.notificationId(5, ReminderKind.dayBefore), 51);
+    });
+
+    test('reminders use the chosen time', () {
+      final plan = NotificationService.planFor(contact('1990-10-20'),
+          DateTime(2026, 10, 15), const ReminderSettings(hour: 20, minute: 30));
+      expect(plan.last.when, DateTime(2026, 10, 20, 20, 30));
+    });
+
+    test('optional reminder one week before', () {
+      final plan = NotificationService.planFor(contact('1990-10-25'),
+          DateTime(2026, 10, 15), const ReminderSettings(weekBefore: true));
+      expect(plan.map((r) => r.kind), [
+        ReminderKind.weekBefore,
+        ReminderKind.dayBefore,
+        ReminderKind.birthdayDay,
+      ]);
+      expect(plan.first.when, DateTime(2026, 10, 18, 9));
+    });
+
+    test('the day-before reminder can be turned off', () {
+      final plan = NotificationService.planFor(contact('1990-10-20'),
+          DateTime(2026, 10, 15), const ReminderSettings(dayBefore: false));
+      expect(plan.map((r) => r.kind), [ReminderKind.birthdayDay]);
+    });
+
+    test('settings are remembered', () async {
+      SharedPreferences.setMockInitialValues({});
+      await const ReminderSettings(hour: 7, minute: 15, weekBefore: true)
+          .save();
+      final loaded = await ReminderSettings.load();
+      expect(loaded.hour, 7);
+      expect(loaded.minute, 15);
+      expect(loaded.weekBefore, isTrue);
+      expect(loaded.dayBefore, isTrue);
     });
   });
 

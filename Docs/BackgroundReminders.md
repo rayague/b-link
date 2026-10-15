@@ -2,12 +2,15 @@
 
 ## Fonctionnement
 
-- `NotificationService.planFor` calcule, pour chaque contact, deux rappels :
-  la veille et le jour J à 9h, uniquement si l'anniversaire tombe dans les
-  30 prochains jours. Le nombre de notifications en attente reste ainsi
-  borné (iOS : 64 maximum ; Android : environ 500 alarmes).
+- `NotificationService.planFor` calcule, pour chaque contact, jusqu'à trois
+  rappels selon les réglages (`ReminderSettings`, accueil > Réglages > Rappels) :
+  une semaine avant (désactivé par défaut), la veille (activé par défaut) et
+  le jour J, à l'heure choisie (9h par défaut). Seuls les anniversaires des
+  30 prochains jours sont programmés : le nombre de notifications en attente
+  reste borné (iOS : 64 maximum ; Android : environ 500 alarmes).
 - La fenêtre est reprogrammée à chaque ouverture de l'app
-  (`ContactProvider.loadContacts`), à chaque changement de langue, et une fois
+  (`ContactProvider.loadContacts`), à chaque changement de langue ou de
+  réglage des rappels, et une fois
   par jour en arrière-plan par WorkManager (`lib/services/background_sync.dart`,
   tâche `com.rayague.b-link.reminders-refresh`).
 - Les rappels utilisent `AndroidScheduleMode.inexactAllowWhileIdle` : pas de

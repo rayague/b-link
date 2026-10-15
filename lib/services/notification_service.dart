@@ -7,18 +7,26 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import '../models/contact.dart';
 import '../utils/birthday.dart';
+import 'reminder_settings.dart';
+
+/// Type de rappel. L'index sert de "slot" dans l'ID de notification : ne pas
+/// réordonner (jour J = 0 et veille = 1 existaient déjà).
+enum ReminderKind { birthdayDay, dayBefore, weekBefore }
 
 /// Un rappel planifié (calcul pur, testable sans plugin).
 class PlannedReminder {
   final int id;
   final DateTime when; // heure locale
-  final bool isBirthdayDay; // false = la veille
-  const PlannedReminder(this.id, this.when, this.isBirthdayDay);
+  final ReminderKind kind;
+  const PlannedReminder(this.id, this.when, this.kind);
+
+  bool get isBirthdayDay => kind == ReminderKind.birthdayDay;
 }
 
 /// Rappels d'anniversaire des contacts.
 ///
-/// Stratégie : 2 notifications par contact (la veille et le jour J à 9h),
+/// Stratégie : jusqu'à 3 notifications par contact (une semaine avant si
+/// activé, la veille si activé, et le jour J, à l'heure choisie ; 9h par défaut),
 /// uniquement pour les anniversaires des [windowDays] prochains jours. La
 /// fenêtre est rafraîchie à chaque ouverture de l'app et chaque jour en
 /// arrière-plan (voir background_sync.dart). Le nombre de notifications en
@@ -29,7 +37,6 @@ class NotificationService {
   NotificationService._internal();
 
   static const int windowDays = 30;
-  static const int reminderHour = 9;
   static const String _payloadPrefix = 'contact:';
 
   final FlutterLocalNotificationsPlugin _plugin =
@@ -165,46 +172,58 @@ class NotificationService {
 
   /// IDs de notification : doivent tenir sur 32 bits signés (sinon le plugin
   /// lève une ArgumentError). 200M * 10 < 2^31.
-  static int notificationId(int contactId, {required bool isBirthdayDay}) =>
-      (contactId.abs() % 200000000) * 10 + (isBirthdayDay ? 0 : 1);
+  static int notificationId(int contactId, ReminderKind kind) =>
+      (contactId.abs() % 200000000) * 10 + kind.index;
 
-  /// Calcule les rappels d'un contact à partir de [now] (pur, testable).
-  static List<PlannedReminder> planFor(Contact contact, DateTime now) {
+  static const _daysBefore = {
+    ReminderKind.weekBefore: 7,
+    ReminderKind.dayBefore: 1,
+    ReminderKind.birthdayDay: 0,
+  };
+
+  /// Calcule les rappels d'un contact à partir de [now] selon les
+  /// [settings] (pur, testable).
+  static List<PlannedReminder> planFor(Contact contact, DateTime now,
+      [ReminderSettings settings = const ReminderSettings()]) {
     final id = contact.id;
     final birthDate = parseBirthDate(contact.date);
     if (id == null || birthDate == null) return const [];
     if (daysUntilBirthday(birthDate, now) > windowDays) return const [];
 
     final day = nextBirthday(birthDate, now);
-    final candidates = [
-      PlannedReminder(
-        notificationId(id, isBirthdayDay: false),
-        DateTime(day.year, day.month, day.day - 1, reminderHour),
-        false,
-      ),
-      PlannedReminder(
-        notificationId(id, isBirthdayDay: true),
-        DateTime(day.year, day.month, day.day, reminderHour),
-        true,
-      ),
+    final kinds = [
+      if (settings.weekBefore) ReminderKind.weekBefore,
+      if (settings.dayBefore) ReminderKind.dayBefore,
+      ReminderKind.birthdayDay,
     ];
-    return candidates.where((r) => r.when.isAfter(now)).toList();
+    return [
+      for (final kind in kinds)
+        PlannedReminder(
+          notificationId(id, kind),
+          DateTime(day.year, day.month, day.day - _daysBefore[kind]!,
+              settings.hour, settings.minute),
+          kind,
+        ),
+    ].where((r) => r.when.isAfter(now)).toList();
   }
 
   /// Programme les rappels d'un contact (annule d'abord les anciens).
-  Future<void> scheduleBirthdayReminders(Contact contact, String locale) async {
+  /// [settings] est relu depuis l'appareil s'il n'est pas fourni.
+  Future<void> scheduleBirthdayReminders(Contact contact, String locale,
+      {ReminderSettings? settings}) async {
     if (!_initialized) await init();
     if (contact.id == null) return;
     await cancelBirthdayReminders(contact.id!);
+    final s = settings ?? await ReminderSettings.load();
 
-    for (final r in planFor(contact, DateTime.now())) {
-      final text = _text(contact.name, r.isBirthdayDay, locale);
+    for (final r in planFor(contact, DateTime.now(), s)) {
+      final text = _text(contact.name, r.kind, locale);
       await _plugin.zonedSchedule(
         r.id,
         text.title,
         text.body,
         tz.TZDateTime(tz.local, r.when.year, r.when.month, r.when.day,
-            r.when.hour),
+            r.when.hour, r.when.minute),
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'birthday_reminders',
@@ -223,9 +242,20 @@ class NotificationService {
   }
 
   static ({String title, String body}) _text(
-      String name, bool isBirthdayDay, String locale) {
+      String name, ReminderKind kind, String locale) {
     final fr = locale == 'fr';
-    if (isBirthdayDay) {
+    if (kind == ReminderKind.weekBefore) {
+      return fr
+          ? (
+              title: '📅 Dans une semaine : anniversaire de $name',
+              body: 'Le moment idéal pour penser à une petite attention 🎁'
+            )
+          : (
+              title: '📅 One week to go: $name\'s birthday',
+              body: 'The perfect time to think of a little something 🎁'
+            );
+    }
+    if (kind == ReminderKind.birthdayDay) {
       return fr
           ? (
               title: '🎉 Aujourd\'hui, c\'est l\'anniversaire de $name !',
@@ -252,8 +282,9 @@ class NotificationService {
   }
 
   Future<void> cancelBirthdayReminders(int contactId) async {
-    await _plugin.cancel(notificationId(contactId, isBirthdayDay: true));
-    await _plugin.cancel(notificationId(contactId, isBirthdayDay: false));
+    for (final kind in ReminderKind.values) {
+      await _plugin.cancel(notificationId(contactId, kind));
+    }
   }
 
   /// Annule tout puis reprogramme la fenêtre. Le `cancelAll` purge aussi les
@@ -262,9 +293,10 @@ class NotificationService {
       List<Contact> contacts, String locale) async {
     if (!_initialized) await init(requestPermissions: false);
     await _plugin.cancelAll();
+    final settings = await ReminderSettings.load();
     for (final contact in contacts) {
       try {
-        await scheduleBirthdayReminders(contact, locale);
+        await scheduleBirthdayReminders(contact, locale, settings: settings);
       } catch (e) {
         debugPrint('❌ Rappels non programmés pour ${contact.name}: $e');
       }
