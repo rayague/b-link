@@ -62,6 +62,7 @@ dev_dependencies:
     sdk: flutter
   fake_cloud_firestore: 4.3.0
   firebase_auth_mocks: 0.15.2
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -71,3 +72,13 @@ flutter:
     - assets/logoApp.jpg
     - assets/pictureFirst.jpg
     - assets/pictureSecond.jpg
+
+# Icône de l'app, générée depuis le logo (assets/logoApp.jpg recadré sur le
+# motif central). Régénérer : dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "#4B4E64"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
