@@ -29,13 +29,14 @@ class DBHelper {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final path = join(documentsDirectory.path, fileName);
     return await openDatabase(path,
-        version: 3, onCreate: _onCreate, onUpgrade: _onUpgrade);
+        version: 4, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE contact (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT,
         name TEXT,
         date TEXT,
         relation TEXT,
@@ -43,8 +44,12 @@ class DBHelper {
         phone TEXT
       )
     ''');
+    await _createUuidIndex(db);
     await _createMessagesAndMeta(db);
   }
+
+  Future<void> _createUuidIndex(Database db) => db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_contact_uuid ON contact(uuid)');
 
   Future<void> _createMessagesAndMeta(Database db) async {
     await db.execute('''
@@ -76,6 +81,15 @@ class DBHelper {
         await db.execute('ALTER TABLE contact ADD COLUMN phone TEXT');
       }
     }
+    if (oldVersion < 4) {
+      // Identifiant stable entre appareils. Les contacts existants gardent
+      // leur ancien ID local comme UUID : c'était aussi leur ID Firestore, ils
+      // restent donc associés aux mêmes documents.
+      await db.execute('ALTER TABLE contact ADD COLUMN uuid TEXT');
+      await db.execute(
+          'UPDATE contact SET uuid = CAST(id AS TEXT) WHERE uuid IS NULL');
+      await _createUuidIndex(db);
+    }
   }
 
   /// Conservé pour compatibilité : la colonne est désormais gérée par la
@@ -86,9 +100,22 @@ class DBHelper {
 
   // ==================== CONTACTS ====================
 
+  /// Insère le contact (un UUID est attribué s'il n'en a pas).
+  /// L'ID local est toujours attribué par SQLite.
   Future<int> insertContact(Contact c) async {
     final db = await database;
-    return await db.insert('contact', c.toMap());
+    final row = c.toMap()
+      ..remove('id')
+      ..['uuid'] = c.uuid ?? Contact.newUuid();
+    return await db.insert('contact', row);
+  }
+
+  /// Remplace l'UUID d'un contact (fusion avec le même contact créé sur un
+  /// autre appareil).
+  Future<void> setContactUuid(int id, String uuid) async {
+    final db = await database;
+    await db.update('contact', {'uuid': uuid},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   Future<List<Contact>> getContacts() async {
@@ -99,8 +126,11 @@ class DBHelper {
 
   Future<int> updateContact(Contact c) async {
     final db = await database;
-    return await db
-        .update('contact', c.toMap(), where: 'id = ?', whereArgs: [c.id]);
+    final row = c.toMap();
+    // Un contact reconstruit par un écran d'édition n'a pas toujours son
+    // UUID : ne jamais l'effacer en base.
+    if (c.uuid == null) row.remove('uuid');
+    return await db.update('contact', row, where: 'id = ?', whereArgs: [c.id]);
   }
 
   Future<int> deleteContact(int id) async {

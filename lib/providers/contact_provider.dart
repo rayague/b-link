@@ -89,7 +89,7 @@ class ContactProvider extends ChangeNotifier {
   static String _dedupKey(Contact c) =>
       '${c.name.trim().toLowerCase()}|${c.date.split('T').first}';
 
-  /// Synchronisation intelligente avec Firebase
+  /// Synchronisation avec Firebase : fusion par UUID (voir [planMerge]).
   Future<void> _syncWithFirebase() async {
     if (_firebaseSync == null || !_firebaseSync!.isUserAuthenticated) return;
 
@@ -97,37 +97,24 @@ class ContactProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint('🔄 Synchronisation avec Firebase...');
+      final remote = await _firebaseSync!.getAllContacts();
+      final plan = planMerge(_contacts, remote);
 
-      // Récupérer les contacts depuis Firebase
-      final firebaseContacts = await _firebaseSync!.getAllContacts();
-
-      // Fusionner avec les contacts locaux
-      final localIds = _contacts.map((c) => c.id).toSet();
-      final localKeys = _contacts.map(_dedupKey).toSet();
-      final firebaseIds = firebaseContacts.map((c) => c.id).toSet();
-
-      // Contacts uniquement sur Firebase → ajouter en local
-      for (final contact in firebaseContacts) {
-        if (contact.id == null || localIds.contains(contact.id)) continue;
-        if (localKeys.contains(_dedupKey(contact))) {
-          // Doublon créé par l'ancien bug (ID = timestamp) : on le retire
-          // de Firebase au lieu de le réimporter.
-          await _firebaseSync!.deleteContact(contact.id!);
-          continue;
-        }
+      for (final entry in plan.adoptUuid.entries) {
+        await _db.setContactUuid(entry.key, entry.value);
+      }
+      for (final uuid in plan.deleteRemote) {
+        await _firebaseSync!.deleteContact(uuid);
+      }
+      for (final contact in plan.insertLocally) {
         await _db.insertContact(contact);
-        _contacts.add(contact);
-        localKeys.add(_dedupKey(contact));
       }
-
-      // Contacts uniquement en local → envoyer à Firebase
-      for (final contact in _contacts) {
-        if (!firebaseIds.contains(contact.id)) {
-          await _firebaseSync!.saveContact(contact);
-        }
+      for (final contact in plan.upload) {
+        await _firebaseSync!.saveContact(contact);
       }
-
+      if (plan.adoptUuid.isNotEmpty || plan.insertLocally.isNotEmpty) {
+        _contacts = await _db.getContacts();
+      }
       debugPrint('✅ Synchronisation Firebase terminée');
     } catch (e) {
       debugPrint('❌ Erreur synchronisation Firebase: $e');
@@ -137,12 +124,57 @@ class ContactProvider extends ChangeNotifier {
     }
   }
 
+  /// Décide comment fusionner les contacts locaux et ceux de Firebase.
+  ///
+  /// - Même UUID : rien à faire.
+  /// - Contact distant inconnu localement mais identique (nom + date) à un
+  ///   contact local dont l'UUID n'est pas encore sur Firebase : le contact
+  ///   local adopte l'UUID distant. (Supprimer le distant ferait boucler deux
+  ///   appareils qui ont chacun créé le même contact.)
+  /// - Identique à un contact local déjà associé : vrai doublon, supprimé.
+  /// - Sinon : nouveau contact, inséré localement.
+  /// - Les contacts locaux absents de Firebase y sont envoyés.
+  static ContactMergePlan planMerge(List<Contact> local, List<Contact> remote) {
+    final remoteUuids = {for (final r in remote) r.uuid};
+    final localUuids = {for (final l in local) l.uuid};
+    final plan = ContactMergePlan();
+    // Contacts locaux déjà associés à un document distant (par UUID ou
+    // adoption) : clé de dédoublonnage -> contact.
+    final claimed = <int?>{
+      for (final l in local)
+        if (remoteUuids.contains(l.uuid)) l.id,
+    };
+    final byKey = <String, Contact>{};
+    for (final l in local) {
+      byKey.putIfAbsent(_dedupKey(l), () => l);
+    }
+
+    for (final r in remote) {
+      if (r.uuid == null || localUuids.contains(r.uuid)) continue;
+      final twin = byKey[_dedupKey(r)];
+      if (twin == null) {
+        plan.insertLocally.add(r);
+      } else if (claimed.contains(twin.id)) {
+        plan.deleteRemote.add(r.uuid!);
+      } else {
+        plan.adoptUuid[twin.id!] = r.uuid!;
+        claimed.add(twin.id);
+      }
+    }
+
+    for (final l in local) {
+      if (!claimed.contains(l.id) && l.uuid != null) plan.upload.add(l);
+    }
+    return plan;
+  }
+
   Future<void> addContact(Contact contact, {String locale = 'fr'}) async {
-    // Récupérer l'ID attribué par SQLite : il sert d'ID de rappel et d'ID
-    // Firestore. Sans lui, les rappels étaient ignorés et Firebase créait un
-    // doublon avec un ID timestamp.
-    final id = await _db.insertContact(contact) as int;
-    final c = contact.copyWith(id: id);
+    // L'UUID (ID Firestore, stable entre appareils) est attribué avant
+    // l'insertion ; l'ID local (rappels) est attribué par SQLite.
+    final withUuid =
+        contact.uuid == null ? contact.copyWith(uuid: Contact.newUuid()) : contact;
+    final id = await _db.insertContact(withUuid) as int;
+    final c = withUuid.copyWith(id: id);
     await _scheduleFor(c, locale);
 
     // Sauvegarder dans Firebase
@@ -159,7 +191,11 @@ class ContactProvider extends ChangeNotifier {
     await loadContacts(locale: locale, syncWithFirebase: false);
   }
 
-  Future<void> updateContact(Contact c, {String locale = 'fr'}) async {
+  Future<void> updateContact(Contact contact, {String locale = 'fr'}) async {
+    // Les écrans d'édition reconstruisent le contact sans son UUID.
+    final c = contact.uuid != null || contact.id == null
+        ? contact
+        : contact.copyWith(uuid: byId(contact.id!)?.uuid);
     await _db.updateContact(c);
     await _scheduleFor(c, locale); // annule puis reprogramme
 
@@ -177,18 +213,17 @@ class ContactProvider extends ChangeNotifier {
   }
 
   Future<void> deleteContact(int id) async {
+    final contact = byId(id);
     await _db.deleteContact(id);
     await _notif.cancelBirthdayReminders(id);
-    // Analytics: Track contact deleted
-    // Pour suppression, il faut passer le paramètre relation
-    final contact = _contacts.firstWhere((c) => c.id == id, orElse: () => Contact(id: id, name: '', date: '', relation: '', phone: null));
-    AnalyticsService().logContactDeleted(
-      relation: contact.relation,
-    );
+    AnalyticsService().logContactDeleted(relation: contact?.relation ?? '');
 
     // Supprimer de Firebase
-    if (_firebaseSync != null && _firebaseSync!.isUserAuthenticated) {
-      await _firebaseSync!.deleteContact(id);
+    final uuid = contact?.uuid;
+    if (uuid != null &&
+        _firebaseSync != null &&
+        _firebaseSync!.isUserAuthenticated) {
+      await _firebaseSync!.deleteContact(uuid);
     }
 
     await loadContacts(syncWithFirebase: false);
@@ -240,4 +275,16 @@ class ContactProvider extends ChangeNotifier {
     }
     return null;
   }
+}
+
+/// Résultat de [ContactProvider.planMerge].
+class ContactMergePlan {
+  /// ID local -> UUID distant à adopter.
+  final Map<int, String> adoptUuid = {};
+  /// UUID de doublons distants à supprimer.
+  final List<String> deleteRemote = [];
+  /// Contacts distants à insérer localement.
+  final List<Contact> insertLocally = [];
+  /// Contacts locaux à envoyer à Firebase.
+  final List<Contact> upload = [];
 }

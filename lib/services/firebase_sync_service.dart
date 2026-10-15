@@ -104,78 +104,42 @@ class FirebaseSyncService {
 
   // ==================== CONTACTS ====================
 
-  /// Sauvegarder un contact dans Firebase
+  CollectionReference<Map<String, dynamic>> get _contacts => _firestore
+      .collection('users')
+      .doc(_userId)
+      .collection('contacts');
+
+  /// Sauvegarder un contact dans Firebase. L'ID du document est l'UUID du
+  /// contact, stable entre appareils (l'ID SQLite local ne l'est pas).
   Future<void> saveContact(Contact contact) async {
     if (_userId == null) return;
-    // L'ID local est l'ID du document : sans lui, on créerait un doublon au
-    // prochain chargement (ancien comportement : ID = timestamp).
-    if (contact.id == null) {
-      debugPrint('⚠️ Contact "${contact.name}" sans ID, non synchronisé');
+    if (contact.uuid == null) {
+      debugPrint('⚠️ Contact "${contact.name}" sans UUID, non synchronisé');
       return;
     }
 
     try {
-      final data = contact.toJson();
+      final data = contact.toJson()..remove('id'); // l'ID local reste local
       data['userId'] = _userId;
       data['lastUpdated'] = FieldValue.serverTimestamp();
-
-      await _firestore
-          .collection('users')
-          .doc(_userId)
-          .collection('contacts')
-          .doc(contact.id.toString())
-          .set(data, SetOptions(merge: true));
-
+      await _contacts.doc(contact.uuid).set(data, SetOptions(merge: true));
       debugPrint('✅ Contact "${contact.name}" sauvegardé dans Firebase');
     } catch (e) {
       debugPrint('❌ Erreur sauvegarde contact: $e');
     }
   }
 
-  /// Sauvegarder tous les contacts dans Firebase
-  Future<void> saveAllContacts(List<Contact> contacts) async {
-    if (_userId == null) return;
-
-    try {
-      final batch = _firestore.batch();
-
-      for (final contact in contacts) {
-        if (contact.id == null) continue;
-        final data = contact.toJson();
-        data['userId'] = _userId;
-        data['lastUpdated'] = FieldValue.serverTimestamp();
-
-        final ref = _firestore
-            .collection('users')
-            .doc(_userId)
-            .collection('contacts')
-            .doc(contact.id.toString());
-
-        batch.set(ref, data, SetOptions(merge: true));
-      }
-
-      await batch.commit();
-      debugPrint('✅ ${contacts.length} contacts sauvegardés dans Firebase');
-    } catch (e) {
-      debugPrint('❌ Erreur sauvegarde batch contacts: $e');
-    }
-  }
-
-  /// Récupérer tous les contacts depuis Firebase
+  /// Récupérer tous les contacts depuis Firebase (sans ID local : chaque
+  /// appareil attribue le sien). L'UUID est l'ID du document.
   Future<List<Contact>> getAllContacts() async {
     if (_userId == null) return [];
 
     try {
-      final snapshot = await _firestore
-          .collection('users')
-          .doc(_userId)
-          .collection('contacts')
-          .get();
-
+      final snapshot = await _contacts.get();
       final contacts = snapshot.docs.map((doc) {
-        final data = doc.data();
-        // Utiliser l'ID du document comme ID du contact
-        data['id'] = int.tryParse(doc.id);
+        final data = doc.data()
+          ..remove('id')
+          ..['uuid'] = doc.id;
         return Contact.fromJson(data);
       }).toList();
 
@@ -188,17 +152,11 @@ class FirebaseSyncService {
   }
 
   /// Supprimer un contact de Firebase
-  Future<void> deleteContact(int contactId) async {
+  Future<void> deleteContact(String uuid) async {
     if (_userId == null) return;
 
     try {
-      await _firestore
-          .collection('users')
-          .doc(_userId)
-          .collection('contacts')
-          .doc(contactId.toString())
-          .delete();
-
+      await _contacts.doc(uuid).delete();
       debugPrint('✅ Contact supprimé de Firebase');
     } catch (e) {
       debugPrint('❌ Erreur suppression contact: $e');
