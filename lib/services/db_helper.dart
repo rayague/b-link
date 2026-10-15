@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import '../models/contact.dart';
 import 'message_parser.dart';
@@ -35,10 +36,16 @@ class DBHelper {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final path = join(documentsDirectory.path, fileName);
     return await openDatabase(path,
-        version: 5, onCreate: _onCreate, onUpgrade: _onUpgrade);
+        version: schemaVersion,
+        onCreate: createSchema,
+        onUpgrade: upgradeSchema);
   }
 
-  Future<void> _onCreate(Database db, int version) async {
+  /// Version du schéma SQLite (voir [upgradeSchema] pour l'historique).
+  static const int schemaVersion = 5;
+
+  @visibleForTesting
+  static Future<void> createSchema(Database db, int version) async {
     await db.execute('''
       CREATE TABLE contact (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,10 +61,10 @@ class DBHelper {
     await _createMessagesAndMeta(db);
   }
 
-  Future<void> _createUuidIndex(Database db) => db.execute(
+  static Future<void> _createUuidIndex(Database db) => db.execute(
       'CREATE UNIQUE INDEX IF NOT EXISTS idx_contact_uuid ON contact(uuid)');
 
-  Future<void> _createMessagesAndMeta(Database db) async {
+  static Future<void> _createMessagesAndMeta(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,7 +83,9 @@ class DBHelper {
     ''');
   }
 
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  @visibleForTesting
+  static Future<void> upgradeSchema(
+      Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 3) {
       // v1/v2 : copie SQLite du profil et file de synchro maison, remplacées
       // par le cache hors-ligne de Firestore.
