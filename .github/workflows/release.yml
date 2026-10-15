@@ -10,6 +10,10 @@ jobs:
   android-aab:
     name: Build Android AAB
     runs-on: ubuntu-latest
+    env:
+      # Le contexte `secrets` est interdit dans les `if:` d'étape : on le
+      # convertit ici en variable d'environnement.
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,41 +35,33 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # android/app/build.gradle.kts signe la release avec android/key.properties
+      # quand il existe (sinon : clé de debug, AAB non publiable).
+      - name: Configure release signing
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          {
+            echo "storeFile=upload-keystore.jks"
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "keyPassword=$ANDROID_KEY_PASSWORD"
+          } > android/key.properties
+
+      - name: Warn when no release key is configured
+        if: env.HAS_KEYSTORE != 'true'
+        run: echo "::warning::Aucun secret ANDROID_KEYSTORE_BASE64 - l'AAB est signé avec la clé de debug et ne peut pas être publié sur le Play Store."
+
       - name: Build Android App Bundle (AAB)
         run: flutter build appbundle --release
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: appbundle
-          path: build/app/outputs/bundle/release/*.aab
-
-      # Optional signing step if keystore is provided via secrets
-      - name: Decode keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
-        run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android_keystore.jks
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-
-      - name: Sign AAB (optional)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
-        run: |
-          set -e
-          AAB_FILE=$(ls build/app/outputs/bundle/release/*.aab | head -n 1)
-          if [ -z "$AAB_FILE" ]; then echo "No AAB found"; exit 2; fi
-          echo "Signing $AAB_FILE"
-          # Use jarsigner for demonstration (for AAB you normally use bundletool for install or let Play sign it)
-          jarsigner -keystore android_keystore.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -keypass "$ANDROID_KEY_PASSWORD" "$AAB_FILE" "$ANDROID_KEY_ALIAS"
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-
-      - name: Upload Signed AAB (optional)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: appbundle-signed
+          name: ${{ env.HAS_KEYSTORE == 'true' && 'appbundle-signed' || 'appbundle-debug-signed' }}
           path: build/app/outputs/bundle/release/*.aab
