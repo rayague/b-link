@@ -67,6 +67,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/messages.txt
+    - assets/messages_fr.txt
     - assets/logoApp.jpg
     - assets/pictureFirst.jpg
     - assets/pictureSecond.jpg

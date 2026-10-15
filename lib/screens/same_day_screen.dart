@@ -615,7 +615,8 @@ class _SameDayScreenState extends State<SameDayScreen>
                                       final displayName = name;
                                       final msg =
                                           await repo.getRandomForRelation(
-                                              relation, displayName);
+                                              relation, displayName,
+                                              lang: l10n.locale.languageCode);
                                       if (!context.mounted) return;
                                       showDialog(
                                         context: context,

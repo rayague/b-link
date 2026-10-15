@@ -48,4 +48,19 @@ void main() {
     }
     expect(parsed.any((m) => m.text.contains('¦')), isFalse);
   });
+
+  test('the French asset covers every relation offered in the app', () {
+    final relationsEn = parseMessagesFile(
+            File('assets/messages.txt').readAsStringSync())
+        .map((m) => m.relation)
+        .toSet();
+    final fr = parseMessagesFile(
+        File('assets/messages_fr.txt').readAsStringSync());
+    final relationsFr = fr.map((m) => m.relation).toSet();
+
+    expect(relationsFr, contains('default'));
+    expect(relationsFr.containsAll(relationsEn), isTrue,
+        reason: 'manquent : ${relationsEn.difference(relationsFr)}');
+    expect(fr.length, greaterThanOrEqualTo(100));
+  });
 }

@@ -15,7 +15,13 @@ class DBHelper {
   DBHelper._internal();
 
   /// Incrémenter pour réimporter assets/messages.txt après une mise à jour.
-  static const int messagesVersion = 2;
+  static const int messagesVersion = 3;
+
+  /// Banques de messages par langue (la première sert de repli).
+  static const Map<String, String> messageAssets = {
+    'en': 'assets/messages.txt',
+    'fr': 'assets/messages_fr.txt',
+  };
 
   static Database? _db;
 
@@ -29,7 +35,7 @@ class DBHelper {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final path = join(documentsDirectory.path, fileName);
     return await openDatabase(path,
-        version: 4, onCreate: _onCreate, onUpgrade: _onUpgrade);
+        version: 5, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -56,7 +62,8 @@ class DBHelper {
       CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         relation TEXT,
-        text TEXT
+        text TEXT,
+        lang TEXT DEFAULT 'en'
       )
     ''');
     await db.execute(
@@ -89,6 +96,13 @@ class DBHelper {
       await db.execute(
           'UPDATE contact SET uuid = CAST(id AS TEXT) WHERE uuid IS NULL');
       await _createUuidIndex(db);
+    }
+    if (oldVersion < 5) {
+      // Messages multilingues : la table est réimportée (messagesVersion 3).
+      final cols = await db.rawQuery("PRAGMA table_info('messages')");
+      if (!cols.any((c) => c['name'] == 'lang')) {
+        await db.execute("ALTER TABLE messages ADD COLUMN lang TEXT DEFAULT 'en'");
+      }
     }
   }
 
@@ -147,13 +161,21 @@ class DBHelper {
 
   // ==================== MESSAGES ====================
 
-  Future<String?> getRandomMessageByRelation(String relation) async {
+  /// Message aléatoire pour la relation, dans la langue demandée si
+  /// possible (sinon en anglais). Préfère un message propre à la relation,
+  /// puis un message générique ("default").
+  Future<String?> getRandomMessageByRelation(String relation,
+      {String lang = 'en'}) async {
     final db = await database;
-    final res = await db.rawQuery(
-        'SELECT text FROM messages WHERE relation = ? OR relation = ? ORDER BY RANDOM() LIMIT 1',
-        [relation.toLowerCase(), 'default']);
-    if (res.isEmpty) return null;
-    return res.first['text'] as String?;
+    for (final l in {lang, 'en'}) {
+      for (final rel in {relation.toLowerCase(), 'default'}) {
+        final res = await db.rawQuery(
+            'SELECT text FROM messages WHERE relation = ? AND lang = ? ORDER BY RANDOM() LIMIT 1',
+            [rel, l]);
+        if (res.isNotEmpty) return res.first['text'] as String?;
+      }
+    }
+    return null;
   }
 
   Future<String?> _getMeta(String key) async {
@@ -170,27 +192,34 @@ class DBHelper {
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  /// Importe assets/messages.txt si cette version n'a pas encore été
-  /// importée. Remplace la table entière (les anciennes versions n'avaient
-  /// que 6 messages d'exemple, qui bloquaient l'import). Retourne le nombre
-  /// de messages insérés.
+  /// Importe les banques de messages ([messageAssets]) si cette version
+  /// n'a pas encore été importée. Remplace la table entière (les anciennes
+  /// versions n'avaient que 6 messages d'exemple, qui bloquaient l'import).
+  /// Retourne le nombre de messages insérés.
   Future<int> importMessagesIfEmpty() async {
     if (await _getMeta('messages_version') == '$messagesVersion') return 0;
 
-    final content = await rootBundle.loadString('assets/messages.txt');
-    final parsed = parseMessagesFile(content);
-    if (parsed.isEmpty) return 0;
+    final byLang = <String, List<ParsedMessage>>{};
+    for (final entry in messageAssets.entries) {
+      final content = await rootBundle.loadString(entry.value);
+      byLang[entry.key] = parseMessagesFile(content);
+    }
+    final total = byLang.values.fold<int>(0, (n, l) => n + l.length);
+    if (total == 0) return 0;
 
     final db = await database;
     await db.transaction((txn) async {
       await txn.delete('messages');
       final batch = txn.batch();
-      for (final m in parsed) {
-        batch.insert('messages', {'relation': m.relation, 'text': m.text});
-      }
+      byLang.forEach((lang, messages) {
+        for (final m in messages) {
+          batch.insert('messages',
+              {'relation': m.relation, 'text': m.text, 'lang': lang});
+        }
+      });
       await batch.commit(noResult: true);
     });
     await _setMeta('messages_version', '$messagesVersion');
-    return parsed.length;
+    return total;
   }
 }

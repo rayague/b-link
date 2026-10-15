@@ -494,7 +494,8 @@ class _HomeScreenState extends State<HomeScreen>
       final name = contact.name ?? 'Contact';
 
       // Récupérer un message aléatoire selon la relation
-      final message = await messageRepo.getRandomForRelation(relation, name);
+      final message = await messageRepo.getRandomForRelation(relation, name,
+          lang: AppLocalizations.of(context).locale.languageCode);
 
       if (!context.mounted) return;
 

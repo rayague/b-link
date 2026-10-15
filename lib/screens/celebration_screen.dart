@@ -85,7 +85,8 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
   void _generateAndCopy(Contact c) async {
     // use DB-backed repository if available
     final repo = MessageRepository();
-    final msg = await repo.getRandomForRelation(c.relation, c.name);
+    final msg = await repo.getRandomForRelation(c.relation, c.name,
+        lang: AppLocalizations.of(context).locale.languageCode);
     await Clipboard.setData(ClipboardData(text: msg));
 
     // Analytics: Track message generated
