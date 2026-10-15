@@ -21,7 +21,7 @@ if (hasReleaseSigning) {
 }
 
 android {
-    namespace = "com.example.b_link"
+    namespace = "com.rayague.b_link"
     // 37 : exigé par permission_handler_android 14.x (rétrocompatible).
     compileSdk = 37
     ndkVersion = flutter.ndkVersion

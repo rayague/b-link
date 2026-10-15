@@ -5,6 +5,7 @@ echo ========================================
 echo.
 
 echo [1/6] Suppression du dossier build...
+cd /d "%~dp0.."
 rd /s /q build 2>nul
 echo ✓ Dossier build supprimé
 
@@ -34,7 +35,7 @@ echo ✓ Caches iOS supprimés
 
 echo.
 echo [6/6] Suppression des fichiers temporaires...
-del /f /q pubspec.lock 2>nul
+REM pubspec.lock est versionné (builds reproductibles) : ne pas le supprimer.
 del /f /q .flutter-plugins-dependencies 2>nul
 del /f /q *.log 2>nul
 del /f /q firestore-debug.log 2>nul

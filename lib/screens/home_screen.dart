@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
@@ -8,7 +7,6 @@ import '../providers/contact_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/relations.dart';
 import '../utils/birthday.dart';
-import '../test_notifications.dart';
 import '../services/message_repository.dart';
 import '../services/analytics_service.dart';
 import '../widgets/offline_banner.dart';
@@ -784,24 +782,6 @@ class CustomAppDrawer extends StatelessWidget {
               title: Text(loc.translate('celebrations')),
               onTap: () {
                 Navigator.of(context).pushNamed('/same-day');
-              },
-            ),
-            // Outil de test : jamais visible dans une build release.
-            if (kDebugMode)
-              ListTile(
-              leading:
-                  const Icon(Icons.notifications_active, color: Colors.orange),
-              title: const Text('🔔 Test Notifications',
-                  style: TextStyle(color: Colors.orange)),
-              subtitle:
-                  const Text('Debug only', style: TextStyle(fontSize: 11)),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationTestScreen(),
-                  ),
-                );
               },
             ),
             const Divider(),
