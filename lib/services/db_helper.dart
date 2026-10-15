@@ -15,7 +15,7 @@ class DBHelper {
   DBHelper._internal();
 
   /// Incrémenter pour réimporter les banques de messages après une mise à jour.
-  static const int messagesVersion = 5;
+  static const int messagesVersion = 6;
 
   /// Banques de messages par langue (la première sert de repli).
   static const Map<String, String> messageAssets = {

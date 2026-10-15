@@ -104,22 +104,24 @@ girlfriend|Je te souhaite une année aussi belle que toi, c'est-à-dire absolume
 girlfriend|Tu es mon rêve devenu réalité. Joyeux anniversaire à celle qui illumine ma vie.
 
 # --- Ami(e) ---
-friend|Joyeux anniversaire {name} ! Les vrais amis sont comme les étoiles : on ne les voit pas toujours, mais on sait qu'ils sont là. Merci d'être l'une des miennes.
-friend|Bon anniversaire ! Merci pour les fous rires, les confidences et ta présence quand le ciel se couvre. Ton amitié est un trésor.
-friend|Joyeux anniversaire ! Je te souhaite une année pleine d'aventures, de bonnes nouvelles et de soirées dont on parlera encore dans dix ans.
-friend|Il y a des amitiés qui rendent la vie plus légère. La tienne en fait partie. Joyeux anniversaire, profite de chaque seconde !
-friend|Bon anniversaire {name} ! Que cette nouvelle année te ressemble : généreuse, drôle et pleine de belles surprises.
-friend|Joyeux anniversaire ! On ne choisit pas sa famille, mais on choisit ses amis, et je referais ce choix mille fois.
-friend|Pour ton anniversaire, je te souhaite tout ce qui rend la vie belle, et surtout des gens qui tiennent à toi autant que moi.
+friend|Joyeux anniversaire {name} ! Une année de plus, et ton sens de l'humour n'a pas pris une ride. Le reste, on n'en parle pas 😄
+friend|Bon anniversaire ! J'ai voulu compter tes bougies, mais j'ai dû appeler les pompiers en renfort 🔥🎂
+friend|Joyeux anniversaire ! Je voulais t'offrir quelque chose d'unique et d'irremplaçable... puis j'ai réalisé que tu m'avais déjà. Quelle chance tu as 😏
+friend|Bon anniversaire {name} ! Ne t'inquiète pas pour ton âge : tant que tu ris encore à mes blagues nulles, tu restes jeune dans ma tête.
+friend|Joyeux anniversaire ! Ce soir, on fête ça comme des ados. Demain, on s'en remettra comme des adultes : lentement 😅
+friend|Bon anniversaire ! Merci d'être la personne qui connaît toutes mes bêtises... et qui reste quand même. Ça, c'est de l'amitié 🤝
+friend|Joyeux anniversaire ! Tu ne vieillis pas, tu passes en édition collector : rare, précieuse, et de plus en plus chère à mon cœur 💛
+friend|Bon anniversaire {name} ! Je te souhaite autant de bonheur que j'ai de photos gênantes de toi en réserve. Autant dire : énormément 📸
 
 # --- Meilleur(e) ami(e) ---
-bestfriend|Joyeux anniversaire à mon âme sœur en amitié ! Tu connais mes silences, mes fous rires et mes secrets, et tu es toujours là. Je t'adore.
-bestfriend|Bon anniversaire {name} ! Avec toi, les bons moments sont meilleurs et les mauvais moins lourds. Merci d'être ma personne.
-bestfriend|Joyeux anniversaire ! Si l'amitié était un pays, tu en serais la capitale.
-bestfriend|Des années de souvenirs, de délires et de soutien sans faille... Joyeux anniversaire à la personne qui me connaît par cœur.
-bestfriend|Bon anniversaire ! Je te souhaite une année aussi belle que notre amitié, autrement dit : inoubliable.
-bestfriend|Tu es la famille que mon cœur a choisie. Joyeux anniversaire, je t'aime plus que tu ne l'imagines.
-bestfriend|Joyeux anniversaire {name} ! Vieillir n'a rien d'effrayant tant qu'on le fait ensemble, à rire des mêmes bêtises.
+bestfriend|Joyeux anniversaire à mon binôme officiel ! Partenaire de fous rires, de mauvaises idées et de très bonnes histoires à ne jamais raconter à nos parents 🤫
+bestfriend|Bon anniversaire {name} ! Si un jour on finit en maison de retraite, je réserve déjà la chambre à côté. Et le fauteuil près de la fenêtre, c'est le mien 😄
+bestfriend|Joyeux anniversaire ! Tu connais tous mes secrets, alors je n'ai pas vraiment le choix : il faut que je t'aime pour toujours 😇
+bestfriend|Bon anniversaire ! On a vieilli ensemble, on a mûri ensemble... enfin, surtout vieilli 😂 Je t'adore.
+bestfriend|Joyeux anniversaire à la personne qui comprend mes messages sans ponctuation, mes regards en pleine réunion et mes silences gênants. Un génie incompris 🧠
+bestfriend|Bon anniversaire {name} ! Merci d'être mon témoin de vie, mon complice de crimes (légaux) et ma personne préférée pour dire des bêtises.
+bestfriend|Joyeux anniversaire ! Je t'offrirais bien la lune, mais tu serais capable d'aller la décrocher sans moi... alors je t'offre ma présence. C'est presque pareil, non ? 🌙
+bestfriend|Tu es la famille que mon cœur a choisie, et la seule personne qui a le droit de me dire que j'ai tort. Une fois par an. Aujourd'hui. Profites-en. Joyeux anniversaire ! 😄
 
 # --- Cousin(e) ---
 cousin|Joyeux anniversaire {name} ! Des souvenirs d'enfance aux fous rires des fêtes de famille, tu as toujours été une belle lumière dans ma vie.

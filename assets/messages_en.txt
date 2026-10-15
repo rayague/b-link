@@ -104,22 +104,24 @@ girlfriend|I wish you a year as beautiful as you are, which means absolutely won
 girlfriend|You are my dream come true. Happy birthday to the one who lights up my life.
 
 # --- Friend ---
-friend|Happy birthday, {name}! True friends are like stars: you can't always see them, but you know they're there. Thank you for being one of mine.
-friend|Happy birthday! Thank you for the laughter, the late-night talks and for showing up when the sky turns grey. Your friendship is a treasure.
-friend|Happy birthday! I wish you a year full of adventures, good news and nights we'll still be talking about ten years from now.
-friend|Some friendships make life feel lighter. Yours is one of them. Happy birthday, and enjoy every single second!
-friend|Happy birthday, {name}! May this new year look just like you: generous, funny and full of lovely surprises.
-friend|Happy birthday! We don't choose our family, but we do choose our friends, and I would make that choice a thousand times over.
-friend|For your birthday, I wish you everything that makes life beautiful, and above all, people who care about you as much as I do.
+friend|Happy birthday, {name}! Another year older, and your sense of humour hasn't aged a day. Everything else, we won't talk about 😄
+friend|Happy birthday! I tried to count your candles, but I had to call the fire brigade for backup 🔥🎂
+friend|Happy birthday! I wanted to give you something unique and irreplaceable... then I remembered you already have me. Lucky you 😏
+friend|Happy birthday, {name}! Don't worry about your age: as long as you still laugh at my terrible jokes, you're young in my book.
+friend|Happy birthday! Tonight we party like teenagers. Tomorrow we recover like adults: slowly 😅
+friend|Happy birthday! Thank you for being the person who knows all my nonsense... and sticks around anyway. That's real friendship 🤝
+friend|Happy birthday! You're not getting older, you're becoming a collector's edition: rare, precious and more valuable to me every year 💛
+friend|Happy birthday, {name}! I wish you as much happiness as I have embarrassing photos of you saved for emergencies. So: an enormous amount 📸
 
 # --- Best friend ---
-bestfriend|Happy birthday to my soulmate in friendship! You know my silences, my laughter and my secrets, and you're always there. I adore you.
-bestfriend|Happy birthday, {name}! With you, the good times are better and the hard times feel lighter. Thank you for being my person.
-bestfriend|Happy birthday! If friendship were a country, you would be its capital.
-bestfriend|Years of memories, silly jokes and unshakeable support... Happy birthday to the person who knows me by heart.
-bestfriend|Happy birthday! I wish you a year as beautiful as our friendship, in other words: unforgettable.
-bestfriend|You are the family my heart chose. Happy birthday. I love you more than you can imagine.
-bestfriend|Happy birthday, {name}! Getting older isn't scary at all, as long as we do it together, laughing at the same silly things.
+bestfriend|Happy birthday to my official partner in crime! Co-founder of our best laughs, our worst ideas and the stories our parents must never hear 🤫
+bestfriend|Happy birthday, {name}! If we ever end up in a retirement home, I'm booking the room next to yours. And the chair by the window is mine 😄
+bestfriend|Happy birthday! You know all my secrets, so I don't really have a choice: I have to love you forever 😇
+bestfriend|Happy birthday! We've grown older together, we've grown wiser together... well, mostly older 😂 Love you.
+bestfriend|Happy birthday to the person who understands my unpunctuated texts, my looks across the meeting room and my awkward silences. A misunderstood genius 🧠
+bestfriend|Happy birthday, {name}! Thank you for being my life witness, my accomplice in (legal) crimes and my favourite person to talk nonsense with.
+bestfriend|Happy birthday! I'd offer you the moon, but you'd probably go and fetch it without me... so I'm offering you my company instead. Almost the same, right? 🌙
+bestfriend|You're the family my heart chose, and the only person allowed to tell me I'm wrong. Once a year. Today. Make the most of it. Happy birthday! 😄
 
 # --- Cousin ---
 cousin|Happy birthday, {name}! From childhood memories to the laughter at every family gathering, you've always been a bright light in my life.
