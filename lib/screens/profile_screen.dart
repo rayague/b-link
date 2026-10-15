@@ -11,6 +11,8 @@ import '../utils/network_error_handler.dart';
 import 'admin_stats_screen.dart';
 import '../services/admin_service.dart';
 import '../services/analytics_service.dart';
+import '../utils/zodiac.dart';
+import '../utils/account_actions.dart' as account;
 
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
@@ -332,10 +334,22 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     try {
-      // Créer le profil avec toutes les informations
+      // Le document Firestore est écrit en `merge` avec toutes les clés :
+      // tout champ non repris ici serait remis à null. On conserve donc les
+      // champs que cet écran n'édite pas.
+      final previous = context.read<ProfileProvider>().profile;
+      final name = _nameController.text.trim();
+      final nameChanged = previous == null || previous.name != name;
+      final nameParts = name.split(RegExp(r'\s+'));
       final updatedProfile = UserProfile(
-        uid: context.read<ProfileProvider>().profile?.uid,
-        name: _nameController.text.trim(),
+        uid: previous?.uid,
+        name: name,
+        givenName: nameChanged ? nameParts.first : previous.givenName,
+        familyName:
+            nameChanged ? nameParts.skip(1).join(' ') : previous.familyName,
+        timezone: previous?.timezone,
+        bio: previous?.bio,
+        zodiac: Zodiac.computeZodiac(_birthDate!),
         birthDate: _birthDate!,
         birthTime: _birthTime != null
             ? '${_birthTime!.hour.toString().padLeft(2, '0')}:${_birthTime!.minute.toString().padLeft(2, '0')}'
@@ -903,6 +917,25 @@ class _ProfileScreenState extends State<ProfileScreen>
             await SharePlus.instance
                 .share(ShareParams(text: shareText, subject: 'Rejoins B-Link'));
           },
+        ),
+        const SizedBox(height: 12),
+        _buildActionButton(
+          icon: Icons.logout_rounded,
+          title: AppLocalizations.of(context).translate('logout'),
+          subtitle: AppLocalizations.of(context).translate('logoutConfirm'),
+          gradient: const [Color(0xFF6B7280), Color(0xFF9CA3AF)],
+          isDark: isDark,
+          onTap: () => account.signOut(context),
+        ),
+        const SizedBox(height: 12),
+        _buildActionButton(
+          icon: Icons.delete_forever_rounded,
+          title: AppLocalizations.of(context).translate('deleteAccount'),
+          subtitle:
+              AppLocalizations.of(context).translate('deleteAccountConfirm'),
+          gradient: const [Color(0xFFDC2626), Color(0xFFF87171)],
+          isDark: isDark,
+          onTap: () => account.deleteAccount(context),
         ),
       ],
     );
@@ -1490,9 +1523,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ),
                       Text(
-                        _isPublic
-                            ? l10n.translate('publicProfileDesc')
-                            : l10n.translate('privateProfile'),
+                        !_canBePublic
+                            ? l10n.translate('publicAgeRestriction')
+                            : _isPublic
+                                ? l10n.translate('publicProfileDesc')
+                                : l10n.translate('privateProfile'),
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark
@@ -1504,8 +1539,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
                 Switch(
-                  value: _isPublic,
-                  onChanged: (value) {
+                  value: _isPublic && _canBePublic,
+                  onChanged: !_canBePublic ? null : (value) {
                     setState(() {
                       _isPublic = value;
                       if (!value) {
@@ -1577,6 +1612,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   /// Vérifier si l'utilisateur actuel est l'administrateur
+  /// Moins de 16 ans : pas d'annuaire public (voir UserProfile.minPublicAge).
+  bool get _canBePublic =>
+      _birthDate == null || UserProfile.canBePublic(_birthDate!);
+
   Future<bool> _isAdminUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;

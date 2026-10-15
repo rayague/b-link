@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/profile_provider.dart';
@@ -35,6 +36,14 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       screenName: 'ProfileRegistrationScreen',
       screenClass: 'ProfileRegistrationScreen',
     );
+    // Pré-remplir avec le nom du compte Google s'il existe.
+    final displayName =
+        FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) {
+      final parts = displayName.split(RegExp(r'\s+'));
+      _givenCtrl.text = parts.first;
+      _familyCtrl.text = parts.skip(1).join(' ');
+    }
   }
 
   @override
@@ -378,11 +387,16 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                   : 'Make my profile public',
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
-            value: _isPublic,
+            subtitle: _canBePublic
+                ? null
+                : Text(AppLocalizations.of(context)
+                    .translate('publicAgeRestriction')),
+            value: _isPublic && _canBePublic,
             activeThumbColor: const Color(0xFF6366F1),
-            onChanged: (v) => setState(() => _isPublic = v),
+            onChanged:
+                _canBePublic ? (v) => setState(() => _isPublic = v) : null,
           ),
-          if (_isPublic) ...[
+          if (_isPublic && _canBePublic) ...[
             const Divider(),
             _buildCheckbox(
               AppLocalizations.of(context).locale.languageCode == 'fr'
@@ -393,8 +407,8 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
             ),
             _buildCheckbox(
               AppLocalizations.of(context).locale.languageCode == 'fr'
-                  ? 'Afficher ma date de naissance (JJ-MM)'
-                  : 'Show my birth date (MM-DD)',
+                  ? "Afficher ma date de naissance complète (avec l'année)"
+                  : 'Show my full birth date (with year)',
               _publicBirthDate,
               (v) => setState(() => _publicBirthDate = v ?? false),
             ),
@@ -417,6 +431,10 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       ),
     );
   }
+
+  /// Moins de 16 ans : pas d'annuaire public (voir UserProfile.minPublicAge).
+  bool get _canBePublic =>
+      _birthDate == null || UserProfile.canBePublic(_birthDate!);
 
   Widget _buildCheckbox(String title, bool value, Function(bool?) onChanged) {
     return CheckboxListTile(
@@ -495,13 +513,22 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
       socialLinks:
           _socialCtrl.text.isEmpty ? null : {'primary': _socialCtrl.text},
       zodiac: Zodiac.computeZodiac(_birthDate!),
-      isPublic: _isPublic,
+      isPublic: _isPublic && _canBePublic,
       publicName: _publicName,
       publicBirthDate: _publicBirthDate,
       publicBirthPlace: _publicBirthPlace,
       publicSocials: _publicSocials,
     );
-    await provider.save(profile, push: true);
+    try {
+      await provider.save(profile, push: true);
+    } catch (e) {
+      debugPrint('❌ Enregistrement du profil: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              AppLocalizations.of(context).translate('actionFailed'))));
+      return;
+    }
     // After save, navigate home
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed('/');

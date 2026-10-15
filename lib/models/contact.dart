@@ -14,6 +14,14 @@ class Contact {
       this.imageUri,
       this.phone});
 
+  Contact copyWith({int? id}) => Contact(
+      id: id ?? this.id,
+      name: name,
+      date: date,
+      relation: relation,
+      imageUri: imageUri,
+      phone: phone);
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,

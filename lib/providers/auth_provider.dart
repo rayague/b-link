@@ -67,6 +67,36 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Ré-authentifie l'utilisateur avec Google. Firebase exige une connexion
+  /// récente pour supprimer un compte ; cela sert aussi de confirmation.
+  /// Retourne `false` si l'utilisateur annule.
+  Future<bool> reauthenticateWithGoogle() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+    try {
+      await _ensureGoogleInitialized();
+      final googleUser = await GoogleSignIn.instance.authenticate();
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleUser.authentication.idToken,
+      );
+      await user.reauthenticateWithCredential(credential);
+      return true;
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return false;
+      rethrow;
+    }
+  }
+
+  /// Supprime le compte Firebase Auth (à appeler après
+  /// [reauthenticateWithGoogle] et après l'effacement des données).
+  Future<void> deleteFirebaseUser() async {
+    await FirebaseAuth.instance.currentUser?.delete();
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {}
+    notifyListeners();
+  }
+
   /// Ensure there is an anonymous Firebase user. Returns the UID.
   Future<String?> ensureAnonymousUser() async {
     try {

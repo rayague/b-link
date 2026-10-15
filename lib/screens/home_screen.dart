@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/contact_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/birthday.dart';
 import '../test_notifications.dart';
 import '../services/message_repository.dart';
 import '../services/analytics_service.dart';
 import '../widgets/offline_banner.dart';
+import '../utils/account_actions.dart' as account;
 import 'dart:math' as math;
 
 class HomeScreen extends StatefulWidget {
@@ -62,15 +65,7 @@ class _HomeScreenState extends State<HomeScreen>
     final isDark = theme.brightness == Brightness.dark;
 
     // Upcoming birthdays
-    final upcomingBirthdays = contacts.contacts.where((c) {
-      if (c.date.isEmpty) return false;
-      final now = DateTime.now();
-      final bday = DateTime.tryParse(c.date);
-      if (bday == null) return false;
-      final thisYear = DateTime(now.year, bday.month, bday.day);
-      final diff = thisYear.difference(now).inDays;
-      return diff >= 0 && diff <= 7;
-    }).toList();
+    final upcomingBirthdays = contacts.upcoming(7);
 
     return Scaffold(
       body: Column(
@@ -379,9 +374,7 @@ class _HomeScreenState extends State<HomeScreen>
     final bday = DateTime.tryParse(bdayStr);
     if (bday == null) return const SizedBox.shrink();
 
-    final now = DateTime.now();
-    final thisYear = DateTime(now.year, bday.month, bday.day);
-    final daysUntil = thisYear.difference(now).inDays;
+    final daysUntil = daysUntilBirthday(bday, DateTime.now());
 
     final loc = AppLocalizations.of(context);
     String subtitleText;
@@ -772,7 +765,10 @@ class CustomAppDrawer extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.people),
               title: Text(loc.translate('contacts')),
-              onTap: () {},
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed('/list');
+              },
             ),
             ListTile(
               leading: const Icon(Icons.person),
@@ -788,8 +784,9 @@ class CustomAppDrawer extends StatelessWidget {
                 Navigator.of(context).pushNamed('/same-day');
               },
             ),
-            // DEBUG: Test notifications
-            ListTile(
+            // Outil de test : jamais visible dans une build release.
+            if (kDebugMode)
+              ListTile(
               leading:
                   const Icon(Icons.notifications_active, color: Colors.orange),
               title: const Text('🔔 Test Notifications',
@@ -832,11 +829,18 @@ class CustomAppDrawer extends StatelessWidget {
               onTap: () {
                 // toggle en/fr
                 if (localeProv.locale.languageCode == 'en') {
-                  localeProv.setLocale(const Locale('fr'));
+                  changeAppLocale(context, 'fr');
                 } else {
-                  localeProv.setLocale(const Locale('en'));
+                  changeAppLocale(context, 'en');
                 }
               },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: Text(loc.translate('logout')),
+              // La confirmation s'ouvre par-dessus le menu : le fermer avant
+              // démonterait ce context.
+              onTap: () => account.signOut(context),
             ),
             const Spacer(),
             Padding(
@@ -961,7 +965,7 @@ class CustomSettingsSheet extends StatelessWidget {
                 '🇬🇧',
                 'English',
                 localeProv.locale.languageCode == 'en',
-                () => localeProv.setLocale(const Locale('en')),
+                () => changeAppLocale(context, 'en'),
                 isDark,
               ),
               const SizedBox(width: 12),
@@ -970,7 +974,7 @@ class CustomSettingsSheet extends StatelessWidget {
                 '🇫🇷',
                 'Français',
                 localeProv.locale.languageCode == 'fr',
-                () => localeProv.setLocale(const Locale('fr')),
+                () => changeAppLocale(context, 'fr'),
                 isDark,
               ),
             ],
@@ -1080,4 +1084,11 @@ class CustomSettingsSheet extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Change la langue et reprogramme les rappels pour qu'ils soient rédigés
+/// dans la nouvelle langue.
+void changeAppLocale(BuildContext context, String languageCode) {
+  context.read<LocaleProvider>().setLocale(Locale(languageCode));
+  context.read<ContactProvider>().rescheduleAllReminders(languageCode);
 }

@@ -1,17 +1,15 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-// FieldValue via the modular subpath export: the admin namespace's
-// `firestore.FieldValue` static is not always exposed (e.g. under the
-// Functions emulator), whereas this export is always available.
-const { FieldValue } = require('firebase-admin/firestore');
+// API v1 (onCall(data, context), firestore.document().onCreate) : depuis
+// firebase-functions v6, l'import racine expose l'API v2.
+const functions = require('firebase-functions/v1');
+// firebase-admin v14 n'expose plus que l'API modulaire.
+const { initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
-admin.initializeApp();
-const db = admin.firestore();
+initializeApp();
+const db = getFirestore();
 
-const serverTimestamp = () =>
-  (FieldValue && typeof FieldValue.serverTimestamp === 'function')
-    ? FieldValue.serverTimestamp()
-    : new Date().toISOString();
+const serverTimestamp = () => FieldValue.serverTimestamp();
 
 /**
  * Grant (or update) an admin role for a given Firebase Auth uid.
@@ -53,7 +51,7 @@ exports.grantAdmin = functions.https.onCall(async (data, context) => {
   let email = typeof data.email === 'string' ? data.email : '';
   if (!email) {
     try {
-      const userRecord = await admin.auth().getUser(uid);
+      const userRecord = await getAuth().getUser(uid);
       email = userRecord.email || '';
     } catch (_) {
       email = '';
@@ -92,3 +90,31 @@ exports.onUserCreated = functions.firestore
     );
     return null;
   });
+
+/**
+ * Keep the global user counter accurate when a profile is removed.
+ */
+exports.onUserDeleted = functions.firestore
+  .document('users/{userId}')
+  .onDelete(async () => {
+    await db.collection('app_stats').doc('global').set(
+      {
+        totalUsers: FieldValue.increment(-1),
+        lastUpdated: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return null;
+  });
+
+/**
+ * Safety net for account deletion: when a Firebase Auth account is deleted
+ * (from the app, the console or the Admin SDK), remove all of its data,
+ * including sub-collections the client may not have cleaned up.
+ */
+exports.onAuthUserDeleted = functions.auth.user().onDelete(async (user) => {
+  await db.recursiveDelete(db.collection('users').doc(user.uid));
+  await db.collection('public_profiles').doc(user.uid).delete();
+  await db.collection('admins').doc(user.uid).delete();
+  return null;
+});

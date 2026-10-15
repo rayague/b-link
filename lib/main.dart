@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -11,7 +13,7 @@ import 'providers/auth_provider.dart';
 import 'providers/contact_provider.dart';
 import 'services/analytics_service.dart';
 import 'services/connectivity_service.dart';
-import 'services/sync_queue_service.dart';
+import 'services/notification_service.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
@@ -21,7 +23,6 @@ import 'screens/celebration_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/profile_registration_screen.dart';
 import 'screens/same_day_screen.dart';
-// import 'screens/sync_admin_screen.dart'; // Déprécié - Utiliser AdminStatsScreen
 import 'screens/zodiac_screen.dart';
 // import 'screens/public_profile_screen.dart'; // Unused
 import 'providers/profile_provider.dart';
@@ -36,9 +37,8 @@ void main() async {
     // If Firebase isn't configured yet (no firebase_options.dart), continue without it.
   }
 
-  // Initialiser les services de connectivité et synchronisation
+  // Connectivité (bannière hors ligne). La synchro est gérée par Firestore.
   ConnectivityService().initialize();
-  SyncQueueService().initialize();
 
   runApp(const RootApp());
 }
@@ -110,33 +110,9 @@ class _App extends StatelessWidget {
         '/list': (_) => const ListScreen(),
         '/detail': (_) => const ContactDetailScreen(),
         '/celebration': (_) => const CelebrationScreen(),
-        // '/sync-admin': Déprécié - Utiliser AdminStatsScreen via ProfileScreen
         ProfileScreen.routeName: (_) => const ProfileScreen(),
         ZodiacScreen.routeName: (_) => const ZodiacScreen(),
       },
-    );
-  }
-}
-
-// Minimal MyApp used by widget tests (simple counter)
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  int _count = 0;
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Test App')),
-        body: Center(child: Text('$_count')),
-        floatingActionButton: FloatingActionButton(
-            onPressed: () => setState(() => _count++),
-            child: const Icon(Icons.add)),
-      ),
     );
   }
 }
@@ -150,17 +126,16 @@ class EntryPointStateful extends StatefulWidget {
 
 class _EntryPointStatefulState extends State<EntryPointStateful> {
   bool _started = false;
+  bool _ready = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_started) {
       _started = true;
-      // initialize background sync (best-effort)
-      initializeBackgroundSync();
+      // rappels : rafraîchissement quotidien en arrière-plan (best-effort)
+      initializeBackgroundReminders();
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      final contacts = Provider.of<ContactProvider>(context, listen: false);
-      final locale = Provider.of<LocaleProvider>(context, listen: false);
       // Si l'utilisateur n'est pas connecté (Firebase), on va à l'onboarding
       if (!auth.isRegistered) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -168,15 +143,56 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
         });
         return;
       }
-      // start loading contacts (this will import messages)
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await contacts.loadContacts(locale: locale.locale.languageCode);
-      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
     }
+  }
+
+  /// Charge le profil ; sans date de naissance l'app n'a pas de sens, donc on
+  /// envoie vers l'inscription du profil avant d'afficher l'accueil.
+  Future<void> _bootstrap() async {
+    final profile = Provider.of<ProfileProvider>(context, listen: false);
+    final contacts = Provider.of<ContactProvider>(context, listen: false);
+    final locale = Provider.of<LocaleProvider>(context, listen: false);
+
+    final reliable = await profile.load();
+    if (!mounted) return;
+    if (profile.profile == null && reliable) {
+      Navigator.of(context).pushReplacementNamed('/profile-register');
+      return;
+    }
+    setState(() => _ready = true);
+    // start loading contacts (this will import messages)
+    await contacts.loadContacts(locale: locale.locale.languageCode);
+
+    // Toucher un rappel ouvre la fiche du contact (app ouverte ou lancée
+    // depuis la notification).
+    final notifications = NotificationService();
+    _tapSub ??= notifications.contactTaps.listen(_openContact);
+    final launchId = notifications.takeLaunchContactId();
+    if (launchId != null) _openContact(launchId);
+  }
+
+  StreamSubscription<int>? _tapSub;
+
+  void _openContact(int contactId) {
+    if (!mounted) return;
+    final contact =
+        Provider.of<ContactProvider>(context, listen: false).byId(contactId);
+    if (contact == null) return;
+    Navigator.of(context).pushNamed('/detail', arguments: contact);
+  }
+
+  @override
+  void dispose() {
+    _tapSub?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_ready) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     final contacts = Provider.of<ContactProvider>(context);
     return Stack(
       children: [
