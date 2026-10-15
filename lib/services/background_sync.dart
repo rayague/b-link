@@ -1,56 +1,50 @@
 import 'package:flutter/foundation.dart';
-import 'dart:async';
 import 'package:workmanager/workmanager.dart';
-import 'package:background_fetch/background_fetch.dart';
-import 'sync_service.dart';
 
-const String _taskName = "b_link_sync_task";
+import '../providers/locale_provider.dart';
+import 'db_helper.dart';
+import 'notification_service.dart';
 
-Future<void> initializeBackgroundSync() async {
-  // Workmanager (Android)
+const String _uniqueName = 'reminders-daily-refresh';
+const String _taskName = 'b_link_refresh_reminders';
+
+/// Rafraîchit chaque jour la fenêtre des rappels d'anniversaire, même si
+/// l'app n'est pas ouverte (les rappels ne sont programmés que pour les
+/// [NotificationService.windowDays] prochains jours).
+Future<void> initializeBackgroundReminders() async {
   try {
-    await Workmanager().initialize(
-      callbackDispatcher,
-    );
+    await Workmanager().initialize(callbackDispatcher);
     await Workmanager().registerPeriodicTask(
-      'sync-periodic',
+      _uniqueName,
       _taskName,
-      frequency: const Duration(minutes: 15),
+      frequency: const Duration(hours: 24),
+      // Ne pas relancer le compteur à chaque ouverture de l'app.
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
     );
   } catch (e) {
     debugPrint('⚠️ WorkManager initialization failed: $e');
-    // ignore if not available
   }
+}
 
-  // background_fetch (iOS/Android alternative)
-  try {
-    await BackgroundFetch.configure(
-      BackgroundFetchConfig(
-        minimumFetchInterval: 15,
-        stopOnTerminate: false,
-        enableHeadless: true,
-      ),
-      (String taskId) async {
-        final svc = SyncService();
-        await svc.processPending(limit: 50);
-        BackgroundFetch.finish(taskId);
-      },
-      (String taskId) async {
-        BackgroundFetch.finish(taskId);
-      },
-    );
-  } catch (e) {
-    debugPrint('⚠️ BackgroundFetch initialization failed: $e');
-    // ignore
-  }
+/// Reprogramme les rappels à partir de la base locale.
+Future<void> refreshReminders() async {
+  final contacts = await DBHelper().getContacts();
+  final locale = await LocaleProvider.savedLanguageCode();
+  final notifications = NotificationService();
+  await notifications.init(requestPermissions: false);
+  await notifications.rescheduleAllReminders(contacts, locale);
 }
 
 // headless callback required by Android for Workmanager
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    final svc = SyncService();
-    await svc.processPending(limit: 50);
-    return Future.value(true);
+    try {
+      await refreshReminders();
+      return true;
+    } catch (e) {
+      debugPrint('❌ Rafraîchissement des rappels: $e');
+      return false; // WorkManager réessaiera
+    }
   });
 }

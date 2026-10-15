@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/contact_provider.dart';
 import '../models/contact.dart';
+import '../utils/birthday.dart';
 // message_generator not used here; repository is preferred
 import '../services/message_repository.dart';
 import '../services/analytics_service.dart';
@@ -63,14 +64,8 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
   }
 
   int _daysRemaining(Contact c) {
-    try {
-      final now = DateTime.now();
-      final d = DateTime.parse(c.date);
-      final next = DateTime(now.year, d.month, d.day);
-      return next.difference(now).inDays;
-    } catch (_) {
-      return 0;
-    }
+    final d = parseBirthDate(c.date);
+    return d == null ? 0 : daysUntilBirthday(d, DateTime.now());
   }
 
   Future<void> _call(Contact c) async {
