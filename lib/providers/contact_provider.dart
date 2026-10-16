@@ -41,7 +41,6 @@ class ContactProvider extends ChangeNotifier {
     // try/finally : une erreur ne doit jamais laisser l'overlay de chargement
     // affiché indéfiniment au-dessus de l'accueil.
     try {
-      await _db.ensurePhoneColumn();
       try {
         final imported = await _db.importMessagesIfEmpty();
         if (imported > 0) {

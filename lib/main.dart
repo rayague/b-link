@@ -27,7 +27,6 @@ import 'screens/profile_registration_screen.dart';
 import 'screens/same_day_screen.dart';
 import 'screens/zodiac_screen.dart';
 import 'screens/meetups_screen.dart';
-// import 'screens/public_profile_screen.dart'; // Unused
 import 'providers/profile_provider.dart';
 import 'services/background_sync.dart';
 import 'widgets/consent_dialog.dart';

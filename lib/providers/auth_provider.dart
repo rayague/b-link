@@ -94,16 +94,4 @@ class AuthProvider extends ChangeNotifier {
     } catch (_) {}
     notifyListeners();
   }
-
-  /// Ensure there is an anonymous Firebase user. Returns the UID.
-  Future<String?> ensureAnonymousUser() async {
-    try {
-      final current = FirebaseAuth.instance.currentUser;
-      if (current != null) return current.uid;
-      final cred = await FirebaseAuth.instance.signInAnonymously();
-      return cred.user?.uid;
-    } catch (e) {
-      return null;
-    }
-  }
 }

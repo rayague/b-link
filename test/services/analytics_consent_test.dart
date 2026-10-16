@@ -35,6 +35,6 @@ void main() {
     final analytics = AnalyticsService();
     await analytics.loadConsent();
     await analytics.logContactAdded(relation: 'friend');
-    await analytics.setUserId('u1');
+    await analytics.logProfileUpdated(isPublic: true);
   });
 }

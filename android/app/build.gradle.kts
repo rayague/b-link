@@ -22,8 +22,8 @@ if (hasReleaseSigning) {
 
 android {
     namespace = "com.rayague.b_link"
-    // 37 : exigé par permission_handler_android 14.x (rétrocompatible).
-    compileSdk = 37
+    // Version recommandée par Flutter / AGP.
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

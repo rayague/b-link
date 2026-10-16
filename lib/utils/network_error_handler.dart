@@ -155,31 +155,4 @@ class NetworkErrorHandler {
       return false;
     }
   }
-
-  /// Afficher un message d'avertissement pour mode hors ligne
-  static void showOfflineWarning(BuildContext context) {
-    if (!context.mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: const [
-            Icon(Icons.cloud_off, color: Colors.white),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Mode hors ligne. Certaines fonctionnalités peuvent être limitées.',
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.orange[700],
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 5),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
-  }
 }

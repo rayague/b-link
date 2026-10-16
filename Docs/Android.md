@@ -4,9 +4,9 @@
 
 - Android Gradle Plugin 9.1, Gradle 9.3.1, Kotlin 2.4 (versions du modèle
   Flutter 3.47), JDK 17.
-- `compileSdk = 37` : exigé par `permission_handler_android` 14
-  (`android.suppressUnsupportedCompileSdk=37` dans `gradle.properties`,
-  AGP 9.1 ne « recommandant » que 36).
+- `compileSdk = flutter.compileSdkVersion` (valeur par défaut de Flutter).
+  `permission_handler`, qui imposait 37, a été retiré : il n'était plus
+  utilisé, `flutter_local_notifications` demande lui-même l'autorisation.
 - Chaque plugin compile avec sa propre cible JVM (l'ancien forçage de Java
   11 sur tous les sous-projets a été retiré, il n'était plus nécessaire).
 

@@ -115,12 +115,6 @@ class DBHelper {
     }
   }
 
-  /// Conservé pour compatibilité : la colonne est désormais gérée par la
-  /// migration v3.
-  Future<void> ensurePhoneColumn() async {
-    await database;
-  }
-
   // ==================== CONTACTS ====================
 
   /// Insère le contact (un UUID est attribué s'il n'en a pas).

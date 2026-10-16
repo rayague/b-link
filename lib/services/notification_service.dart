@@ -157,32 +157,6 @@ class NotificationService {
     );
   }
 
-  /// Envoie une notification de test immédiate
-  Future<void> sendTestNotification() async {
-    if (!_initialized) await init();
-
-    const details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        'test_channel',
-        'Notifications de test',
-        channelDescription: 'Canal pour tester les notifications',
-        importance: Importance.high,
-        priority: Priority.high,
-      ),
-      iOS: DarwinNotificationDetails(
-          presentAlert: true, presentBadge: true, presentSound: true),
-    );
-
-    // ID négatif : ne peut jamais entrer en collision avec un rappel.
-    await _plugin.show(
-      -1,
-      '🔔 Test de notification',
-      'Cette notification est un test. Le système fonctionne correctement ! ✅',
-      details,
-      payload: 'test_notification',
-    );
-  }
-
   /// Envoie une notification de test avec un vrai message (écran admin).
   Future<void> sendTestNotificationWithMessage({
     required Contact contact,
