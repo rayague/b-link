@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Photos de profil. La lecture par d'autres utilisateurs dépend du choix
+// "Afficher ma photo" publié dans public_profiles/{uid} : si le profil est
+// privé, masqué par la modération ou que la photo n'est pas partagée, elle
+// est illisible pour les autres (aucune URL publique permanente).
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /profile_photos/{userId}/photo.jpg {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId
+        || (request.auth.token.firebase.sign_in_provider != 'anonymous'
+            && firestore.exists(/databases/(default)/documents/public_profiles/$(userId))
+            && firestore.get(/databases/(default)/documents/public_profiles/$(userId)).data.get('publicPhoto', false) == true)
+      );
+
+      // Le propriétaire seul, image de moins de 1 Mo.
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size < 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Tout le reste est interdit.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

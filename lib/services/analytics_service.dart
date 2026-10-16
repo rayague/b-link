@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service centralisé pour Firebase Analytics
 class AnalyticsService {
@@ -10,8 +11,59 @@ class AnalyticsService {
   FirebaseAnalytics? _analyticsInstance;
   bool _initFailed = false;
 
-  /// Lazy-init to avoid crash when Firebase is not initialized (e.g. in tests)
-  FirebaseAnalytics? get _analytics {
+  // ========== CONSENTEMENT (RGPD) ==========
+  // La collecte est désactivée par défaut côté natif (AndroidManifest.xml,
+  // Info.plist) et n'est activée qu'après un accord explicite.
+
+  static const consentPrefsKey = 'analytics_consent';
+
+  /// null = pas encore demandé, true = accepté, false = refusé.
+  bool? _consent;
+  bool? get consent => _consent;
+  bool get needsConsentDecision => _consent == null;
+
+  /// Lit le choix enregistré et l'applique au SDK.
+  Future<void> loadConsent() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _consent = prefs.getBool(consentPrefsKey);
+    } catch (_) {
+      _consent = null;
+    }
+    await _applyConsent();
+  }
+
+  /// Enregistre le choix de l'utilisateur (réversible depuis le profil).
+  Future<void> setConsent(bool granted) async {
+    _consent = granted;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(consentPrefsKey, granted);
+    } catch (_) {}
+    await _applyConsent();
+  }
+
+  Future<void> _applyConsent() async {
+    final granted = _consent == true;
+    final analytics = _sdk;
+    if (analytics == null) return;
+    try {
+      await analytics.setConsent(
+        analyticsStorageConsentGranted: granted,
+        // Aucune publicité dans l'app : toujours refusé.
+        adStorageConsentGranted: false,
+        adUserDataConsentGranted: false,
+        adPersonalizationSignalsConsentGranted: false,
+      );
+      await analytics.setAnalyticsCollectionEnabled(granted);
+      if (!granted) await analytics.resetAnalyticsData();
+    } catch (e) {
+      debugPrint('⚠️ Consentement analytics non appliqué: $e');
+    }
+  }
+
+  /// Instance du SDK, sans tenir compte du consentement.
+  FirebaseAnalytics? get _sdk {
     if (_initFailed) return null;
     try {
       return _analyticsInstance ??= FirebaseAnalytics.instance;
@@ -21,9 +73,17 @@ class AnalyticsService {
     }
   }
 
+  /// Instance utilisée pour les événements : null sans consentement, donc
+  /// tous les `log*` deviennent des no-op.
+  FirebaseAnalytics? get _analytics => _consent == true ? _sdk : null;
+
   /// Observer pour navigation automatique
   FirebaseAnalyticsObserver getAnalyticsObserver() {
-    return FirebaseAnalyticsObserver(analytics: _analytics ?? FirebaseAnalytics.instance);
+    return FirebaseAnalyticsObserver(
+      analytics: _sdk ?? FirebaseAnalytics.instance,
+      // Pas de suivi des écrans sans consentement.
+      routeFilter: (route) => _consent == true && defaultRouteFilter(route),
+    );
   }
 
   // ========== TRACKING ÉCRANS ==========
@@ -52,10 +112,27 @@ class AnalyticsService {
       parameters: {
         'relation': relation,
         'has_phone': hasPhone,
-        'timestamp': DateTime.now().toIso8601String(),
       },
     );
     debugPrint('📊 Analytics: Contact added - $relation');
+  }
+
+  /// Contacts importés depuis le carnet du téléphone
+  Future<void> logContactsImported({required int count}) async {
+    await _analytics?.logEvent(
+      name: 'contacts_imported',
+      parameters: {'count': count},
+    );
+  }
+
+  /// Carte « Mon jour » partagée
+  Future<void> logMyDayShared() async {
+    await _analytics?.logEvent(name: 'my_day_shared');
+  }
+
+  /// Vœu d'anniversaire envoyé à un membre
+  Future<void> logWishSent() async {
+    await _analytics?.logEvent(name: 'wish_sent');
   }
 
   /// Contact modifié
@@ -66,7 +143,6 @@ class AnalyticsService {
       name: 'contact_updated',
       parameters: {
         'relation': relation,
-        'timestamp': DateTime.now().toIso8601String(),
       },
     );
   }
@@ -79,7 +155,6 @@ class AnalyticsService {
       name: 'contact_deleted',
       parameters: {
         'relation': relation,
-        'timestamp': DateTime.now().toIso8601String(),
       },
     );
   }
@@ -96,7 +171,6 @@ class AnalyticsService {
       parameters: {
         'has_photo': hasPhoto,
         'is_public': isPublic,
-        'timestamp': DateTime.now().toIso8601String(),
       },
     );
     debugPrint('📊 Analytics: Profile updated');
@@ -114,23 +188,9 @@ class AnalyticsService {
       parameters: {
         'relation': relation,
         'message_length': messageLength ?? 0,
-        'timestamp': DateTime.now().toIso8601String(),
       },
     );
     debugPrint('📊 Analytics: Birthday message generated - $relation');
-  }
-
-  /// Message copié
-  Future<void> logMessageCopied({
-    required String relation,
-  }) async {
-    await _analytics?.logEvent(
-      name: 'message_copied',
-      parameters: {
-        'relation': relation,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    );
   }
 
   // ========== ÉVÉNEMENTS APPELS ==========
@@ -145,7 +205,6 @@ class AnalyticsService {
       parameters: {
         'relation': relation,
         'has_phone': hasPhone,
-        'timestamp': DateTime.now().toIso8601String(),
       },
     );
     debugPrint('📊 Analytics: Call initiated - $relation');
@@ -161,130 +220,8 @@ class AnalyticsService {
       name: 'admin_login',
       parameters: {
         'admin_role': adminRole,
-        'timestamp': DateTime.now().toIso8601String(),
       },
     );
     debugPrint('📊 Analytics: Admin login - $adminRole');
-  }
-
-  /// Admin action
-  Future<void> logAdminAction({
-    required String action,
-  }) async {
-    await _analytics?.logEvent(
-      name: 'admin_action',
-      parameters: {
-        'action': action,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    );
-  }
-
-  // ========== ÉVÉNEMENTS SYNC ==========
-
-  /// Synchronisation déclenchée
-  Future<void> logSyncTriggered({
-    int? itemCount,
-    bool isManual = false,
-  }) async {
-    await _analytics?.logEvent(
-      name: 'sync_triggered',
-      parameters: {
-        'item_count': itemCount ?? 0,
-        'is_manual': isManual ? 1 : 0,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    );
-  }
-
-  /// Synchronisation réussie
-  Future<void> logSyncCompleted({
-    int? syncedItems,
-    int? failedItems,
-  }) async {
-    await _analytics?.logEvent(
-      name: 'sync_completed',
-      parameters: {
-        'synced_items': syncedItems ?? 0,
-        'failed_items': failedItems ?? 0,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    );
-  }
-
-  // ========== ÉVÉNEMENTS NAVIGATION ==========
-
-  /// Navigation vers profil public
-  Future<void> logPublicProfileViewed() async {
-    await _analytics?.logEvent(
-      name: 'public_profile_viewed',
-      parameters: {
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    );
-  }
-
-  /// Navigation vers zodiac
-  Future<void> logZodiacViewed({
-    required String zodiacSign,
-  }) async {
-    await _analytics?.logEvent(
-      name: 'zodiac_viewed',
-      parameters: {
-        'zodiac_sign': zodiacSign,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    );
-  }
-
-  /// Navigation vers same day
-  Future<void> logSameDayViewed({
-    int? userCount,
-  }) async {
-    await _analytics?.logEvent(
-      name: 'same_day_viewed',
-      parameters: {
-        'user_count': userCount ?? 0,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    );
-  }
-
-  // ========== ÉVÉNEMENTS ERREURS ==========
-
-  /// Log d'erreur
-  Future<void> logError({
-    required String errorType,
-    required String errorMessage,
-    String? screenName,
-  }) async {
-    await _analytics?.logEvent(
-      name: 'app_error',
-      parameters: {
-        'error_type': errorType,
-        'error_message': errorMessage.substring(
-            0, errorMessage.length > 100 ? 100 : errorMessage.length),
-        'screen_name': screenName ?? 'unknown',
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    );
-  }
-
-  // ========== USER PROPERTIES ==========
-
-  /// Définir l'ID utilisateur
-  Future<void> setUserId(String? userId) async {
-    await _analytics?.setUserId(id: userId);
-  }
-
-  /// Définir une propriété utilisateur
-  Future<void> setUserProperty({
-    required String name,
-    required String? value,
-  }) async {
-    await _analytics?.setUserProperty(
-      name: name,
-      value: value,
-    );
   }
 }

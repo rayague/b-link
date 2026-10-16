@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:country_picker/country_picker.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
@@ -11,21 +14,27 @@ import 'providers/auth_provider.dart';
 import 'providers/contact_provider.dart';
 import 'services/analytics_service.dart';
 import 'services/connectivity_service.dart';
-import 'services/sync_queue_service.dart';
+import 'services/messaging_service.dart';
+import 'services/notification_service.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/list_screen.dart';
 import 'screens/contact_detail_screen.dart';
-import 'screens/celebration_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/profile_registration_screen.dart';
 import 'screens/same_day_screen.dart';
-// import 'screens/sync_admin_screen.dart'; // Déprécié - Utiliser AdminStatsScreen
 import 'screens/zodiac_screen.dart';
-// import 'screens/public_profile_screen.dart'; // Unused
+import 'screens/meetups_screen.dart';
+import 'screens/import_contacts_screen.dart';
+import 'screens/my_day_screen.dart';
+import 'screens/wishes_screen.dart';
+import 'screens/constellation_screen.dart';
 import 'providers/profile_provider.dart';
 import 'services/background_sync.dart';
+import 'widgets/consent_dialog.dart';
+import 'theme/app_theme.dart';
+import 'widgets/ui/glass.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,9 +45,10 @@ void main() async {
     // If Firebase isn't configured yet (no firebase_options.dart), continue without it.
   }
 
-  // Initialiser les services de connectivité et synchronisation
+  // Connectivité (bannière hors ligne). La synchro est gérée par Firestore.
   ConnectivityService().initialize();
-  SyncQueueService().initialize();
+  // RGPD : applique le choix enregistré avant tout événement analytics.
+  await AnalyticsService().loadConsent();
 
   runApp(const RootApp());
 }
@@ -69,31 +79,18 @@ class _App extends StatelessWidget {
     final themeProv = Provider.of<ThemeProvider>(context);
     final localeProv = Provider.of<LocaleProvider>(context);
 
-    final dodgerBlue = const Color(0xFF1E90FF);
-
-    final lightTheme = ThemeData(
-      brightness: Brightness.light,
-      colorScheme: ColorScheme.fromSeed(
-          seedColor: dodgerBlue, brightness: Brightness.light),
-      useMaterial3: true,
-    );
-
-    final darkTheme = ThemeData(
-      brightness: Brightness.dark,
-      colorScheme: ColorScheme.fromSeed(
-          seedColor: dodgerBlue, brightness: Brightness.dark),
-      useMaterial3: true,
-    );
-
     return MaterialApp(
       title: 'B-Link',
-      theme: lightTheme,
-      darkTheme: darkTheme,
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
       themeMode: themeProv.mode,
       locale: localeProv.locale,
       supportedLocales: const [Locale('en'), Locale('fr')],
       localizationsDelegates: const [
         AppLocalizationsDelegate(),
+        // Noms de pays traduits (sélecteur de pays de résidence).
+        CountryLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
@@ -109,34 +106,14 @@ class _App extends StatelessWidget {
         '/profile-register': (_) => const ProfileRegistrationScreen(),
         '/list': (_) => const ListScreen(),
         '/detail': (_) => const ContactDetailScreen(),
-        '/celebration': (_) => const CelebrationScreen(),
-        // '/sync-admin': Déprécié - Utiliser AdminStatsScreen via ProfileScreen
         ProfileScreen.routeName: (_) => const ProfileScreen(),
         ZodiacScreen.routeName: (_) => const ZodiacScreen(),
+        MeetupsScreen.routeName: (_) => const MeetupsScreen(),
+        ImportContactsScreen.routeName: (_) => const ImportContactsScreen(),
+        MyDayScreen.routeName: (_) => const MyDayScreen(),
+        WishesScreen.routeName: (_) => const WishesScreen(),
+        ConstellationScreen.routeName: (_) => const ConstellationScreen(),
       },
-    );
-  }
-}
-
-// Minimal MyApp used by widget tests (simple counter)
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  int _count = 0;
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Test App')),
-        body: Center(child: Text('$_count')),
-        floatingActionButton: FloatingActionButton(
-            onPressed: () => setState(() => _count++),
-            child: const Icon(Icons.add)),
-      ),
     );
   }
 }
@@ -150,17 +127,16 @@ class EntryPointStateful extends StatefulWidget {
 
 class _EntryPointStatefulState extends State<EntryPointStateful> {
   bool _started = false;
+  bool _ready = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_started) {
       _started = true;
-      // initialize background sync (best-effort)
-      initializeBackgroundSync();
+      // rappels : rafraîchissement quotidien en arrière-plan (best-effort)
+      initializeBackgroundReminders();
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      final contacts = Provider.of<ContactProvider>(context, listen: false);
-      final locale = Provider.of<LocaleProvider>(context, listen: false);
       // Si l'utilisateur n'est pas connecté (Firebase), on va à l'onboarding
       if (!auth.isRegistered) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -168,24 +144,91 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
         });
         return;
       }
-      // start loading contacts (this will import messages)
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await contacts.loadContacts(locale: locale.locale.languageCode);
-      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
     }
+  }
+
+  /// Charge le profil ; sans date de naissance l'app n'a pas de sens, donc on
+  /// envoie vers l'inscription du profil avant d'afficher l'accueil.
+  Future<void> _bootstrap() async {
+    final profile = Provider.of<ProfileProvider>(context, listen: false);
+    final contacts = Provider.of<ContactProvider>(context, listen: false);
+    final locale = Provider.of<LocaleProvider>(context, listen: false);
+
+    final reliable = await profile.load();
+    if (!mounted) return;
+    if (profile.profile == null && reliable) {
+      Navigator.of(context).pushReplacementNamed('/profile-register');
+      return;
+    }
+    setState(() => _ready = true);
+    // RGPD : demander le consentement aux statistiques (une seule fois).
+    await askAnalyticsConsentIfNeeded(context);
+    if (!mounted) return;
+    // start loading contacts (this will import messages)
+    await contacts.loadContacts(locale: locale.locale.languageCode);
+
+    // Toucher un rappel ouvre la fiche du contact (app ouverte ou lancée
+    // depuis la notification).
+    final notifications = NotificationService();
+    _tapSub ??= notifications.contactTaps.listen(_openContact);
+    final launchId = notifications.takeLaunchContactId();
+    if (launchId != null) _openContact(launchId);
+
+    // Notifications push "nouveau jumeau d'anniversaire".
+    final messaging = MessagingService();
+    _pushSubs.addAll([
+      messaging.openRouteRequests.listen(_openRoute),
+      notifications.routeTaps.listen(_openRoute),
+    ]);
+    await messaging.register(locale.locale.languageCode);
+  }
+
+  StreamSubscription<int>? _tapSub;
+  final List<StreamSubscription<String>> _pushSubs = [];
+
+  void _openRoute(String route) {
+    if (!mounted) return;
+    Navigator.of(context).pushNamed(route);
+  }
+
+  void _openContact(int contactId) {
+    if (!mounted) return;
+    final contact =
+        Provider.of<ContactProvider>(context, listen: false).byId(contactId);
+    if (contact == null) return;
+    Navigator.of(context).pushNamed('/detail', arguments: contact);
+  }
+
+  @override
+  void dispose() {
+    _tapSub?.cancel();
+    for (final s in _pushSubs) {
+      s.cancel();
+    }
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final contacts = Provider.of<ContactProvider>(context);
+    if (!_ready) {
+      return const AmbientBackground(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final loading = context.select<ContactProvider, bool>((p) => p.loading);
+    // Chargement des contacts : un fin liseré en haut plutôt qu'un voile
+    // qui bloque tout l'écran.
     return Stack(
       children: [
         const HomeScreen(),
-        if (contacts.loading)
-          Container(
-            color: Colors.black38,
-            child: const Center(child: CircularProgressIndicator()),
-          )
+        if (loading)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(child: LinearProgressIndicator(minHeight: 2)),
+          ),
       ],
     );
   }

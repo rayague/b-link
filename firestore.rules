@@ -3,93 +3,259 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ==================== HELPER FUNCTIONS ====================
-    // Fonction pour vérifier si l'utilisateur est admin
-    function isAdmin() {
-      return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // ==================== USERS COLLECTION ====================
-    // Chaque utilisateur peut lire/écrire son propre profil
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Comptes anonymes exclus de l'annuaire public (limite l'aspiration).
+    function isRealUser() {
+      return isSignedIn()
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    // Un utilisateur est admin si un document admins/{uid} existe.
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // ==================== USERS (PRIVÉ) ====================
+    // Profil complet (email, date avec l'année, heure de naissance...).
+    // Jamais lisible par les autres utilisateurs : seule la projection
+    // `public_profiles` l'est.
     match /users/{userId} {
-      // Lecture : propriétaire, admin ou si profil public
-      allow read: if request.auth != null && (
-        request.auth.uid == userId
-        || isAdmin()
-        || (resource.data.keys().hasAny(['isPublic']) && resource.data.isPublic == true)
-      );
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update, delete: if isOwner(userId);
 
-      // Création : propriétaire uniquement
-      allow create: if request.auth != null && request.auth.uid == userId;
-
-      // Mise à jour : propriétaire uniquement
-      allow update: if request.auth != null && request.auth.uid == userId;
-
-      // Suppression : propriétaire uniquement
-      allow delete: if request.auth != null && request.auth.uid == userId;
-
-      // ==================== CONTACTS SUBCOLLECTION ====================
-      // Les contacts sont privés à chaque utilisateur
+      // Contacts : strictement privés au propriétaire.
       match /contacts/{contactId} {
-        // Lecture : propriétaire uniquement
-        allow read: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
+      }
 
-        // Création : propriétaire uniquement
-        allow create: if request.auth != null && request.auth.uid == userId;
+      // Appareils (jetons de notification push) : privés ; lus par les Cloud
+      // Functions (Admin SDK) pour prévenir d'un nouveau jumeau.
+      match /devices/{token} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.keys().hasOnly(['platform', 'locale', 'updatedAt'])
+          && request.resource.data.locale in ['fr', 'en'];
+      }
 
-        // Mise à jour : propriétaire uniquement
-        allow update: if request.auth != null && request.auth.uid == userId;
-
-        // Suppression : propriétaire uniquement
-        allow delete: if request.auth != null && request.auth.uid == userId;
+      // Profils bloqués : privés, synchronisés entre appareils.
+      match /blocks/{blockedId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && blockedId != userId
+          && request.resource.data.keys().hasOnly(['name', 'blockedAt']);
       }
     }
 
+    // ==================== PUBLIC PROFILES ====================
+    // Projection publique écrite par le propriétaire, uniquement les champs
+    // qu'il a choisi de montrer. Le document n'existe que si le profil est
+    // public : le supprimer suffit à disparaître de l'annuaire.
+    match /public_profiles/{userId} {
+      allow get: if isRealUser();
+      // Pagination obligatoire pour éviter l'aspiration en une requête.
+      allow list: if isRealUser() && request.query.limit <= 50;
+
+      allow create, update: if isOwner(userId)
+        // Profil masqué par la modération : pas de republication.
+        && !isHiddenByModeration(userId)
+        && request.resource.data.keys().hasOnly([
+             'uid', 'name', 'birthDayKey', 'birthDate', 'birthTime',
+             'birthplace', 'birthCountry', 'birthCity', 'zodiac',
+             'socialLinks', 'isPublic', 'publicName', 'publicBirthDate',
+             'publicBirthTime', 'publicBirthPlace', 'publicBirthCountry',
+             'publicBirthCity', 'publicSocials', 'publicZodiac', 'updatedAt',
+             'countryCode', 'publicCountry', 'publicPhoto', 'cityKey'
+           ])
+        // Pays de résidence : code ISO 3166-1 alpha-2 (filtre "Mon pays").
+        && (!('countryCode' in request.resource.data)
+            || request.resource.data.countryCode.matches('^[A-Z]{2}$'))
+        // Ville : "PAYS:ville normalisée" (filtre "Ma ville").
+        && (!('cityKey' in request.resource.data)
+            || request.resource.data.cityKey.matches('^[A-Z]{2}:[a-z0-9 ]{1,80}$'))
+        && request.resource.data.uid == userId
+        && request.resource.data.isPublic == true
+        && request.resource.data.birthDayKey is string
+        && request.resource.data.birthDayKey.matches('^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
+
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // ==================== RENCONTRES (EVENTS) ====================
+    // Rencontres entre jumeaux d'anniversaire d'une même ville. Visibles
+    // seulement des personnes nées le même jour ; organiser ou participer
+    // exige d'être dans l'annuaire public (Google, 16+, non masqué).
+    function myBirthDayKey() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.birthDayKey;
+    }
+
+    function isInDirectory() {
+      return exists(/databases/$(database)/documents/public_profiles/$(request.auth.uid));
+    }
+
+    function eventPath(eventId) {
+      return /databases/$(database)/documents/events/$(eventId);
+    }
+
+    match /events/{eventId} {
+      allow get: if isRealUser() && resource.data.birthDayKey == myBirthDayKey();
+      allow list: if isRealUser()
+        && request.query.limit <= 50
+        && resource.data.birthDayKey == myBirthDayKey();
+
+      allow create: if isRealUser() && isInDirectory()
+        && request.resource.data.keys().hasOnly([
+             'creatorUid', 'creatorName', 'title', 'description', 'placeHint',
+             'birthDayKey', 'cityKey', 'startsAt', 'maxAttendees',
+             'attendeeCount', 'cancelled', 'createdAt'])
+        && request.resource.data.creatorUid == request.auth.uid
+        && request.resource.data.birthDayKey == myBirthDayKey()
+        && request.resource.data.cityKey is string
+        && request.resource.data.cityKey.matches('^[A-Z]{2}:[a-z0-9 ]{1,80}$')
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 3
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.get('description', '').size() <= 500
+        && request.resource.data.placeHint is string
+        && request.resource.data.placeHint.size() >= 2
+        && request.resource.data.placeHint.size() <= 100
+        && request.resource.data.startsAt is timestamp
+        && request.resource.data.startsAt > request.time
+        && request.resource.data.maxAttendees is int
+        && request.resource.data.maxAttendees >= 2
+        && request.resource.data.maxAttendees <= 50
+        && request.resource.data.attendeeCount == 0
+        && request.resource.data.cancelled == false
+        && request.resource.data.createdAt == request.time;
+
+      // L'organisateur modifie les détails ou annule (jamais le compteur).
+      allow update: if isOwner(resource.data.creatorUid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['title', 'description', 'placeHint', 'startsAt', 'cancelled'])
+        && request.resource.data.title.size() >= 3
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.get('description', '').size() <= 500
+        && request.resource.data.placeHint.size() <= 100;
+
+      // Inscription / désinscription : le compteur ne bouge que d'une unité,
+      // dans le même lot que la création / suppression de sa participation.
+      allow update: if isRealUser()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendeeCount'])
+        && (
+          (request.resource.data.attendeeCount == resource.data.attendeeCount + 1
+            && request.resource.data.attendeeCount <= resource.data.maxAttendees
+            && !exists(/databases/$(database)/documents/events/$(eventId)/attendees/$(request.auth.uid))
+            && existsAfter(/databases/$(database)/documents/events/$(eventId)/attendees/$(request.auth.uid)))
+          || (request.resource.data.attendeeCount == resource.data.attendeeCount - 1
+            && exists(/databases/$(database)/documents/events/$(eventId)/attendees/$(request.auth.uid))
+            && !existsAfter(/databases/$(database)/documents/events/$(eventId)/attendees/$(request.auth.uid)))
+        );
+
+      allow delete: if isOwner(resource.data.creatorUid) || isAdmin();
+
+      match /attendees/{attendeeId} {
+        allow read: if isRealUser() && get(eventPath(eventId)).data.birthDayKey == myBirthDayKey();
+        allow create: if isOwner(attendeeId) && isRealUser() && isInDirectory()
+          && get(eventPath(eventId)).data.birthDayKey == myBirthDayKey()
+          && get(eventPath(eventId)).data.cancelled == false
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'joinedAt'])
+          && request.resource.data.uid == attendeeId
+          && request.resource.data.joinedAt == request.time
+          // Le compteur doit être incrémenté dans le même lot.
+          && getAfter(eventPath(eventId)).data.attendeeCount
+               == get(eventPath(eventId)).data.attendeeCount + 1;
+        allow delete: if isOwner(attendeeId)
+          && getAfter(eventPath(eventId)).data.attendeeCount
+               == get(eventPath(eventId)).data.attendeeCount - 1;
+      }
+    }
+
+    // ==================== VŒUX D'ANNIVERSAIRE ====================
+    // wishes/{toUid}/received/{fromUid}_{année} : un vœu choisi parmi des
+    // messages prédéfinis (aucun texte libre, donc rien à modérer), au plus
+    // un par expéditeur, destinataire et année. Expéditeur et destinataire
+    // sont dans l'annuaire public ; le nom affiché est forcément le nom
+    // public de l'expéditeur (ou aucun). Seul le destinataire lit ses vœux.
+    match /wishes/{toUid}/received/{wishId} {
+      allow read: if isOwner(toUid);
+      allow create: if isRealUser() && isInDirectory()
+        && request.auth.uid != toUid
+        && !isHiddenByModeration(request.auth.uid)
+        && exists(/databases/$(database)/documents/public_profiles/$(toUid))
+        && wishId == request.auth.uid + '_' + string(request.time.year())
+        && request.resource.data.keys().hasOnly(['fromUid', 'fromName', 'wish', 'year', 'createdAt'])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.wish is int
+        && request.resource.data.wish >= 0
+        && request.resource.data.wish < 6
+        && request.resource.data.year == request.time.year()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.get('fromName', null)
+             == get(/databases/$(database)/documents/public_profiles/$(request.auth.uid)).data.get('name', null);
+      allow delete: if isOwner(toUid)
+        || (isSignedIn() && resource.data.fromUid == request.auth.uid);
+    }
+
+    // ==================== MODERATION ====================
+    // moderation/{uid} : décision de modération (masquage de l'annuaire),
+    // écrite par la Cloud Function onReportCreated ou par un admin. Le
+    // propriétaire peut la lire (pour savoir pourquoi il n'apparaît plus),
+    // jamais la modifier.
+    function isHiddenByModeration(userId) {
+      return exists(/databases/$(database)/documents/moderation/$(userId))
+        && get(/databases/$(database)/documents/moderation/$(userId)).data.hidden == true;
+    }
+
+    match /moderation/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ==================== REPORTS ====================
+    // Signalements de profils publics : création par un vrai utilisateur en
+    // son nom, lecture et traitement réservés aux admins.
+    match /reports/{reportId} {
+      allow create: if isRealUser()
+        && request.resource.data.keys().hasOnly(
+             ['reporterUid', 'reportedUid', 'reason', 'createdAt'])
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.reportedUid is string
+        && request.resource.data.reportedUid != request.auth.uid
+        && request.resource.data.reason in
+             ['spam', 'inappropriate', 'fake', 'minor', 'other']
+        && request.resource.data.createdAt == request.time;
+      allow read, delete: if isAdmin();
+    }
+
     // ==================== ADMINS COLLECTION ====================
-    // Collection des administrateurs
+    // La création/suppression d'admins se fait côté serveur (Cloud Function /
+    // console). Le client peut uniquement lire et mettre à jour sa dernière
+    // connexion.
     match /admins/{adminId} {
-      // Lecture : l'admin lui-même peut lire ses infos, ou un autre admin peut lire tous les admins
-      allow read: if request.auth != null && (
-        request.auth.uid == adminId
-        || isAdmin()
-      );
+      allow read: if isOwner(adminId) || isAdmin();
 
-      // Création : autorisée SEULEMENT si la collection admins est vide (premier admin)
-      // On vérifie que l'utilisateur créé correspond à l'utilisateur authentifié
-      allow create: if request.auth != null 
-        && request.auth.uid == adminId
-        && request.resource.data.uid == request.auth.uid;
+      allow create, delete: if false;
 
-      // Mise à jour : seulement pour mettre à jour lastLogin
-      allow update: if request.auth != null 
-        && request.auth.uid == adminId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']);
-
-      // Suppression : impossible depuis le client
-      allow delete: if false;
+      allow update: if isOwner(adminId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['lastLogin']);
     }
 
-    // ==================== APP STATS (ADMIN ONLY) ====================
-    // Collection pour les statistiques globales
+    // ==================== APP STATS ====================
+    // Lecture publique (authentifiée) ; écriture réservée au serveur.
     match /app_stats/{document} {
-      // Lecture : tous les utilisateurs authentifiés
-      allow read: if request.auth != null;
-
-      // Écriture : seulement pour le système (via Cloud Functions)
-      // Pour l'instant, on permet à tous les utilisateurs authentifiés
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if false;
     }
 
-    // ==================== SYNC QUEUE (Legacy) ====================
-    // Pour compatibilité avec l'ancien système
-    match /sync_queue/{entry} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /profiles/{userId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Deny everything else by default
+    // Deny everything else by default (sync_queue Firestore, etc.)
     match /{document=**} {
       allow read, write: if false;
     }

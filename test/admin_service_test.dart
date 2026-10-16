@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:b_link/services/admin_service.dart';
 import 'package:b_link/models/admin_user.dart';
@@ -24,7 +25,6 @@ void main() {
       final admin = AdminUser(
         uid: 'admin-uid',
         email: 'admin@test.com',
-        passwordHash: 'hash',
         role: 'super_admin',
         createdAt: DateTime.now(),
         isActive: true,
@@ -40,11 +40,27 @@ void main() {
       expect(isAdmin, isTrue);
     });
 
+    test('recognizes an admin written by the grantAdmin Cloud Function',
+        () async {
+      // grantAdmin écrit createdAt en Timestamp et lastLogin à null.
+      await fakeFirestore.collection('admins').doc('fn-admin').set({
+        'uid': 'fn-admin',
+        'email': 'fn@test.com',
+        'role': 'admin',
+        'isActive': true,
+        'createdAt': Timestamp.now(),
+        'lastLogin': null,
+      });
+
+      expect(await adminService.isUserAdmin('fn-admin'), isTrue);
+      final admin = await adminService.getAdminUser('fn-admin');
+      expect(admin?.createdAt, isNotNull);
+    });
+
     test('should not verify inactive admin as admin', () async {
       final admin = AdminUser(
         uid: 'inactive-admin',
         email: 'inactive@test.com',
-        passwordHash: 'hash',
         role: 'admin',
         createdAt: DateTime.now(),
         isActive: false,
@@ -64,7 +80,6 @@ void main() {
       final admin = AdminUser(
         uid: 'admin-uid',
         email: 'admin@test.com',
-        passwordHash: 'hash',
         role: 'super_admin',
         createdAt: DateTime.now(),
         isActive: true,
@@ -88,7 +103,6 @@ void main() {
       final admin = AdminUser(
         uid: 'admin-uid',
         email: 'admin@test.com',
-        passwordHash: 'hash',
         role: 'admin',
         createdAt: DateTime.now(),
         isActive: true,
@@ -110,7 +124,6 @@ void main() {
       final admin1 = AdminUser(
         uid: 'admin-1',
         email: 'admin1@test.com',
-        passwordHash: 'hash1',
         role: 'super_admin',
         createdAt: DateTime.now(),
         isActive: true,
@@ -119,7 +132,6 @@ void main() {
       final admin2 = AdminUser(
         uid: 'admin-2',
         email: 'admin2@test.com',
-        passwordHash: 'hash2',
         role: 'admin',
         createdAt: DateTime.now(),
         isActive: true,
@@ -139,17 +151,6 @@ void main() {
       expect(admins.length, equals(2));
       expect(admins[0].email, equals('admin1@test.com'));
       expect(admins[1].email, equals('admin2@test.com'));
-    });
-  });
-
-  group('AdminAuthService Tests', () {
-    test('should hash password consistently', () {
-      // On ne peut pas tester directement _hashPassword car c'est privé,
-      // mais on peut tester que deux authentifications avec le même mot de passe
-      // devraient donner le même hash
-
-      // Ce test est une démonstration de concept
-      expect(true, isTrue);
     });
   });
 }

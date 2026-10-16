@@ -1,28 +1,29 @@
 @echo off
-REM Deploy production Cloud Functions and Firestore rules (Windows cmd)
-REM Usage: deploy_prod.cmd PROJECT_ID
+REM Deploie les regles Firestore et les Cloud Functions en production.
+REM Les tests des regles (emulateur, JDK 21+) doivent passer avant tout deploiement.
+REM Usage : scripts\deploy_prod.cmd PROJECT_ID
+setlocal
 set PROJECT_ID=%1
 if "%PROJECT_ID%"=="" (
   echo Usage: %0 PROJECT_ID
   exit /b 2
 )
+cd /d "%~dp0.."
 where firebase >nul 2>&1 || (
-  echo firebase CLI not found. Install with: npm install -g firebase-tools
+  echo firebase CLI introuvable : npm install -g firebase-tools
   exit /b 2
 )
-echo Make sure you've enabled Blaze billing for project %PROJECT_ID% in Firebase Console.
-echo Proceeding will deploy functions and rules to %PROJECT_ID%.
-set /p CONT="Have you enabled Blaze for %PROJECT_ID%? (y/N) "
+echo Les Cloud Functions exigent le forfait Blaze sur %PROJECT_ID%.
+set /p CONT="Blaze est-il active sur %PROJECT_ID% ? (y/N) "
 if /i not "%CONT%"=="y" (
-  echo Aborting. Enable Blaze and re-run.
+  echo Activez Blaze puis relancez. Abandon.
   exit /b 3
 )
-echo Deploying Cloud Functions to %PROJECT_ID%...
-firebase deploy --only functions --project %PROJECT_ID%
-
-nif exist firestore.rules.prod (
-  copy /y firestore.rules.prod firestore.rules >nul
-)
-echo Deploying Firestore rules to %PROJECT_ID%...
-firebase deploy --only firestore:rules --project %PROJECT_ID%
-echo Deployment complete. Run smoke tests to validate production behavior.
+echo Tests des regles Firestore...
+pushd test_rules
+call npm ci --no-audit --no-fund || (popd & exit /b 1)
+call npm test || (popd & echo Tests des regles en echec : deploiement annule. & exit /b 1)
+popd
+echo Deploiement des regles et des Cloud Functions sur %PROJECT_ID%...
+call firebase deploy --only firestore:rules,firestore:indexes,storage,functions,hosting --project %PROJECT_ID% || exit /b 1
+echo Deploiement termine.

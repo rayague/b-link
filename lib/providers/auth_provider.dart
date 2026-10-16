@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import '../services/analytics_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool _googleInitialized = false;
@@ -24,7 +23,12 @@ class AuthProvider extends ChangeNotifier {
 
   /// Sign in with Google and link to Firebase Auth.
   /// Returns `true` on success, `false` if the user cancelled or an error occurred.
+  /// Après un échec de [signInWithGoogle] : true si l'utilisateur a
+  /// simplement fermé la fenêtre Google (pas une erreur à lui signaler).
+  bool lastSignInCancelled = false;
+
   Future<bool> signInWithGoogle() async {
+    lastSignInCancelled = false;
     try {
       await _ensureGoogleInitialized();
 
@@ -38,15 +42,15 @@ class AuthProvider extends ChangeNotifier {
       final userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
 
-      final uid = userCredential.user?.uid;
-      if (uid != null) {
-        AnalyticsService().setUserId(uid);
-      }
+      // Volontairement aucun AnalyticsService().setUserId : les statistiques
+      // ne sont pas reliées au compte (voir hosting/privacy.html).
+      if (userCredential.user == null) return false;
       notifyListeners();
       return true;
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
-        return false; // user cancelled
+        lastSignInCancelled = true;
+        return false;
       }
       debugPrint('Google sign-in error: $e');
       return false;
@@ -67,15 +71,33 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Ensure there is an anonymous Firebase user. Returns the UID.
-  Future<String?> ensureAnonymousUser() async {
+  /// Ré-authentifie l'utilisateur avec Google. Firebase exige une connexion
+  /// récente pour supprimer un compte ; cela sert aussi de confirmation.
+  /// Retourne `false` si l'utilisateur annule.
+  Future<bool> reauthenticateWithGoogle() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
     try {
-      final current = FirebaseAuth.instance.currentUser;
-      if (current != null) return current.uid;
-      final cred = await FirebaseAuth.instance.signInAnonymously();
-      return cred.user?.uid;
-    } catch (e) {
-      return null;
+      await _ensureGoogleInitialized();
+      final googleUser = await GoogleSignIn.instance.authenticate();
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleUser.authentication.idToken,
+      );
+      await user.reauthenticateWithCredential(credential);
+      return true;
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return false;
+      rethrow;
     }
+  }
+
+  /// Supprime le compte Firebase Auth (à appeler après
+  /// [reauthenticateWithGoogle] et après l'effacement des données).
+  Future<void> deleteFirebaseUser() async {
+    await FirebaseAuth.instance.currentUser?.delete();
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {}
+    notifyListeners();
   }
 }

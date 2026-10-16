@@ -1,5 +1,5 @@
 name: b_link
-description: "A new Flutter project."
+description: "B-Link : retrouvez les personnes nées le même jour que vous et n'oubliez plus les anniversaires de vos proches."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -20,10 +20,11 @@ dependencies:
 
   # Image & permissions
   image_picker: any
-  permission_handler: any
 
   # Notifications
-  flutter_local_notifications: any
+  # Pinned to <20: the 20.0.0 major converted positional params to named and
+  # requires a migration of notification_service.dart (see P2 backlog).
+  flutter_local_notifications: ^19.0.0
 
   # Linking / calls
   url_launcher: any
@@ -34,20 +35,11 @@ dependencies:
   # State management
   provider: any
   workmanager: any
-  background_fetch: any
-
   # Dates / i18n
   intl: any
 
-  # UI helpers
-  flutter_slidable: any
-  flutter_svg: any
-  # Secure storage and crypto
-  flutter_secure_storage: any
-  crypto: any
   # Timezone support for scheduled notifications
   timezone: any
-  flutter_native_timezone: any
   # Firebase
   firebase_core: any
   firebase_analytics: any
@@ -57,7 +49,13 @@ dependencies:
   share_plus: any
   
   # Connectivity
-  connectivity_plus: ^5.0.2
+  connectivity_plus: ^7.3.1
+  flutter_timezone: ^5.1.1
+  country_picker: ^2.0.28
+  firebase_messaging: ^16.7.0
+  firebase_storage: ^13.6.0
+  flutter_contacts: ^2.6.0
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
@@ -65,13 +63,24 @@ dev_dependencies:
   flutter_lints: any
   integration_test:
     sdk: flutter
-  fake_cloud_firestore: ^2.4.1+1
-  firebase_auth_mocks: ^0.13.0
+  fake_cloud_firestore: 4.3.0
+  firebase_auth_mocks: 0.15.2
+  flutter_launcher_icons: ^0.14.4
+  sqflite_common_ffi: ^2.4.4
 
 flutter:
   uses-material-design: true
   assets:
-    - assets/messages.txt
-    - assets/logoApp.jpg
-    - assets/pictureFirst.jpg
-    - assets/pictureSecond.jpg
+    - assets/messages_en.txt
+    - assets/messages_fr.txt
+    - assets/icon/app_icon.png
+
+# Icône de l'app, générée depuis le logo (assets/logoApp.jpg recadré sur le
+# motif central). Régénérer : dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "#4B4E64"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
