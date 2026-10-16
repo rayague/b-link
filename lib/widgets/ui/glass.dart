@@ -212,10 +212,12 @@ class AppScaffold extends StatelessWidget {
   });
 
   /// Marges d'une page défilante : barre d'état + barre en verre en haut,
-  /// encoche en bas. [context] est celui de l'écran (au-dessus du Scaffold).
+  /// encoche en bas. Calculées depuis la fenêtre : le résultat est le même
+  /// que [context] soit au-dessus du Scaffold ou dans son corps (où
+  /// `MediaQuery.padding` inclut déjà la barre).
   static EdgeInsets pagePadding(BuildContext context,
       {double top = Space.s, double bottom = Space.xxl, bool appBar = true}) {
-    final pad = MediaQuery.paddingOf(context);
+    final pad = MediaQueryData.fromView(View.of(context)).padding;
     return EdgeInsets.fromLTRB(
         Space.page,
         pad.top + (appBar ? kToolbarHeight : 0) + top,

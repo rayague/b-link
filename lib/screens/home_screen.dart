@@ -65,6 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return AppScaffold(
       actions: [
         IconButton(
+          tooltip: l10n.translate('myProfile'),
+          icon: const Icon(Icons.person_outline_rounded),
+          onPressed: () => Navigator.of(context).pushNamed('/profile'),
+        ),
+        IconButton(
           tooltip: l10n.translate('settings'),
           icon: const Icon(Icons.tune_rounded),
           onPressed: () => showGlassSheet<void>(
@@ -356,10 +361,11 @@ class _ExploreGrid extends StatelessWidget {
       tile(Icons.public_rounded, l10n.translate('sameDay'),
           l10n.translate('exploreSameDayDesc'), '/same-day',
           tone: Tone.accent),
+      tile(Icons.wb_sunny_outlined, l10n.translate('myDay'),
+          l10n.translate('exploreMyDayDesc'), '/my-day',
+          tone: Tone.accent),
       tile(Icons.auto_awesome_outlined, l10n.translate('yourZodiacSign'),
           l10n.translate('exploreZodiacDesc'), '/zodiac'),
-      tile(Icons.person_outline_rounded, l10n.translate('myProfile'),
-          l10n.translate('exploreProfileDesc'), '/profile'),
     ];
     return Column(
       children: [

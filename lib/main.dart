@@ -27,6 +27,7 @@ import 'screens/same_day_screen.dart';
 import 'screens/zodiac_screen.dart';
 import 'screens/meetups_screen.dart';
 import 'screens/import_contacts_screen.dart';
+import 'screens/my_day_screen.dart';
 import 'providers/profile_provider.dart';
 import 'services/background_sync.dart';
 import 'widgets/consent_dialog.dart';
@@ -107,6 +108,7 @@ class _App extends StatelessWidget {
         ZodiacScreen.routeName: (_) => const ZodiacScreen(),
         MeetupsScreen.routeName: (_) => const MeetupsScreen(),
         ImportContactsScreen.routeName: (_) => const ImportContactsScreen(),
+        MyDayScreen.routeName: (_) => const MyDayScreen(),
       },
     );
   }

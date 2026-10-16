@@ -9,6 +9,7 @@ const { getMessaging } = require('firebase-admin/messaging');
 const { getStorage } = require('firebase-admin/storage');
 const { shouldAutoHide, REPORT_THRESHOLD } = require('./moderation');
 const { shouldNotifyTwin, twinMessage, INVALID_TOKEN_CODES } = require('./twins');
+const { aggregate } = require('./constellation');
 
 initializeApp();
 const db = getFirestore();
@@ -261,4 +262,26 @@ exports.onEventDeleted = functions.firestore
   .onDelete(async (snap) => {
     await db.recursiveDelete(snap.ref.collection('attendees'));
     return null;
+  });
+
+/**
+ * Statistiques anonymes de l'annuaire (`app_stats/constellation`) : nombre
+ * de naissances par jour, prénoms et noms les plus partagés. Recalculées
+ * toutes les 6 heures plutôt qu'à chaque inscription (un compteur unique
+ * serait un point de contention). Coût : une lecture par profil public et
+ * par exécution, limitée aux champs utiles.
+ */
+exports.refreshConstellation = functions.pubsub
+  .schedule('every 6 hours')
+  .onRun(async () => {
+    const snap = await db
+      .collection('public_profiles')
+      .select('birthDayKey', 'name', 'publicName', 'isPublic')
+      .get();
+    const stats = aggregate(snap.docs.map((d) => d.data()));
+    await db
+      .collection('app_stats')
+      .doc('constellation')
+      .set({ ...stats, updatedAt: serverTimestamp() });
+    functions.logger.info('constellation', { total: stats.total });
   });

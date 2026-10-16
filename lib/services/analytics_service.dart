@@ -125,6 +125,11 @@ class AnalyticsService {
     );
   }
 
+  /// Carte « Mon jour » partagée
+  Future<void> logMyDayShared() async {
+    await _analytics?.logEvent(name: 'my_day_shared');
+  }
+
   /// Contact modifié
   Future<void> logContactUpdated({
     required String relation,
