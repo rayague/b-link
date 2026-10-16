@@ -31,13 +31,18 @@ class DirectoryService {
     ];
   }
 
+  /// [cityKey] ("PAYS:ville", voir utils/city.dart) restreint à une ville ;
+  /// sinon [countryCode] restreint à un pays ; sinon le monde entier.
   Query<Map<String, dynamic>> query(
     DateTime birthDate,
     DirectoryPeriod period, {
     String? countryCode,
+    String? cityKey,
   }) {
     Query<Map<String, dynamic>> q = _db.collection('public_profiles');
-    if (countryCode != null) {
+    if (cityKey != null) {
+      q = q.where('cityKey', isEqualTo: cityKey);
+    } else if (countryCode != null) {
       q = q.where('countryCode', isEqualTo: countryCode);
     }
     switch (period) {

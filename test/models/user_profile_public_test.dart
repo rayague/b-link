@@ -68,7 +68,7 @@ void main() {
         'publicName', 'publicBirthDate', 'publicBirthTime', 'publicBirthPlace',
         'publicBirthCountry', 'publicBirthCity', 'publicSocials',
         'publicZodiac', 'updatedAt', 'countryCode', 'publicCountry',
-        'publicPhoto',
+        'publicPhoto', 'cityKey',
       };
       final p = _profile(
           publicName: true, publicBirthDate: true, publicSocials: true)

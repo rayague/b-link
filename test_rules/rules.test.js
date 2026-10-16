@@ -293,3 +293,18 @@ test('un jeton avec des champs ou une langue inattendus est refusé', async () =
   await assertFails(setDoc(doc(google('bob'), 'users/bob/devices/t'), { platform: 'android', locale: 'de' }));
   await assertFails(setDoc(doc(google('bob'), 'users/bob/devices/t'), { platform: 'android', locale: 'fr', extra: 1 }));
 });
+
+// ---------- filtre "Ma ville" ----------
+
+test('une clé de ville normalisée est acceptée, un format libre est refusé', async () => {
+  await assertSucceeds(setDoc(doc(google('bob'), 'public_profiles/bob'),
+    publicProfile('bob', { cityKey: 'FR:saint etienne' })));
+  await assertFails(setDoc(doc(google('bob'), 'public_profiles/bob'),
+    publicProfile('bob', { cityKey: 'Saint-Étienne' })));
+});
+
+test('requête par ville paginée autorisée', async () => {
+  const q = query(collection(google('bob'), 'public_profiles'),
+    where('cityKey', '==', 'CI:abidjan'), where('birthDayKey', '==', '10-15'), limit(50));
+  await assertSucceeds(getDocs(q));
+});

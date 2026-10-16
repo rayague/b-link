@@ -14,6 +14,7 @@ import '../services/analytics_service.dart';
 import '../services/safety_service.dart';
 import '../widgets/profile_avatar.dart';
 import '../services/directory_service.dart';
+import '../utils/city.dart';
 import '../utils/app_links.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:share_plus/share_plus.dart';
@@ -34,7 +35,7 @@ class _SameDayScreenState extends State<SameDayScreen>
   bool _hasMore = true;
   final int _limit = DirectoryService.pageSize;
   DirectoryPeriod _period = DirectoryPeriod.day;
-  bool _myCountryOnly = false;
+  _Scope _scope = _Scope.world;
   DocumentSnapshot? _lastDocument;
   Set<String> _blocked = {};
   final ScrollController _scrollController = ScrollController();
@@ -135,13 +136,14 @@ class _SameDayScreenState extends State<SameDayScreen>
       DirectoryService().query(
         me.birthDate,
         _period,
-        countryCode: _myCountryOnly ? me.countryCode : null,
+        countryCode: _scope == _Scope.country ? me.countryCode : null,
+        cityKey: _scope == _Scope.city ? cityKey(me.countryCode, me.birthCity) : null,
       );
 
-  void _setFilters({DirectoryPeriod? period, bool? myCountryOnly}) {
+  void _setFilters({DirectoryPeriod? period, _Scope? scope}) {
     setState(() {
       _period = period ?? _period;
-      _myCountryOnly = myCountryOnly ?? _myCountryOnly;
+      _scope = scope ?? _scope;
       _items = [];
       _lastDocument = null;
       _hasMore = true;
@@ -817,6 +819,14 @@ class _SameDayScreenState extends State<SameDayScreen>
 
   Widget _buildFilters(UserProfile? me) {
     final hasCountry = UserProfile.isValidCountryCode(me?.countryCode);
+    final hasCity = cityKey(me?.countryCode, me?.birthCity) != null;
+    final flag = hasCountry ? Country.tryParse(me!.countryCode!)?.flagEmoji ?? '' : '';
+    Widget scopeChip(_Scope scope, String label, bool enabled) => ChoiceChip(
+          label: Text(label),
+          selected: _scope == scope,
+          // Sans pays (ou ville) dans le profil, le filtre n'a pas de sens.
+          onSelected: enabled ? (_) => _setFilters(scope: scope) : null,
+        );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -836,19 +846,18 @@ class _SameDayScreenState extends State<SameDayScreen>
           onSelectionChanged: (s) => _setFilters(period: s.first),
         ),
         const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            scopeChip(_Scope.world, '🌍 ${l10n.translate('scopeWorld')}', true),
+            scopeChip(_Scope.country,
+                '${flag.isEmpty ? '🏳️' : flag} ${l10n.translate('myCountry')}', hasCountry),
+            scopeChip(_Scope.city, '🏙️ ${l10n.translate('myCity')}', hasCity),
+          ],
+        ),
         Row(
           children: [
-            FilterChip(
-              label: Text(hasCountry
-                  ? '${l10n.translate('myCountry')} '
-                      '${Country.tryParse(me!.countryCode!)?.flagEmoji ?? ''}'
-                  : l10n.translate('myCountry')),
-              selected: _myCountryOnly && hasCountry,
-              // Sans pays dans le profil, le filtre n'a pas de sens.
-              onSelected: hasCountry
-                  ? (v) => _setFilters(myCountryOnly: v)
-                  : null,
-            ),
             const Spacer(),
             if (me != null)
               TextButton.icon(
@@ -858,9 +867,9 @@ class _SameDayScreenState extends State<SameDayScreen>
               ),
           ],
         ),
-        if (!hasCountry)
+        if (!hasCountry || !hasCity)
           Text(
-            l10n.translate('setCountryHint'),
+            l10n.translate(hasCountry ? 'setCityHint' : 'setCountryHint'),
             style: TextStyle(fontSize: 12, color: Colors.grey[500]),
           ),
       ],
@@ -886,3 +895,6 @@ class _SameDayScreenState extends State<SameDayScreen>
     }
   }
 }
+
+/// Portée de l'annuaire : monde entier, mon pays, ma ville.
+enum _Scope { world, country, city }

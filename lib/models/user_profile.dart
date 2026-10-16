@@ -1,3 +1,4 @@
+import '../utils/city.dart';
 import 'dart:convert';
 
 class UserProfile {
@@ -227,6 +228,8 @@ class UserProfile {
     put(publicZodiac, 'zodiac', zodiac);
     put(publicCountry && isValidCountryCode(countryCode), 'countryCode',
         countryCode);
+    // Filtre "Ma ville" : uniquement si la ville actuelle est partagée.
+    put(publicBirthCity, 'cityKey', cityKey(countryCode, birthCity));
     if (publicSocials && socialLinks != null && socialLinks!.isNotEmpty) {
       data['socialLinks'] = socialLinks;
     }

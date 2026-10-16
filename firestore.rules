@@ -72,11 +72,14 @@ service cloud.firestore {
              'socialLinks', 'isPublic', 'publicName', 'publicBirthDate',
              'publicBirthTime', 'publicBirthPlace', 'publicBirthCountry',
              'publicBirthCity', 'publicSocials', 'publicZodiac', 'updatedAt',
-             'countryCode', 'publicCountry', 'publicPhoto'
+             'countryCode', 'publicCountry', 'publicPhoto', 'cityKey'
            ])
         // Pays de résidence : code ISO 3166-1 alpha-2 (filtre "Mon pays").
         && (!('countryCode' in request.resource.data)
             || request.resource.data.countryCode.matches('^[A-Z]{2}$'))
+        // Ville : "PAYS:ville normalisée" (filtre "Ma ville").
+        && (!('cityKey' in request.resource.data)
+            || request.resource.data.cityKey.matches('^[A-Z]{2}:[a-z0-9 ]{1,80}$'))
         && request.resource.data.uid == userId
         && request.resource.data.isPublic == true
         && request.resource.data.birthDayKey is string
