@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/profile_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/zodiac_content.dart';
 import 'dart:math' as math;
 import '../services/analytics_service.dart';
 
@@ -81,13 +82,16 @@ class _ZodiacScreenState extends State<ZodiacScreen>
       );
     }
 
-    final zodiacSign = profile.zodiac!;
-    final emoji = _zodiacEmoji(zodiacSign);
-    final colors = _zodiacColors(zodiacSign);
-    final quotes = _zodiacQuotes(zodiacSign);
-    final traits = _zodiacTraits(zodiacSign);
-    final element = _zodiacElement(zodiacSign);
-    final planet = _zodiacPlanet(zodiacSign);
+    // L'identifiant du signe (nom français) est traduit pour l'affichage.
+    final signId = profile.zodiac!;
+    final lang = loc.locale.languageCode;
+    final zodiacSign = ZodiacContent.name(signId, lang);
+    final emoji = ZodiacContent.emoji(signId);
+    final colors = ZodiacContent.colors(signId);
+    final quotes = ZodiacContent.quotes(signId, lang);
+    final traits = ZodiacContent.traits(signId, lang);
+    final element = ZodiacContent.element(signId, lang);
+    final planet = ZodiacContent.planet(signId, lang);
 
     return Scaffold(
       body: Container(
@@ -198,7 +202,7 @@ class _ZodiacScreenState extends State<ZodiacScreen>
                             Expanded(
                               child: _buildInfoCard(
                                 icon: Icons.water_drop,
-                                title: 'Élément',
+                                title: loc.translate('zodiacElement'),
                                 value: element,
                                 gradient: const [
                                   Color(0xFF3B82F6),
@@ -211,7 +215,7 @@ class _ZodiacScreenState extends State<ZodiacScreen>
                             Expanded(
                               child: _buildInfoCard(
                                 icon: Icons.public,
-                                title: 'Planète',
+                                title: loc.translate('zodiacPlanet'),
                                 value: planet,
                                 gradient: const [
                                   Color(0xFF8B5CF6),
@@ -348,9 +352,9 @@ class _ZodiacScreenState extends State<ZodiacScreen>
                     const Icon(Icons.psychology, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Traits de personnalité',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context).translate('zodiacTraits'),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -454,286 +458,5 @@ class _ZodiacScreenState extends State<ZodiacScreen>
         ),
       ),
     );
-  }
-
-  String _zodiacEmoji(String sign) {
-    switch (sign) {
-      case 'Bélier':
-        return '♈';
-      case 'Taureau':
-        return '♉';
-      case 'Gémeaux':
-        return '♊';
-      case 'Cancer':
-        return '♋';
-      case 'Lion':
-        return '♌';
-      case 'Vierge':
-        return '♍';
-      case 'Balance':
-        return '♎';
-      case 'Scorpion':
-        return '♏';
-      case 'Sagittaire':
-        return '♐';
-      case 'Capricorne':
-        return '♑';
-      case 'Verseau':
-        return '♒';
-      case 'Poissons':
-        return '♓';
-      default:
-        return '✨';
-    }
-  }
-
-  List<Color> _zodiacColors(String sign) {
-    switch (sign) {
-      case 'Bélier':
-        return [const Color(0xFFDC2626), const Color(0xFFEF4444)];
-      case 'Taureau':
-        return [const Color(0xFF16A34A), const Color(0xFF22C55E)];
-      case 'Gémeaux':
-        return [const Color(0xFFFBBF24), const Color(0xFFFCD34D)];
-      case 'Cancer':
-        return [const Color(0xFF6366F1), const Color(0xFF818CF8)];
-      case 'Lion':
-        return [const Color(0xFFF59E0B), const Color(0xFFFBBF24)];
-      case 'Vierge':
-        return [const Color(0xFF059669), const Color(0xFF10B981)];
-      case 'Balance':
-        return [const Color(0xFFEC4899), const Color(0xFFF472B6)];
-      case 'Scorpion':
-        return [const Color(0xFF7C3AED), const Color(0xFF8B5CF6)];
-      case 'Sagittaire':
-        return [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)];
-      case 'Capricorne':
-        return [const Color(0xFF0891B2), const Color(0xFF06B6D4)];
-      case 'Verseau':
-        return [const Color(0xFF3B82F6), const Color(0xFF60A5FA)];
-      case 'Poissons':
-        return [const Color(0xFF14B8A6), const Color(0xFF2DD4BF)];
-      default:
-        return [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)];
-    }
-  }
-
-  List<String> _zodiacQuotes(String sign) {
-    final Map<String, List<String>> quotes = {
-      'Bélier': [
-        "Votre énergie naturelle vous pousse à l'action. Canalisez-la vers vos objectifs.",
-        "Les leaders ne naissent pas, ils se forgent. Et vous avez cette flamme en vous.",
-        "Votre courage inspire les autres. N'ayez pas peur de montrer la voie.",
-        "La patience n'est pas l'attente, mais garder une bonne attitude en attendant.",
-      ],
-      'Taureau': [
-        "Votre persévérance est votre plus grande force. Continuez à avancer.",
-        "La beauté et le confort que vous créez enrichissent le monde.",
-        "Votre loyauté envers ceux que vous aimez est admirable.",
-        "Prenez le temps d'apprécier les plaisirs simples de la vie.",
-      ],
-      'Gémeaux': [
-        "Votre curiosité naturelle est un don. Continuez à apprendre et à explorer.",
-        "La communication est votre superpouvoir. Utilisez-le sagement.",
-        "Votre adaptabilité vous permet de prospérer dans toute situation.",
-        "Embrassez votre nature multifacette, c'est ce qui vous rend unique.",
-      ],
-      'Cancer': [
-        "Votre empathie profonde est une force, pas une faiblesse.",
-        "Prendre soin des autres vient naturellement, mais n'oubliez pas de prendre soin de vous.",
-        "Votre intuition est puissante. Faites-lui confiance.",
-        "Créer un foyer chaleureux est votre talent naturel.",
-      ],
-      'Lion': [
-        "Votre générosité et votre chaleur illuminent la vie des autres.",
-        "Vous êtes né pour briller. N'ayez pas peur de prendre votre place.",
-        "Votre confiance naturelle inspire ceux qui vous entourent.",
-        "Restez fidèle à vous-même, c'est votre plus grande force.",
-      ],
-      'Vierge': [
-        "Votre attention aux détails crée l'excellence dans tout ce que vous faites.",
-        "Votre désir d'aider les autres rend le monde meilleur.",
-        "La perfection est un voyage, pas une destination. Soyez patient avec vous-même.",
-        "Votre esprit analytique résout les problèmes que d'autres ne voient même pas.",
-      ],
-      'Balance': [
-        "Votre quête d'harmonie apporte la paix dans votre entourage.",
-        "Votre sens de la justice fait de vous un défenseur naturel.",
-        "La beauté que vous créez et appréciez enrichit le monde.",
-        "Trouver l'équilibre est un art, et vous êtes un artiste.",
-      ],
-      'Scorpion': [
-        "Votre intensité émotionnelle est votre superpouvoir.",
-        "Vous transformez chaque défi en opportunité de renaissance.",
-        "Votre passion inspire et transforme ceux qui vous entourent.",
-        "La profondeur de votre âme est un trésor rare.",
-      ],
-      'Sagittaire': [
-        "Votre optimisme est contagieux. Continuez à voir le bon côté des choses.",
-        "L'aventure vous appelle. Répondez à cet appel.",
-        "Votre quête de vérité et de sagesse inspire les autres.",
-        "La liberté est votre droit de naissance. Vivez pleinement.",
-      ],
-      'Capricorne': [
-        "Votre discipline et votre détermination garantissent votre succès.",
-        "Vous construisez des fondations solides pour l'avenir.",
-        "Votre sagesse vient de l'expérience et de la réflexion.",
-        "Le chemin vers le sommet est long, mais vous êtes fait pour y arriver.",
-      ],
-      'Verseau': [
-        "Votre vision unique change le monde pour le mieux.",
-        "Votre originalité est votre plus grand atout. Ne la cachez jamais.",
-        "Vous êtes en avance sur votre temps. Les autres finiront par comprendre.",
-        "Votre humanitarisme rend le monde plus inclusif.",
-      ],
-      'Poissons': [
-        "Votre créativité et votre imagination n'ont pas de limites.",
-        "Votre compassion guérit les âmes blessées.",
-        "Vos rêves sont des visions d'un monde meilleur.",
-        "Votre sensibilité artistique crée de la magie dans le monde.",
-      ],
-    };
-    return quotes[sign] ?? ['Vous êtes unique et spécial.'];
-  }
-
-  List<String> _zodiacTraits(String sign) {
-    final Map<String, List<String>> traits = {
-      'Bélier': [
-        'Courageux',
-        'Énergique',
-        'Déterminé',
-        'Confiant',
-        'Passionné',
-        'Leader'
-      ],
-      'Taureau': [
-        'Fiable',
-        'Patient',
-        'Pratique',
-        'Dévoué',
-        'Responsable',
-        'Stable'
-      ],
-      'Gémeaux': [
-        'Adaptable',
-        'Curieux',
-        'Communicatif',
-        'Intelligent',
-        'Sociable',
-        'Vif'
-      ],
-      'Cancer': [
-        'Intuitif',
-        'Protecteur',
-        'Loyal',
-        'Empathique',
-        'Imaginatif',
-        'Sensible'
-      ],
-      'Lion': [
-        'Créatif',
-        'Généreux',
-        'Chaleureux',
-        'Charismatique',
-        'Confiant',
-        'Loyal'
-      ],
-      'Vierge': [
-        'Pratique',
-        'Analytique',
-        'Travailleur',
-        'Fiable',
-        'Précis',
-        'Modeste'
-      ],
-      'Balance': [
-        'Diplomatique',
-        'Juste',
-        'Social',
-        'Coopératif',
-        'Gracieux',
-        'Équilibré'
-      ],
-      'Scorpion': [
-        'Passionné',
-        'Déterminé',
-        'Brave',
-        'Loyal',
-        'Perspicace',
-        'Magnétique'
-      ],
-      'Sagittaire': [
-        'Optimiste',
-        'Aventureux',
-        'Honnête',
-        'Généreux',
-        'Philosophique',
-        'Libre'
-      ],
-      'Capricorne': [
-        'Responsable',
-        'Discipliné',
-        'Ambitieux',
-        'Pratique',
-        'Sage',
-        'Persévérant'
-      ],
-      'Verseau': [
-        'Original',
-        'Indépendant',
-        'Humanitaire',
-        'Intellectuel',
-        'Progressiste',
-        'Visionnaire'
-      ],
-      'Poissons': [
-        'Compatissant',
-        'Artistique',
-        'Intuitif',
-        'Doux',
-        'Sage',
-        'Musical'
-      ],
-    };
-    return traits[sign] ?? ['Unique'];
-  }
-
-  String _zodiacElement(String sign) {
-    if (['Bélier', 'Lion', 'Sagittaire'].contains(sign)) return 'Feu 🔥';
-    if (['Taureau', 'Vierge', 'Capricorne'].contains(sign)) return 'Terre 🌍';
-    if (['Gémeaux', 'Balance', 'Verseau'].contains(sign)) return 'Air 💨';
-    if (['Cancer', 'Scorpion', 'Poissons'].contains(sign)) return 'Eau 💧';
-    return 'Inconnu';
-  }
-
-  String _zodiacPlanet(String sign) {
-    switch (sign) {
-      case 'Bélier':
-        return 'Mars ♂';
-      case 'Taureau':
-        return 'Vénus ♀';
-      case 'Gémeaux':
-        return 'Mercure ☿';
-      case 'Cancer':
-        return 'Lune ☽';
-      case 'Lion':
-        return 'Soleil ☉';
-      case 'Vierge':
-        return 'Mercure ☿';
-      case 'Balance':
-        return 'Vénus ♀';
-      case 'Scorpion':
-        return 'Pluton ♇';
-      case 'Sagittaire':
-        return 'Jupiter ♃';
-      case 'Capricorne':
-        return 'Saturne ♄';
-      case 'Verseau':
-        return 'Uranus ♅';
-      case 'Poissons':
-        return 'Neptune ♆';
-      default:
-        return 'Inconnu';
-    }
   }
 }

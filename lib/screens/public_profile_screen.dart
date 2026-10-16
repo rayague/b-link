@@ -3,6 +3,7 @@ import '../models/user_profile.dart';
 import '../widgets/social_links_widget.dart';
 import '../widgets/birth_insights_widget.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/zodiac_content.dart';
 import '../services/analytics_service.dart';
 import '../services/safety_service.dart';
 
@@ -274,7 +275,7 @@ class PublicProfileScreen extends StatelessWidget {
                           _buildInfoSection(
                             l10n.translate('zodiacSign'),
                             Icons.stars_rounded,
-                            profile.zodiac!,
+                            ZodiacContent.name(profile.zodiac!, l10n.locale.languageCode),
                             isDark,
                           ),
 
@@ -297,6 +298,9 @@ class PublicProfileScreen extends StatelessWidget {
                           const SizedBox(height: 24),
                           BirthInsightsWidget(
                             birthDate: profile.birthDate,
+                            // Profil d'une autre personne : à la 3e personne.
+                            personName:
+                                profile.publicName ? profile.name : '',
                             birthTime: profile.publicBirthTime
                                 ? profile.birthTime
                                 : null,

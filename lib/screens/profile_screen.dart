@@ -12,6 +12,7 @@ import 'admin_stats_screen.dart';
 import '../services/admin_service.dart';
 import '../services/analytics_service.dart';
 import '../utils/zodiac.dart';
+import '../l10n/zodiac_content.dart';
 import 'package:country_picker/country_picker.dart';
 import '../utils/account_actions.dart' as account;
 import '../services/safety_service.dart';
@@ -103,7 +104,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final profile = context.watch<ProfileProvider>().profile;
-    final zodiacSign = _birthDate != null ? _computeZodiac(_birthDate!) : null;
+    final zodiacSign =
+        _birthDate != null ? Zodiac.computeZodiac(_birthDate!) : null;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF111827) : Colors.white,
@@ -850,9 +852,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildZodiacCard(String zodiacSign, bool isDark) {
-    final emoji = _zodiacEmoji(zodiacSign);
-    final description = _zodiacDescription(zodiacSign);
-    final period = _zodiacPeriod(zodiacSign);
+    // zodiacSign est l'identifiant (nom français) : affichage traduit.
+    final lang = AppLocalizations.of(context).locale.languageCode;
+    final emoji = ZodiacContent.emoji(zodiacSign);
+    final description = ZodiacContent.description(zodiacSign, lang);
+    final period = ZodiacContent.period(zodiacSign, lang);
+    final signName = ZodiacContent.name(zodiacSign, lang);
 
     return Container(
       decoration: BoxDecoration(
@@ -892,7 +897,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      zodiacSign,
+                      signName,
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -1065,116 +1070,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
       ),
     );
-  }
-
-  String _zodiacEmoji(String sign) {
-    switch (sign) {
-      case 'Bélier':
-        return '♈';
-      case 'Taureau':
-        return '♉';
-      case 'Gémeaux':
-        return '♊';
-      case 'Cancer':
-        return '♋';
-      case 'Lion':
-        return '♌';
-      case 'Vierge':
-        return '♍';
-      case 'Balance':
-        return '♎';
-      case 'Scorpion':
-        return '♏';
-      case 'Sagittaire':
-        return '♐';
-      case 'Capricorne':
-        return '♑';
-      case 'Verseau':
-        return '♒';
-      case 'Poissons':
-        return '♓';
-      default:
-        return '✨';
-    }
-  }
-
-  String _zodiacDescription(String sign) {
-    switch (sign) {
-      case 'Bélier':
-        return 'Dynamique, courageux et impulsif. Vous aimez relever les défis et êtes toujours prêt pour l\'aventure.';
-      case 'Taureau':
-        return 'Stable, patient et sensuel. Vous appréciez les plaisirs de la vie et la sécurité.';
-      case 'Gémeaux':
-        return 'Curieux, adaptable et communicatif. Vous excellez dans la communication et adorez apprendre.';
-      case 'Cancer':
-        return 'Émotif, protecteur et intuitif. Vous êtes profondément attaché à votre famille et vos proches.';
-      case 'Lion':
-        return 'Charismatique, généreux et confiant. Vous aimez être au centre de l\'attention et inspirer les autres.';
-      case 'Vierge':
-        return 'Analytique, méthodique et réservé. Vous recherchez la perfection dans tout ce que vous faites.';
-      case 'Balance':
-        return 'Social, équilibré et juste. Vous recherchez l\'harmonie dans vos relations et votre environnement.';
-      case 'Scorpion':
-        return 'Passionné, intense et mystérieux. Vous vivez vos émotions profondément et avec intensité.';
-      case 'Sagittaire':
-        return 'Aventurier, optimiste et libre. Vous aimez explorer et découvrir de nouveaux horizons.';
-      case 'Capricorne':
-        return 'Ambitieux, discipliné et responsable. Vous travaillez dur pour atteindre vos objectifs.';
-      case 'Verseau':
-        return 'Original, humanitaire et indépendant. Vous aimez penser différemment et aider les autres.';
-      case 'Poissons':
-        return 'Empathique, artistique et rêveur. Vous êtes sensible et créatif avec une grande imagination.';
-      default:
-        return '';
-    }
-  }
-
-  String _zodiacPeriod(String sign) {
-    switch (sign) {
-      case 'Bélier':
-        return '21 Mars - 19 Avril';
-      case 'Taureau':
-        return '20 Avril - 20 Mai';
-      case 'Gémeaux':
-        return '21 Mai - 20 Juin';
-      case 'Cancer':
-        return '21 Juin - 22 Juillet';
-      case 'Lion':
-        return '23 Juillet - 22 Août';
-      case 'Vierge':
-        return '23 Août - 22 Septembre';
-      case 'Balance':
-        return '23 Septembre - 22 Octobre';
-      case 'Scorpion':
-        return '23 Octobre - 21 Novembre';
-      case 'Sagittaire':
-        return '22 Novembre - 21 Décembre';
-      case 'Capricorne':
-        return '22 Décembre - 19 Janvier';
-      case 'Verseau':
-        return '20 Janvier - 18 Février';
-      case 'Poissons':
-        return '19 Février - 20 Mars';
-      default:
-        return '';
-    }
-  }
-
-  String _computeZodiac(DateTime birthDate) {
-    final m = birthDate.month;
-    final d = birthDate.day;
-    if ((m == 1 && d >= 20) || (m == 2 && d <= 18)) return 'Verseau';
-    if ((m == 2 && d >= 19) || (m == 3 && d <= 20)) return 'Poissons';
-    if ((m == 3 && d >= 21) || (m == 4 && d <= 19)) return 'Bélier';
-    if ((m == 4 && d >= 20) || (m == 5 && d <= 20)) return 'Taureau';
-    if ((m == 5 && d >= 21) || (m == 6 && d <= 20)) return 'Gémeaux';
-    if ((m == 6 && d >= 21) || (m == 7 && d <= 22)) return 'Cancer';
-    if ((m == 7 && d >= 23) || (m == 8 && d <= 22)) return 'Lion';
-    if ((m == 8 && d >= 23) || (m == 9 && d <= 22)) return 'Vierge';
-    if ((m == 9 && d >= 23) || (m == 10 && d <= 22)) return 'Balance';
-    if ((m == 10 && d >= 23) || (m == 11 && d <= 21)) return 'Scorpion';
-    if ((m == 11 && d >= 22) || (m == 12 && d <= 21)) return 'Sagittaire';
-    return 'Capricorne';
   }
 
   Widget _buildSocialLinksSection(bool isDark) {

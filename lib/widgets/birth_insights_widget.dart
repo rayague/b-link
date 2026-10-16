@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
+/// "Le saviez-vous ?" : petites anecdotes sur une date de naissance.
+///
+/// Sur son propre profil, le texte s'adresse à l'utilisateur ("vous") ; sur
+/// le profil public d'une autre personne ([personName] non nul), il parle de
+/// cette personne. Les anecdotes restent factuelles : pas de "météo probable"
+/// (l'app est mondiale), et les saisons précisent l'hémisphère.
 class BirthInsightsWidget extends StatelessWidget {
   final DateTime birthDate;
   final String? birthTime;
   final String? birthPlace;
   final String? birthCountry;
+
+  /// Prénom/nom de la personne si ce n'est pas l'utilisateur lui-même
+  /// ("" = autre personne dont le nom n'est pas public).
+  final String? personName;
 
   const BirthInsightsWidget({
     super.key,
@@ -12,12 +24,18 @@ class BirthInsightsWidget extends StatelessWidget {
     this.birthTime,
     this.birthPlace,
     this.birthCountry,
+    this.personName,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final insights = _generateInsights();
+    final lang = AppLocalizations.of(context).locale.languageCode == 'fr'
+        ? 'fr'
+        : 'en';
+    final insights = birthInsights(birthDate, DateTime.now(), lang,
+        personName: personName);
+    final header = _header[lang]!;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -67,7 +85,7 @@ class BirthInsightsWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Le saviez-vous ?',
+                      header.title,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -75,7 +93,7 @@ class BirthInsightsWidget extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Découvrez votre jour de naissance',
+                      header.subtitle,
                       style: TextStyle(
                         fontSize: 12,
                         color:
@@ -94,7 +112,12 @@ class BirthInsightsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildInsightCard(Map<String, dynamic> insight, bool isDark) {
+  static const _header = {
+    'fr': (title: 'Le saviez-vous ?', subtitle: 'Petites histoires autour d\'une date de naissance'),
+    'en': (title: 'Did you know?', subtitle: 'Little stories about a birth date'),
+  };
+
+  Widget _buildInsightCard(BirthInsight insight, bool isDark) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -111,14 +134,10 @@ class BirthInsightsWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (insight['color'] as Color).withValues(alpha: 0.1),
+              color: insight.color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              insight['icon'] as IconData,
-              color: insight['color'] as Color,
-              size: 24,
-            ),
+            child: Icon(insight.icon, color: insight.color, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -126,7 +145,7 @@ class BirthInsightsWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  insight['title'] as String,
+                  insight.title,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -135,7 +154,7 @@ class BirthInsightsWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  insight['description'] as String,
+                  insight.description,
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
@@ -149,196 +168,177 @@ class BirthInsightsWidget extends StatelessWidget {
       ),
     );
   }
+}
 
-  List<Map<String, dynamic>> _generateInsights() {
-    final insights = <Map<String, dynamic>>[];
+/// Une anecdote affichée dans l'encart.
+class BirthInsight {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String description;
+  const BirthInsight(this.icon, this.color, this.title, this.description);
+}
 
-    // Day of week
-    final dayOfWeek = _getDayOfWeek(birthDate.weekday);
-    insights.add({
-      'icon': Icons.calendar_today_rounded,
-      'color': const Color(0xFF3B82F6),
-      'title': 'Jour de la semaine',
-      'description':
-          'Vous êtes né(e) un ${dayOfWeek.toLowerCase()}. ${_getDayCharacteristic(birthDate.weekday)}',
-    });
+/// Anecdotes pour [birthDate] (fonction pure, testable).
+///
+/// [personName] null : on s'adresse à l'utilisateur. Non nul : on parle d'une
+/// autre personne (son nom si non vide, sinon "cette personne").
+List<BirthInsight> birthInsights(DateTime birthDate, DateTime now, String lang,
+    {String? personName}) {
+  final fr = lang == 'fr';
+  final self = personName == null;
+  final who = self
+      ? null
+      : (personName.trim().isNotEmpty
+          ? personName.trim()
+          : (fr ? 'Cette personne' : 'This person'));
 
-    // Season
-    final season = _getSeason(birthDate.month);
-    insights.add({
-      'icon': _getSeasonIcon(birthDate.month),
-      'color': _getSeasonColor(birthDate.month),
-      'title': 'Saison de naissance',
-      'description':
-          'Vous êtes un enfant de l\'$season. ${_getSeasonCharacteristic(birthDate.month)}',
-    });
+  final weekday = birthDate.weekday - 1; // 0 = lundi
+  final days = fr
+      ? const ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
+      : const ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  final dayTraits = fr
+      ? const [
+          'La tradition associe le lundi à l\'intuition et à la sensibilité.',
+          'La tradition associe le mardi à l\'énergie et au courage.',
+          'La tradition associe le mercredi à la communication et à l\'adaptabilité.',
+          'La tradition associe le jeudi à la chance et à l\'ouverture.',
+          'La tradition associe le vendredi à la créativité et à l\'harmonie.',
+          'La tradition associe le samedi à la discipline et à la sagesse.',
+          'La tradition associe le dimanche au rayonnement et à la vitalité.',
+        ]
+      : const [
+          'Tradition links Monday with intuition and sensitivity.',
+          'Tradition links Tuesday with energy and courage.',
+          'Tradition links Wednesday with communication and adaptability.',
+          'Tradition links Thursday with luck and open-mindedness.',
+          'Tradition links Friday with creativity and harmony.',
+          'Tradition links Saturday with discipline and wisdom.',
+          'Tradition links Sunday with radiance and vitality.',
+        ];
+  final dayLine = self
+      ? (fr
+          ? 'Vous avez vu le jour un ${days[weekday]}.'
+          : 'You were born on a ${days[weekday]}.')
+      : (fr
+          ? '$who a vu le jour un ${days[weekday]}.'
+          : '$who was born on a ${days[weekday]}.');
 
-    // Moon phase (approximation)
-    final moonPhase = _getMoonPhase(birthDate);
-    insights.add({
-      'icon': Icons.nightlight_round,
-      'color': const Color(0xFF8B5CF6),
-      'title': 'Phase lunaire',
-      'description': moonPhase,
-    });
+  // Saison astronomique de l'hémisphère nord (précisé : l'app est mondiale).
+  final m = birthDate.month;
+  final season = m >= 3 && m <= 5
+      ? 0
+      : m >= 6 && m <= 8
+          ? 1
+          : m >= 9 && m <= 11
+              ? 2
+              : 3;
+  final seasonNames = fr
+      ? const ['au printemps', 'en été', 'en automne', 'en hiver']
+      : const ['in spring', 'in summer', 'in autumn', 'in winter'];
+  final seasonSouth = fr
+      ? const ['l\'automne', 'l\'hiver', 'le printemps', 'l\'été']
+      : const ['autumn', 'winter', 'spring', 'summer'];
+  final seasonIcons = const [
+    Icons.local_florist_rounded,
+    Icons.wb_sunny_rounded,
+    Icons.spa_rounded,
+    Icons.ac_unit_rounded,
+  ];
+  final seasonColors = const [
+    Color(0xFFEC4899),
+    Color(0xFFF59E0B),
+    Color(0xFF8B5CF6),
+    Color(0xFF3B82F6),
+  ];
+  final seasonLine = fr
+      ? 'Une naissance ${seasonNames[season]} dans l\'hémisphère nord, '
+          'et ${seasonSouth[season]} dans l\'hémisphère sud.'
+      : 'A birthday ${seasonNames[season]} in the Northern Hemisphere, '
+          'and in ${seasonSouth[season]} in the Southern Hemisphere.';
 
-    // Historical context
-    final yearInsight = _getYearInsight(birthDate.year);
-    insights.add({
-      'icon': Icons.history_edu_rounded,
-      'color': const Color(0xFFEC4899),
-      'title': 'Contexte historique',
-      'description': yearInsight,
-    });
+  // Phase lunaire (approximation à partir d'une nouvelle lune de référence).
+  const lunarMonth = 29.53059;
+  final knownNewMoon = DateTime(2000, 1, 6, 18, 14);
+  final phase =
+      ((birthDate.difference(knownNewMoon).inHours / 24) % lunarMonth) /
+          lunarMonth;
+  final phaseIndex = ((phase * 8) + 0.5).floor() % 8;
+  final moons = fr
+      ? const [
+          'une Nouvelle Lune 🌑, symbole de nouveaux départs',
+          'un Premier Croissant 🌒, période de croissance',
+          'un Premier Quartier 🌓, symbole d\'action',
+          'une Lune Gibbeuse Croissante 🌔, signe d\'élan',
+          'une Pleine Lune 🌕, moment de plénitude',
+          'une Lune Gibbeuse Décroissante 🌖, temps du partage',
+          'un Dernier Quartier 🌗, période de transformation',
+          'un Dernier Croissant 🌘, symbole de sagesse',
+        ]
+      : const [
+          'a New Moon 🌑, a symbol of new beginnings',
+          'a Waxing Crescent 🌒, a time of growth',
+          'a First Quarter moon 🌓, a symbol of action',
+          'a Waxing Gibbous moon 🌔, a sign of momentum',
+          'a Full Moon 🌕, a moment of fullness',
+          'a Waning Gibbous moon 🌖, a time for sharing',
+          'a Last Quarter moon 🌗, a time of transformation',
+          'a Waning Crescent 🌘, a symbol of wisdom',
+        ];
+  final moonLine = fr
+      ? 'Le ciel de cette nuit-là montrait ${moons[phaseIndex]}.'
+      : 'The sky that night showed ${moons[phaseIndex]}.';
 
-    // Age in days
-    final ageInDays = DateTime.now().difference(birthDate).inDays;
-    insights.add({
-      'icon': Icons.timer_outlined,
-      'color': const Color(0xFF10B981),
-      'title': 'Votre vie en chiffres',
-      'description':
-          'Vous avez vécu ${_formatNumber(ageInDays)} jours, soit environ ${_formatNumber((ageInDays * 24).toInt())} heures !',
-    });
+  final y = birthDate.year;
+  final generation = fr
+      ? (y >= 2010
+          ? 'la Génération Alpha, les premiers vrais natifs du numérique'
+          : y >= 1997
+              ? 'la Génération Z, créative et connectée'
+              : y >= 1981
+                  ? 'la génération des Millennials, témoin de la révolution numérique'
+                  : y >= 1965
+                      ? 'la Génération X, indépendante et pragmatique'
+                      : y >= 1946
+                          ? 'la génération du Baby-boom, porteuse d\'idéaux et de changements'
+                          : 'la Génération silencieuse, gardienne de la mémoire')
+      : (y >= 2010
+          ? 'Generation Alpha, the first true digital natives'
+          : y >= 1997
+              ? 'Generation Z, creative and connected'
+              : y >= 1981
+                  ? 'the Millennials, who witnessed the digital revolution'
+                  : y >= 1965
+                      ? 'Generation X, independent and pragmatic'
+                      : y >= 1946
+                          ? 'the Baby Boomers, carriers of ideals and change'
+                          : 'the Silent Generation, keepers of memory');
+  final generationLine = self
+      ? (fr ? 'Vous faites partie de $generation.' : 'You belong to $generation.')
+      : (fr ? '$who fait partie de $generation.' : '$who belongs to $generation.');
 
-    // Weather characteristic (fun fact based on season and month)
-    insights.add({
-      'icon': Icons.wb_sunny_outlined,
-      'color': const Color(0xFFF59E0B),
-      'title': 'Météo probable',
-      'description':
-          _getWeatherInsight(birthDate.month, birthPlace, birthCountry),
-    });
+  final ageInDays = now.difference(birthDate).inDays;
+  String fmt(int n) => n.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}${fr ? ' ' : ','}');
+  final lifeLine = self
+      ? (fr
+          ? 'Vous avez déjà vécu ${fmt(ageInDays)} jours, soit environ ${fmt(ageInDays * 24)} heures !'
+          : 'You have already lived ${fmt(ageInDays)} days, or about ${fmt(ageInDays * 24)} hours!')
+      : (fr
+          ? '$who a déjà vécu ${fmt(ageInDays)} jours, soit environ ${fmt(ageInDays * 24)} heures !'
+          : '$who has already lived ${fmt(ageInDays)} days, or about ${fmt(ageInDays * 24)} hours!');
 
-    return insights;
-  }
-
-  String _getDayOfWeek(int weekday) {
-    const days = [
-      'Lundi',
-      'Mardi',
-      'Mercredi',
-      'Jeudi',
-      'Vendredi',
-      'Samedi',
-      'Dimanche'
-    ];
-    return days[weekday - 1];
-  }
-
-  String _getDayCharacteristic(int weekday) {
-    const characteristics = [
-      'Les personnes nées le lundi sont souvent intuitives et émotionnelles.',
-      'Les natifs du mardi sont énergiques et courageux.',
-      'Ceux nés le mercredi sont communicatifs et adaptables.',
-      'Les jeudis sont associés à la chance et l\'expansion.',
-      'Le vendredi apporte créativité et harmonie.',
-      'Les samedis donnent discipline et sagesse.',
-      'Le dimanche confère leadership et vitalité.',
-    ];
-    return characteristics[weekday - 1];
-  }
-
-  String _getSeason(int month) {
-    if (month >= 3 && month <= 5) return 'printemps';
-    if (month >= 6 && month <= 8) return 'été';
-    if (month >= 9 && month <= 11) return 'automne';
-    return 'hiver';
-  }
-
-  IconData _getSeasonIcon(int month) {
-    if (month >= 3 && month <= 5) return Icons.local_florist_rounded;
-    if (month >= 6 && month <= 8) return Icons.wb_sunny_rounded;
-    if (month >= 9 && month <= 11) return Icons.spa_rounded;
-    return Icons.ac_unit_rounded;
-  }
-
-  Color _getSeasonColor(int month) {
-    if (month >= 3 && month <= 5) return const Color(0xFFEC4899);
-    if (month >= 6 && month <= 8) return const Color(0xFFF59E0B);
-    if (month >= 9 && month <= 11) return const Color(0xFF8B5CF6);
-    return const Color(0xFF3B82F6);
-  }
-
-  String _getSeasonCharacteristic(int month) {
-    if (month >= 3 && month <= 5) {
-      return 'Les enfants du printemps sont souvent optimistes et pleins de vie.';
-    }
-    if (month >= 6 && month <= 8) {
-      return 'Les natifs de l\'été rayonnent d\'énergie et de chaleur humaine.';
-    }
-    if (month >= 9 && month <= 11) {
-      return 'Les âmes d\'automne sont contemplatives et créatives.';
-    }
-    return 'Les enfants de l\'hiver sont résilients et sages.';
-  }
-
-  String _getMoonPhase(DateTime date) {
-    // Simplified moon phase calculation (approximation)
-    const lunarMonth = 29.53059;
-    final knownNewMoon = DateTime(2000, 1, 6, 18, 14);
-    final daysSinceNewMoon = date.difference(knownNewMoon).inDays;
-    final phase = (daysSinceNewMoon % lunarMonth) / lunarMonth;
-
-    if (phase < 0.0625 || phase >= 0.9375) {
-      return 'Vous êtes né(e) lors d\'une Nouvelle Lune 🌑, symbole de nouveaux départs.';
-    } else if (phase < 0.1875) {
-      return 'Votre naissance a eu lieu durant le Premier Croissant 🌒, période de croissance.';
-    } else if (phase < 0.3125) {
-      return 'Né(e) sous le Premier Quartier 🌓, symbole d\'action et de décision.';
-    } else if (phase < 0.4375) {
-      return 'La Lune Gibbeuse Croissante 🌔 éclairait votre naissance, signe de perfectionnement.';
-    } else if (phase < 0.5625) {
-      return 'Vous êtes né(e) lors d\'une Pleine Lune 🌕, moment de plénitude et de révélation.';
-    } else if (phase < 0.6875) {
-      return 'La Lune Gibbeuse Décroissante 🌖 marquait votre naissance, temps de partage.';
-    } else if (phase < 0.8125) {
-      return 'Né(e) sous le Dernier Quartier 🌗, période de libération et de transformation.';
-    } else {
-      return 'Le Dernier Croissant 🌘 accompagnait votre naissance, symbole de sagesse.';
-    }
-  }
-
-  String _getYearInsight(int year) {
-    if (year >= 2010) {
-      return 'Vous faites partie de la Génération Alpha, les premiers vrais natifs du numérique !';
-    } else if (year >= 1997) {
-      return 'Vous êtes de la Génération Z, créatifs et technophiles.';
-    } else if (year >= 1981) {
-      return 'Vous êtes un Millennial, témoin de la révolution digitale.';
-    } else if (year >= 1965) {
-      return 'Vous appartenez à la Génération X, indépendants et pragmatiques.';
-    } else if (year >= 1946) {
-      return 'Vous êtes un Baby Boomer, porteur d\'idéaux et de changements.';
-    } else {
-      return 'Vous appartenez à la Génération Silencieuse, gardienne de sagesse.';
-    }
-  }
-
-  String _formatNumber(int number) {
-    return number.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]} ',
-        );
-  }
-
-  String _getWeatherInsight(int month, String? place, String? country) {
-    final location = place != null && country != null
-        ? 'à $place, $country'
-        : place != null
-            ? 'à $place'
-            : country != null
-                ? 'en $country'
-                : '';
-
-    if (month == 12 || month == 1 || month == 2) {
-      return 'En hiver $location, il faisait probablement froid. Peut-être neigeait-il ? ❄️';
-    } else if (month >= 3 && month <= 5) {
-      return 'Le printemps $location apportait sûrement douceur et fleurs. Les oiseaux chantaient ! 🌸';
-    } else if (month >= 6 && month <= 8) {
-      return 'L\'été $location était chaud et ensoleillé. Les vacances d\'été battaient leur plein ! ☀️';
-    } else {
-      return 'L\'automne $location peignait les arbres de couleurs chaudes. La rentrée approchait ! 🍂';
-    }
-  }
+  return [
+    BirthInsight(Icons.calendar_today_rounded, const Color(0xFF3B82F6),
+        fr ? 'Jour de la semaine' : 'Day of the week',
+        '$dayLine ${dayTraits[weekday]}'),
+    BirthInsight(seasonIcons[season], seasonColors[season],
+        fr ? 'Saison de naissance' : 'Birth season', seasonLine),
+    BirthInsight(Icons.nightlight_round, const Color(0xFF8B5CF6),
+        fr ? 'Phase lunaire' : 'Moon phase', moonLine),
+    BirthInsight(Icons.history_edu_rounded, const Color(0xFFEC4899),
+        fr ? 'Génération' : 'Generation', generationLine),
+    BirthInsight(Icons.timer_outlined, const Color(0xFF10B981),
+        fr ? 'Une vie en chiffres' : 'A life in numbers', lifeLine),
+  ];
 }
