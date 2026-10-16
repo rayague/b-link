@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../providers/theme_provider.dart';
-import '../providers/locale_provider.dart';
-import '../providers/contact_provider.dart';
+
 import '../l10n/app_localizations.dart';
-import '../widgets/greeting_card.dart';
-import '../utils/relations.dart';
-import '../utils/birthday.dart';
-import '../services/message_repository.dart';
+import '../models/contact.dart';
+import '../providers/contact_provider.dart';
+import '../providers/locale_provider.dart';
+import '../providers/profile_provider.dart';
+import '../providers/theme_provider.dart';
 import '../services/analytics_service.dart';
+import '../services/messaging_service.dart';
+import '../theme/app_theme.dart';
+import '../utils/birthday.dart';
+import '../utils/birthday_labels.dart';
+import '../utils/relations.dart';
+import '../widgets/contact_avatar.dart';
+import '../widgets/message_sheet.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/reminder_settings_section.dart';
-import '../services/messaging_service.dart';
-import '../utils/account_actions.dart' as account;
-import 'dart:math' as math;
+import '../widgets/ui/components.dart';
+import '../widgets/ui/glass.dart';
 
+/// Accueil : l'anniversaire du jour (ou le prochain), les suivants, et
+/// l'accès aux autres espaces.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -23,1071 +30,402 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+class _HomeScreenState extends State<HomeScreen> {
+  /// Fenêtre des anniversaires listés sur l'accueil.
+  static const _horizonDays = 30;
 
   @override
   void initState() {
     super.initState();
-
-    // Analytics: Log screen view
-    AnalyticsService().logScreenView(
-      screenName: 'HomeScreen',
-      screenClass: 'HomeScreen',
-    );
-
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+    AnalyticsService().logScreenView(screenName: 'HomeScreen');
   }
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context);
-    final contacts = Provider.of<ContactProvider>(context);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
+    final contacts = context.watch<ContactProvider>();
+    final profile = context.watch<ProfileProvider>().profile;
+    final now = DateTime.now();
 
-    // Upcoming birthdays
-    final upcomingBirthdays = contacts.upcoming(7);
+    final upcoming = [
+      for (final contact in contacts.upcoming(_horizonDays, now: now))
+        (contact, daysUntilBirthday(parseBirthDate(contact.date)!, now)),
+    ];
+    final today = [for (final u in upcoming) if (u.$2 == 0) u.$1];
+    final later = [for (final u in upcoming) if (u.$2 > 0) u];
+    // Le premier à venir est déjà sur la carte principale s'il n'y a pas
+    // d'anniversaire aujourd'hui.
+    final listed = later.skip(today.isEmpty ? 1 : 0).take(5).toList();
+    final firstName = profile?.givenName?.trim().isNotEmpty == true
+        ? profile!.givenName!.trim()
+        : (profile?.name.trim().split(RegExp(r'\s+')).first ?? '');
 
-    return Scaffold(
+    return AppScaffold(
+      actions: [
+        IconButton(
+          tooltip: l10n.translate('settings'),
+          icon: const Icon(Icons.tune_rounded),
+          onPressed: () => showGlassSheet<void>(
+            context,
+            builder: (_) => const SettingsSheet(),
+          ),
+        ),
+      ],
       body: Column(
         children: [
-          OfflineBanner(), // Afficher le banner si hors ligne
           Expanded(
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // Modern App Bar with gradient
-                SliverAppBar(
-                  expandedHeight: 160,
-                  floating: false,
-                  pinned: true,
-                  elevation: 0,
-                  backgroundColor: Colors.transparent,
-                  flexibleSpace: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: isDark
-                            ? [const Color(0xFF1E3A8A), const Color(0xFF3B82F6)]
-                            : [
-                                const Color(0xFF3B82F6),
-                                const Color(0xFF60A5FA),
-                                const Color(0xFF93C5FD)
-                              ],
-                      ),
-                    ),
-                    child: FlexibleSpaceBar(
-                      titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-                      title: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.cake_outlined,
-                                color: Colors.white, size: 20),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            loc.translate('appTitle'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      background: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          // Animated circles background
-                          Positioned(
-                            right: -50,
-                            top: -50,
-                            child: Container(
-                              width: 200,
-                              height: 200,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withValues(alpha: 0.1),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: -30,
-                            bottom: -30,
-                            child: Container(
-                              width: 150,
-                              height: 150,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withValues(alpha: 0.08),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined,
-                          color: Colors.white),
-                      onPressed: () => _showSettingsSheet(context),
-                    ),
-                  ],
-                ),
-
-                // Content
-                SliverToBoxAdapter(
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Quick Stats Card
-                            _buildStatsCard(context, contacts, loc, isDark),
-                            const SizedBox(height: 24),
-
-                            // Upcoming Birthdays Section
-                            if (upcomingBirthdays.isNotEmpty) ...[
-                              _buildSectionHeader(context,
-                                  '🎉 ${loc.translate("celebrations")}', () {
-                                Navigator.of(context).pushNamed('/same-day');
-                              }),
-                              const SizedBox(height: 12),
-                              ...upcomingBirthdays.take(3).map((contact) =>
-                                  _buildUpcomingBirthdayCard(
-                                      context, contact, isDark)),
-                              const SizedBox(height: 24),
-                            ],
-
-                            // Quick Actions
-                            _buildSectionHeader(context,
-                                '⚡ ${loc.translate("quickActions")}', null),
-                            const SizedBox(height: 12),
-                            _buildQuickActions(context, loc, isDark),
-
-                            // Extra spacing for FAB
-                            const SizedBox(height: 80),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ), // Fermeture Expanded
-        ], // Fermeture Column children
-      ), // Fermeture Column
-      floatingActionButton: null, // Removed to avoid overlap
-    );
-  }
-
-  Widget _buildStatsCard(BuildContext context, ContactProvider contacts,
-      AppLocalizations loc, bool isDark) {
-    final totalContacts = contacts.contacts.length;
-    final contactsWithBirthday =
-        contacts.contacts.where((c) => c.date.isNotEmpty).length;
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF1F2937), const Color(0xFF374151)]
-              : [Colors.white, Colors.grey[50]!],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black26 : Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.people_alt_rounded,
-                    color: Colors.white, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      loc.translate('yourContacts'),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$totalContacts ${loc.translate("contactsCount")}',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.grey[900],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildStatItem(
-                Icons.cake_rounded,
-                '$contactsWithBirthday',
-                loc.translate('birthdaysLabel'),
-                const Color(0xFFEC4899),
-                isDark,
-              ),
-              const SizedBox(width: 16),
-              _buildStatItem(
-                Icons.notifications_active_rounded,
-                '${contacts.contacts.where((c) => c.date.isNotEmpty).length}',
-                loc.translate('activeLabel'),
-                const Color(0xFF10B981),
-                isDark,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(
-      IconData icon, String value, String label, Color color, bool isDark) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: ListView(
+              padding: AppScaffold.pagePadding(context, top: Space.l),
               children: [
                 Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.grey[900],
-                  ),
+                  DateFormat.MMMMEEEEd(l10n.locale.languageCode)
+                      .format(now)
+                      .toUpperCase(),
+                  style: t.labelSmall?.copyWith(color: c.onSurfaceVariant),
                 ),
+                const SizedBox(height: Space.xs),
                 Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
-                  ),
+                  firstName.isEmpty
+                      ? l10n.translate('helloNoName')
+                      : l10n.translate('hello').replaceAll('{name}', firstName),
+                  style: t.headlineMedium,
                 ),
+                const SizedBox(height: Space.xl),
+                _HeroCard(today: today, next: later.isEmpty ? null : later.first),
+                const SizedBox(height: Space.m),
+                _StatsRow(contacts: contacts.contacts, now: now),
+                if (listed.isNotEmpty) ...[
+                  SectionHeader(
+                    l10n.translate('upcomingTitle'),
+                    actionLabel: l10n.translate('viewAll'),
+                    onAction: () => Navigator.of(context).pushNamed('/list'),
+                  ),
+                  GlassCard(
+                    padding: const EdgeInsets.symmetric(vertical: Space.xs),
+                    child: Column(
+                      children: [
+                        for (final (i, (contact, days)) in listed.indexed) ...[
+                          if (i > 0) const Divider(indent: 72),
+                          _UpcomingTile(contact: contact, days: days),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+                SectionHeader(l10n.translate('exploreTitle')),
+                const _ExploreGrid(),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(
-      BuildContext context, String title, VoidCallback? onTap) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
           ),
-        ),
-        if (onTap != null)
-          TextButton(
-            onPressed: onTap,
-            child: Text(AppLocalizations.of(context).translate('viewAll')),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildUpcomingBirthdayCard(
-      BuildContext context, dynamic contact, bool isDark) {
-    final bdayStr = contact.date;
-    if (bdayStr.isEmpty) return const SizedBox.shrink();
-
-    final bday = DateTime.tryParse(bdayStr);
-    if (bday == null) return const SizedBox.shrink();
-
-    final daysUntil = daysUntilBirthday(bday, DateTime.now());
-
-    final loc = AppLocalizations.of(context);
-    String subtitleText;
-    if (daysUntil == 0) {
-      subtitleText = loc.translate('today');
-    } else if (daysUntil == 1) {
-      subtitleText =
-          loc.translate('inDays').replaceAll('{count}', '$daysUntil');
-    } else {
-      subtitleText =
-          loc.translate('inDaysPlural').replaceAll('{count}', '$daysUntil');
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1F2937) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
+          const OfflineBanner(),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color((math.Random(contact.name.hashCode).nextDouble() *
-                            0xFFFFFF)
-                        .toInt())
-                    .withValues(alpha: 1.0),
-                Color((math.Random(contact.name.hashCode + 1).nextDouble() *
-                            0xFFFFFF)
-                        .toInt())
-                    .withValues(alpha: 1.0),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Text(
-              contact.name[0].toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-        title: Text(
-          contact.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Column(
+    );
+  }
+}
+
+/// Carte principale : les anniversaires du jour, sinon le prochain.
+class _HeroCard extends StatelessWidget {
+  final List<Contact> today;
+  final (Contact, int)? next;
+  const _HeroCard({required this.today, required this.next});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
+
+    if (today.isNotEmpty) {
+      final first = today.first;
+      final names = today.map((x) => x.name).join(', ');
+      final birth = parseBirthDate(first.date);
+      final age = birth == null ? null : ageAtNextBirthday(birth, DateTime.now());
+      return GlassCard(
+        tint: c.secondary,
+        padding: const EdgeInsets.all(Space.xl),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Pill(l10n.translate('todayShort'),
+                tone: Tone.accent, icon: Icons.cake_outlined, strong: true),
+            const SizedBox(height: Space.l),
+            Text(names, style: t.headlineSmall),
+            const SizedBox(height: Space.xs),
             Text(
-              subtitleText,
-              style: TextStyle(
-                color: daysUntil == 0 ? const Color(0xFFEC4899) : null,
-                fontWeight: daysUntil == 0 ? FontWeight.w600 : null,
-              ),
+              today.length == 1 && age != null
+                  ? l10n.translate('turnsAgeToday').replaceAll('{age}', '$age')
+                  : l10n.translate('birthdayToday'),
+              style: t.bodyMedium?.copyWith(color: c.onSurfaceVariant),
             ),
-            if (daysUntil == 0) ...[
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: () => _generateBirthdayMessage(context, contact),
-                icon: const Icon(Icons.card_giftcard, size: 16),
-                label: Text(AppLocalizations.of(context).translate('generateMessage'),
-                    style: const TextStyle(fontSize: 12)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEC4899),
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  minimumSize: const Size(0, 32),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEC4899).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            '${bday.day}/${bday.month}',
-            style: const TextStyle(
-              color: Color(0xFFEC4899),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Génère et affiche un message d'anniversaire depuis la base de données
-  Future<void> _generateBirthdayMessage(
-      BuildContext context, dynamic contact) async {
-    try {
-      final messageRepo = MessageRepository();
-      final relation = contact.relation ?? 'default';
-      final name = contact.name ?? 'Contact';
-
-      // Récupérer un message aléatoire selon la relation
-      final message = await messageRepo.getRandomForRelation(relation, name,
-          lang: AppLocalizations.of(context).locale.languageCode);
-
-      if (!context.mounted) return;
-
-      // Afficher le message dans un dialogue avec possibilité de copie
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1D1E33),
-          title: Row(
-            children: [
-              const Text('🎂', style: TextStyle(fontSize: 28)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Message pour $name',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEC4899).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '📝 ${AppLocalizations.of(context).translate('category')}: ${relationLabel(AppLocalizations.of(context), relation)}',
-                    style: const TextStyle(
-                      color: Color(0xFFEC4899),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0A0E21),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF3A3E5B)),
-                  ),
-                  child: SelectableText(
-                    message,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      height: 1.6,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  AppLocalizations.of(context).translate('copyHelp'),
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton.icon(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: message));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          const Icon(Icons.check_circle, color: Colors.white),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              AppLocalizations.of(context).translate('messageCopied'),
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        ],
-                      ),
-                      backgroundColor: Colors.green,
-                      duration: const Duration(seconds: 3),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                  Navigator.pop(context);
-                }
-              },
-              icon: const Icon(Icons.copy_all, color: Color(0xFFEC4899)),
-              label: Text(
-                AppLocalizations.of(context).translate('copyMessage'),
-                style: const TextStyle(
-                    color: Color(0xFFEC4899), fontWeight: FontWeight.bold),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: () => showGreetingCardDialog(context,
-                  name: name, message: message, relation: relation),
-              icon: const Icon(Icons.image_outlined, color: Color(0xFFFBBF24)),
-              label: Text(
-                AppLocalizations.of(context).translate('makeCard'),
-                style: const TextStyle(color: Color(0xFFFBBF24)),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                AppLocalizations.of(context).translate('close'),
-                style: const TextStyle(color: Colors.white70),
-              ),
+            const SizedBox(height: Space.l),
+            FilledButton.icon(
+              onPressed: () => showBirthdayMessageSheet(context,
+                  name: first.name, relation: first.relation),
+              icon: const Icon(Icons.edit_note_rounded),
+              label: Text(l10n.translate('writeMessage')),
             ),
           ],
         ),
       );
-    } catch (e) {
-      debugPrint('❌ Erreur génération message: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Erreur: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
-  }
 
-  Widget _buildQuickActions(
-      BuildContext context, AppLocalizations loc, bool isDark) {
-    final actions = [
-      _QuickAction(
-        icon: Icons.person_add_rounded,
-        label: loc.translate('addContactAction'),
-        gradient: const [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-        onTap: () => Navigator.of(context).pushNamed('/list'),
-      ),
-      _QuickAction(
-        icon: Icons.stars_rounded,
-        label: loc.translate('myZodiac'),
-        gradient: const [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-        onTap: () => Navigator.of(context).pushNamed('/zodiac'),
-      ),
-      _QuickAction(
-        icon: Icons.cake_rounded,
-        label: loc.translate('sameDayAction'),
-        gradient: const [Color(0xFFEC4899), Color(0xFFF472B6)],
-        onTap: () => Navigator.of(context).pushNamed('/same-day'),
-      ),
-      _QuickAction(
-        icon: Icons.person_rounded,
-        label: loc.translate('myProfileAction'),
-        gradient: const [Color(0xFF10B981), Color(0xFF34D399)],
-        onTap: () => Navigator.of(context).pushNamed('/profile'),
-      ),
-    ];
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.5,
-      ),
-      itemCount: actions.length,
-      itemBuilder: (context, index) {
-        final action = actions[index];
-        return InkWell(
-          onTap: action.onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: action.gradient),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: action.gradient[0].withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(action.icon, color: Colors.white, size: 32),
-                const SizedBox(height: 8),
-                Text(
-                  action.label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showSettingsSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      // Défilable : la feuille contient thème, langue et rappels.
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        maxChildSize: 0.95,
-        builder: (context, controller) => SingleChildScrollView(
-          controller: controller,
-          child: const CustomSettingsSheet(),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickAction {
-  final IconData icon;
-  final String label;
-  final List<Color> gradient;
-  final VoidCallback onTap;
-
-  _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.gradient,
-    required this.onTap,
-  });
-}
-
-class CustomAppDrawer extends StatelessWidget {
-  const CustomAppDrawer({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final themeProv = Provider.of<ThemeProvider>(context);
-    final localeProv = Provider.of<LocaleProvider>(context);
-    final loc = AppLocalizations.of(context);
-
-    return Drawer(
-      child: SafeArea(
+    final n = next;
+    if (n == null) {
+      return GlassCard(
+        padding: const EdgeInsets.all(Space.xl),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DrawerHeader(
-              decoration:
-                  BoxDecoration(color: Theme.of(context).colorScheme.primary),
-              child: Center(
-                child: Row(
+            const IconBadge(Icons.event_available_outlined),
+            const SizedBox(height: Space.l),
+            Text(l10n.translate('noUpcomingBirthdays'), style: t.titleMedium),
+            const SizedBox(height: Space.xs),
+            Text(l10n.translate('noUpcomingHint'),
+                style: t.bodyMedium?.copyWith(color: c.onSurfaceVariant)),
+            const SizedBox(height: Space.l),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).pushNamed('/list'),
+              icon: const Icon(Icons.person_add_alt_rounded),
+              label: Text(l10n.translate('addContactAction')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final (contact, days) = n;
+    final birth = parseBirthDate(contact.date)!;
+    final age = ageAtNextBirthday(birth, DateTime.now());
+    return GlassCard(
+      padding: const EdgeInsets.all(Space.xl),
+      onTap: () => Navigator.of(context).pushNamed('/detail', arguments: contact),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.translate('nextBirthday').toUpperCase(),
+              style: t.labelSmall?.copyWith(color: c.onSurfaceVariant)),
+          const SizedBox(height: Space.l),
+          Row(
+            children: [
+              ContactAvatar(
+                  name: contact.name, imagePath: contact.imageUri, size: 56),
+              const SizedBox(width: Space.l),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Image.asset('assets/logoApp.jpg', height: 56),
-                    const SizedBox(width: 12),
-                    Expanded(
-                        child: Text(loc.translate('appTitle'),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 20))),
+                    Text(contact.name,
+                        style: t.titleLarge,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        dayMonthLabel(l10n, birth),
+                        if (age != null)
+                          l10n.translate('turnsAge').replaceAll('{age}', '$age'),
+                      ].join(' · '),
+                      style: t.bodyMedium?.copyWith(color: c.onSurfaceVariant),
+                    ),
                   ],
                 ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: Text(loc.translate('home')),
-              onTap: () => Navigator.of(context).pop(),
-            ),
-            ListTile(
-              leading: const Icon(Icons.people),
-              title: Text(loc.translate('contacts')),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pushNamed('/list');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: Text(loc.translate('myProfile')),
-              onTap: () {
-                Navigator.of(context).pushNamed('/profile');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.card_giftcard),
-              title: Text(loc.translate('celebrations')),
-              onTap: () {
-                Navigator.of(context).pushNamed('/same-day');
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.brightness_6),
-              title: Text(loc.translate('changeTheme')),
-              subtitle: Text(themeProv.mode == ThemeMode.dark
-                  ? loc.translate('dark')
-                  : themeProv.mode == ThemeMode.light
-                      ? loc.translate('light')
-                      : loc.translate('system')),
-              onTap: () {
-                // cycle theme
-                if (themeProv.mode == ThemeMode.system) {
-                  themeProv.setMode(ThemeMode.light);
-                } else if (themeProv.mode == ThemeMode.light) {
-                  themeProv.setMode(ThemeMode.dark);
-                } else {
-                  themeProv.setMode(ThemeMode.system);
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.language),
-              title: Text(loc.translate('changeLanguage')),
-              subtitle: Text(localeProv.locale.languageCode.toUpperCase()),
-              onTap: () {
-                // toggle en/fr
-                if (localeProv.locale.languageCode == 'en') {
-                  changeAppLocale(context, 'fr');
-                } else {
-                  changeAppLocale(context, 'en');
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: Text(loc.translate('logout')),
-              // La confirmation s'ouvre par-dessus le menu : le fermer avant
-              // démonterait ce context.
-              onTap: () => account.signOut(context),
-            ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child:
-                  Text('v1.0.0', style: Theme.of(context).textTheme.bodySmall),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Modern Settings Bottom Sheet
-class CustomSettingsSheet extends StatelessWidget {
-  const CustomSettingsSheet({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final themeProv = Provider.of<ThemeProvider>(context);
-    final localeProv = Provider.of<LocaleProvider>(context);
-    final loc = AppLocalizations.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1F2937) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
+            ],
+          ),
+          const SizedBox(height: Space.l),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.settings_rounded,
-                    color: Colors.white, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(context).translate('settings'),
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.close_rounded,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
-                onPressed: () => Navigator.pop(context),
+              Text('$days', style: t.displaySmall?.copyWith(color: c.primary)),
+              const SizedBox(width: Space.s),
+              Text(
+                l10n.translate(days == 1 ? 'dayLeft' : 'daysLeft'),
+                style: t.bodyLarge?.copyWith(color: c.onSurfaceVariant),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-
-          // Theme Selector
-          Text(
-            '🎨 ${loc.translate("changeTheme")}',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildThemeOption(
-                context,
-                Icons.light_mode_rounded,
-                loc.translate('light'),
-                themeProv.mode == ThemeMode.light,
-                () => themeProv.setMode(ThemeMode.light),
-                const Color(0xFFFCD34D),
-                isDark,
-              ),
-              const SizedBox(width: 12),
-              _buildThemeOption(
-                context,
-                Icons.dark_mode_rounded,
-                loc.translate('dark'),
-                themeProv.mode == ThemeMode.dark,
-                () => themeProv.setMode(ThemeMode.dark),
-                const Color(0xFF6366F1),
-                isDark,
-              ),
-              const SizedBox(width: 12),
-              _buildThemeOption(
-                context,
-                Icons.brightness_auto_rounded,
-                loc.translate('system'),
-                themeProv.mode == ThemeMode.system,
-                () => themeProv.setMode(ThemeMode.system),
-                const Color(0xFF10B981),
-                isDark,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Language Selector
-          Text(
-            '🌍 ${loc.translate("changeLanguage")}',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildLanguageOption(
-                context,
-                '🇬🇧',
-                'English',
-                localeProv.locale.languageCode == 'en',
-                () => changeAppLocale(context, 'en'),
-                isDark,
-              ),
-              const SizedBox(width: 12),
-              _buildLanguageOption(
-                context,
-                '🇫🇷',
-                'Français',
-                localeProv.locale.languageCode == 'fr',
-                () => changeAppLocale(context, 'fr'),
-                isDark,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(),
-          const ReminderSettingsSection(),
-          const SizedBox(height: 16),
         ],
       ),
     );
   }
+}
 
-  Widget _buildThemeOption(
-    BuildContext context,
-    IconData icon,
-    String label,
-    bool isSelected,
-    VoidCallback onTap,
-    Color color,
-    bool isDark,
-  ) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? color.withValues(alpha: 0.15)
-                : (isDark ? const Color(0xFF374151) : Colors.grey[100]),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? color : Colors.transparent,
-              width: 2,
+/// Trois chiffres utiles : contacts, anniversaires cette semaine, ce mois.
+class _StatsRow extends StatelessWidget {
+  final List<Contact> contacts;
+  final DateTime now;
+  const _StatsRow({required this.contacts, required this.now});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    var week = 0, month = 0;
+    for (final c in contacts) {
+      final birth = parseBirthDate(c.date);
+      if (birth == null) continue;
+      if (daysUntilBirthday(birth, now) < 7) week++;
+      if (birth.month == now.month) month++;
+    }
+    Widget stat(String value, String label) => Expanded(
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(
+                horizontal: Space.l, vertical: Space.m),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value, style: Theme.of(context).textTheme.titleLarge),
+                Text(label,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ],
             ),
           ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                color: isSelected
-                    ? color
-                    : (isDark ? Colors.grey[400] : Colors.grey[600]),
-                size: 28,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  color: isSelected
-                      ? color
-                      : (isDark ? Colors.grey[400] : Colors.grey[600]),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+    return Row(
+      children: [
+        stat('${contacts.length}', l10n.translate('statContacts')),
+        const SizedBox(width: Space.s),
+        stat('$week', l10n.translate('statThisWeek')),
+        const SizedBox(width: Space.s),
+        stat('$month', l10n.translate('statThisMonth')),
+      ],
     );
   }
+}
 
-  Widget _buildLanguageOption(
-    BuildContext context,
-    String flag,
-    String label,
-    bool isSelected,
-    VoidCallback onTap,
-    bool isDark,
-  ) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
-                : (isDark ? const Color(0xFF374151) : Colors.grey[100]),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? const Color(0xFF3B82F6) : Colors.transparent,
-              width: 2,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+class _UpcomingTile extends StatelessWidget {
+  final Contact contact;
+  final int days;
+  const _UpcomingTile({required this.contact, required this.days});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final birth = parseBirthDate(contact.date)!;
+    return ListTile(
+      onTap: () => Navigator.of(context).pushNamed('/detail', arguments: contact),
+      leading: ContactAvatar(name: contact.name, imagePath: contact.imageUri),
+      title: Text(contact.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(
+          '${relationLabel(l10n, contact.relation)} · ${dayMonthLabel(l10n, birth)}'),
+      trailing: Pill(countdownLabel(l10n, days),
+          tone: days <= 7 ? Tone.primary : Tone.neutral),
+    );
+  }
+}
+
+class _ExploreGrid extends StatelessWidget {
+  const _ExploreGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+    Widget tile(IconData icon, String title, String subtitle, String route,
+            {Tone tone = Tone.primary}) =>
+        GlassCard(
+          onTap: () => Navigator.of(context).pushNamed(route),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(flag, style: const TextStyle(fontSize: 24)),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  color: isSelected
-                      ? const Color(0xFF3B82F6)
-                      : (isDark ? Colors.grey[400] : Colors.grey[600]),
-                ),
-              ),
+              IconBadge(icon, tone: tone),
+              const SizedBox(height: Space.m),
+              Text(title, style: t.titleSmall),
+              const SizedBox(height: 2),
+              Text(subtitle,
+                  style: t.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
             ],
           ),
-        ),
+        );
+    final tiles = [
+      tile(Icons.people_alt_outlined, l10n.translate('contacts'),
+          l10n.translate('exploreContactsDesc'), '/list'),
+      tile(Icons.public_rounded, l10n.translate('sameDay'),
+          l10n.translate('exploreSameDayDesc'), '/same-day',
+          tone: Tone.accent),
+      tile(Icons.auto_awesome_outlined, l10n.translate('yourZodiacSign'),
+          l10n.translate('exploreZodiacDesc'), '/zodiac'),
+      tile(Icons.person_outline_rounded, l10n.translate('myProfile'),
+          l10n.translate('exploreProfileDesc'), '/profile'),
+    ];
+    return Column(
+      children: [
+        for (var i = 0; i < tiles.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: Space.s),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: tiles[i]),
+                const SizedBox(width: Space.s),
+                Expanded(child: tiles[i + 1]),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Réglages : apparence, langue, rappels.
+class SettingsSheet extends StatelessWidget {
+  const SettingsSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final themeProv = context.watch<ThemeProvider>();
+    final lang = context.watch<LocaleProvider>().locale.languageCode;
+    final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(
+          Space.page, Space.s, Space.page, Space.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.translate('settings'), style: t.titleLarge),
+          const SizedBox(height: Space.xl),
+          Text(l10n.translate('appearance'), style: t.titleSmall),
+          const SizedBox(height: Space.s),
+          SegmentedButton<ThemeMode>(
+            segments: [
+              ButtonSegment(
+                  value: ThemeMode.light,
+                  icon: const Icon(Icons.light_mode_outlined, size: 18),
+                  label: Text(l10n.translate('light'))),
+              ButtonSegment(
+                  value: ThemeMode.dark,
+                  icon: const Icon(Icons.dark_mode_outlined, size: 18),
+                  label: Text(l10n.translate('dark'))),
+              ButtonSegment(
+                  value: ThemeMode.system,
+                  icon: const Icon(Icons.brightness_auto_outlined, size: 18),
+                  label: Text(l10n.translate('system'))),
+            ],
+            selected: {themeProv.mode},
+            onSelectionChanged: (s) => themeProv.setMode(s.first),
+          ),
+          const SizedBox(height: Space.xl),
+          Text(l10n.translate('changeLanguage'), style: t.titleSmall),
+          const SizedBox(height: Space.s),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'fr', label: Text('Français')),
+              ButtonSegment(value: 'en', label: Text('English')),
+            ],
+            selected: {lang},
+            onSelectionChanged: (s) => changeAppLocale(context, s.first),
+          ),
+          const SizedBox(height: Space.xl),
+          const ReminderSettingsSection(),
+        ],
       ),
     );
   }

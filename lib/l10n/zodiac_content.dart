@@ -33,10 +33,10 @@ class ZodiacSign {
 
 class ZodiacContent {
   static const _elements = {
-    'fire': {'fr': 'Feu 🔥', 'en': 'Fire 🔥'},
-    'earth': {'fr': 'Terre 🌍', 'en': 'Earth 🌍'},
-    'air': {'fr': 'Air 💨', 'en': 'Air 💨'},
-    'water': {'fr': 'Eau 💧', 'en': 'Water 💧'},
+    'fire': {'fr': 'Feu', 'en': 'Fire'},
+    'earth': {'fr': 'Terre', 'en': 'Earth'},
+    'air': {'fr': 'Air', 'en': 'Air'},
+    'water': {'fr': 'Eau', 'en': 'Water'},
   };
 
   static String _pick(Map<String, String> m, String lang) =>

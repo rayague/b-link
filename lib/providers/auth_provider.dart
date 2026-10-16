@@ -23,7 +23,12 @@ class AuthProvider extends ChangeNotifier {
 
   /// Sign in with Google and link to Firebase Auth.
   /// Returns `true` on success, `false` if the user cancelled or an error occurred.
+  /// Après un échec de [signInWithGoogle] : true si l'utilisateur a
+  /// simplement fermé la fenêtre Google (pas une erreur à lui signaler).
+  bool lastSignInCancelled = false;
+
   Future<bool> signInWithGoogle() async {
+    lastSignInCancelled = false;
     try {
       await _ensureGoogleInitialized();
 
@@ -44,7 +49,8 @@ class AuthProvider extends ChangeNotifier {
       return true;
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
-        return false; // user cancelled
+        lastSignInCancelled = true;
+        return false;
       }
       debugPrint('Google sign-in error: $e');
       return false;

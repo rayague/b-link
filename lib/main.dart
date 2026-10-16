@@ -21,7 +21,6 @@ import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/list_screen.dart';
 import 'screens/contact_detail_screen.dart';
-import 'screens/celebration_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/profile_registration_screen.dart';
 import 'screens/same_day_screen.dart';
@@ -30,6 +29,8 @@ import 'screens/meetups_screen.dart';
 import 'providers/profile_provider.dart';
 import 'services/background_sync.dart';
 import 'widgets/consent_dialog.dart';
+import 'theme/app_theme.dart';
+import 'widgets/ui/glass.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,26 +75,11 @@ class _App extends StatelessWidget {
     final themeProv = Provider.of<ThemeProvider>(context);
     final localeProv = Provider.of<LocaleProvider>(context);
 
-    final dodgerBlue = const Color(0xFF1E90FF);
-
-    final lightTheme = ThemeData(
-      brightness: Brightness.light,
-      colorScheme: ColorScheme.fromSeed(
-          seedColor: dodgerBlue, brightness: Brightness.light),
-      useMaterial3: true,
-    );
-
-    final darkTheme = ThemeData(
-      brightness: Brightness.dark,
-      colorScheme: ColorScheme.fromSeed(
-          seedColor: dodgerBlue, brightness: Brightness.dark),
-      useMaterial3: true,
-    );
-
     return MaterialApp(
       title: 'B-Link',
-      theme: lightTheme,
-      darkTheme: darkTheme,
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
       themeMode: themeProv.mode,
       locale: localeProv.locale,
       supportedLocales: const [Locale('en'), Locale('fr')],
@@ -116,7 +102,6 @@ class _App extends StatelessWidget {
         '/profile-register': (_) => const ProfileRegistrationScreen(),
         '/list': (_) => const ListScreen(),
         '/detail': (_) => const ContactDetailScreen(),
-        '/celebration': (_) => const CelebrationScreen(),
         ProfileScreen.routeName: (_) => const ProfileScreen(),
         ZodiacScreen.routeName: (_) => const ZodiacScreen(),
         MeetupsScreen.routeName: (_) => const MeetupsScreen(),
@@ -219,17 +204,23 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
   @override
   Widget build(BuildContext context) {
     if (!_ready) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const AmbientBackground(
+        child: Center(child: CircularProgressIndicator()),
+      );
     }
-    final contacts = Provider.of<ContactProvider>(context);
+    final loading = context.select<ContactProvider, bool>((p) => p.loading);
+    // Chargement des contacts : un fin liseré en haut plutôt qu'un voile
+    // qui bloque tout l'écran.
     return Stack(
       children: [
         const HomeScreen(),
-        if (contacts.loading)
-          Container(
-            color: Colors.black38,
-            child: const Center(child: CircularProgressIndicator()),
-          )
+        if (loading)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(child: LinearProgressIndicator(minHeight: 2)),
+          ),
       ],
     );
   }

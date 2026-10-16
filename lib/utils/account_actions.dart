@@ -26,7 +26,8 @@ Future<bool> _confirm(BuildContext context, String message,
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(true),
           style: destructive
-              ? TextButton.styleFrom(foregroundColor: Colors.red)
+              ? TextButton.styleFrom(
+                  foregroundColor: Theme.of(ctx).colorScheme.error)
               : null,
           child: Text(action),
         ),

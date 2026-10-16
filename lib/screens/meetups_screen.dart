@@ -7,7 +7,10 @@ import '../models/user_profile.dart';
 import '../providers/profile_provider.dart';
 import '../services/meetup_service.dart';
 import '../services/safety_service.dart';
+import '../theme/app_theme.dart';
 import '../utils/city.dart';
+import '../widgets/ui/components.dart';
+import '../widgets/ui/glass.dart';
 
 /// Rencontres entre jumeaux d'anniversaire de la même ville.
 class MeetupsScreen extends StatefulWidget {
@@ -55,15 +58,18 @@ class _MeetupsScreenState extends State<MeetupsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
     final profileProv = context.watch<ProfileProvider>();
     final city = _cityKey(profileProv.profile);
     final eligible = canTakePart(profileProv);
+    final padding = AppScaffold.pagePadding(context, bottom: 96);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.translate('meetupsTitle'))),
+    return AppScaffold(
+      title: Text(l10n.translate('meetupsTitle')),
       floatingActionButton: city != null && eligible
           ? FloatingActionButton.extended(
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded),
               label: Text(l10n.translate('organizeMeetup')),
               onPressed: () async {
                 final created = await Navigator.of(context).push<bool>(
@@ -73,78 +79,93 @@ class _MeetupsScreenState extends State<MeetupsScreen> {
             )
           : null,
       body: RefreshIndicator(
-        onRefresh: () async => _reload(),
+        edgeOffset: padding.top,
+        onRefresh: () async {
+          _reload();
+          await _future;
+        },
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: padding,
           children: [
             Text(l10n.translate('meetupsIntro'),
-                style: TextStyle(color: Colors.grey[600])),
-            const SizedBox(height: 12),
+                style: t.bodyLarge?.copyWith(color: c.onSurfaceVariant)),
+            const SizedBox(height: Space.l),
             if (city == null)
-              _InfoCard(icon: Icons.location_city, text: l10n.translate('setCityHint'))
+              NoticeCard(
+                  icon: Icons.location_city_outlined,
+                  text: l10n.translate('setCityHint'))
             else if (!eligible)
-              _InfoCard(
-                  icon: Icons.public, text: l10n.translate('meetupsNeedPublic')),
+              NoticeCard(
+                  icon: Icons.public_rounded,
+                  text: l10n.translate('meetupsNeedPublic')),
             if (city != null)
               FutureBuilder<List<Meetup>>(
                 future: _future,
                 builder: (context, snap) {
                   if (snap.connectionState != ConnectionState.done) {
                     return const Padding(
-                      padding: EdgeInsets.all(32),
+                      padding: EdgeInsets.all(Space.xxl),
                       child: Center(child: CircularProgressIndicator()),
                     );
                   }
                   final meetups = snap.data ?? const <Meetup>[];
                   if (meetups.isEmpty) {
-                    return _InfoCard(
-                        icon: Icons.celebration_outlined,
-                        text: l10n.translate('noMeetups'));
-                  }
-                  return Column(children: [
-                    for (final m in meetups)
-                      Card(
-                        child: ListTile(
-                          leading: const Icon(Icons.celebration),
-                          title: Text(m.title),
-                          subtitle: Text(
-                              '${formatMeetupDate(context, m.startsAt)}\n📍 ${m.placeHint}'),
-                          isThreeLine: true,
-                          trailing: Text('${m.attendeeCount}/${m.maxAttendees}'),
-                          onTap: () async {
-                            await Navigator.of(context).push(MaterialPageRoute(
-                                builder: (_) => MeetupDetailScreen(meetupId: m.id)));
-                            _reload();
-                          },
+                    return Padding(
+                      padding: const EdgeInsets.only(top: Space.s),
+                      child: GlassCard(
+                        child: EmptyState(
+                          icon: Icons.celebration_outlined,
+                          title: l10n.translate('noMeetups'),
                         ),
                       ),
-                  ]);
+                    );
+                  }
+                  return Column(
+                    children: [
+                      for (final m in meetups) ...[
+                        const SizedBox(height: Space.s),
+                        GlassCard(
+                          onTap: () async {
+                            await Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) =>
+                                    MeetupDetailScreen(meetupId: m.id)));
+                            _reload();
+                          },
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const IconBadge(Icons.celebration_outlined,
+                                  tone: Tone.accent),
+                              const SizedBox(width: Space.m),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(m.title, style: t.titleSmall),
+                                    const SizedBox(height: 2),
+                                    Text(formatMeetupDate(context, m.startsAt),
+                                        style: t.bodySmall),
+                                    Text(m.placeHint, style: t.bodySmall),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: Space.s),
+                              Pill('${m.attendeeCount}/${m.maxAttendees}',
+                                  icon: Icons.people_outline_rounded),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
                 },
               ),
-            const SizedBox(height: 80),
           ],
         ),
       ),
     );
   }
-}
-
-class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _InfoCard({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 12),
-            Expanded(child: Text(text)),
-          ]),
-        ),
-      );
 }
 
 /// Conseils affichés sur chaque rencontre : rencontrer des inconnus.
@@ -154,33 +175,43 @@ class SafetyTipsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Card(
-      color: Colors.amber.withValues(alpha: 0.15),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const Icon(Icons.shield_outlined, color: Colors.amber),
-              const SizedBox(width: 8),
-              Text(l10n.translate('safetyTitle'),
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-            ]),
-            const SizedBox(height: 8),
-            for (final key in ['safetyPublicPlace', 'safetyTellSomeone', 'safetyNoAddress', 'safetyReport'])
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text('• ${l10n.translate(key)}'),
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
+    return GlassCard(
+      tint: c.secondary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.shield_outlined, color: c.secondary, size: 20),
+            const SizedBox(width: Space.s),
+            Expanded(
+                child: Text(l10n.translate('safetyTitle'), style: t.titleSmall)),
+          ]),
+          const SizedBox(height: Space.s),
+          for (final key in const [
+            'safetyPublicPlace',
+            'safetyTellSomeone',
+            'safetyNoAddress',
+            'safetyReport',
+          ])
+            Padding(
+              padding: const EdgeInsets.only(top: Space.xs),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('·  ', style: t.bodyMedium),
+                  Expanded(child: Text(l10n.translate(key), style: t.bodyMedium)),
+                ],
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
 }
 
-/// Formulaire "Organiser une rencontre".
+/// Formulaire « Organiser une rencontre ».
 class MeetupFormScreen extends StatefulWidget {
   const MeetupFormScreen({super.key});
 
@@ -256,64 +287,85 @@ class _MeetupFormScreenState extends State<MeetupFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
     String? required(String? v, int min, int max) {
-      final t = v?.trim() ?? '';
-      if (t.length < min) return l10n.translate('fieldTooShort');
-      if (t.length > max) return l10n.translate('fieldTooLong');
+      final s = v?.trim() ?? '';
+      if (s.length < min) return l10n.translate('fieldTooShort');
+      if (s.length > max) return l10n.translate('fieldTooLong');
       return null;
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.translate('organizeMeetup'))),
+    return AppScaffold(
+      title: Text(l10n.translate('organizeMeetup')),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: AppScaffold.pagePadding(context),
           children: [
             const SafetyTipsCard(),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _title,
-              maxLength: 80,
-              decoration: InputDecoration(labelText: l10n.translate('meetupTitleField')),
-              validator: (v) => required(v, 3, 80),
+            const SizedBox(height: Space.m),
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: _title,
+                    maxLength: 80,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                        labelText: l10n.translate('meetupTitleField'),
+                        prefixIcon: const Icon(Icons.title_rounded)),
+                    validator: (v) => required(v, 3, 80),
+                  ),
+                  const SizedBox(height: Space.xs),
+                  TextFormField(
+                    controller: _place,
+                    maxLength: 100,
+                    decoration: InputDecoration(
+                        labelText: l10n.translate('meetupPlaceField'),
+                        helperText: l10n.translate('meetupPlaceHelp'),
+                        helperMaxLines: 2,
+                        prefixIcon: const Icon(Icons.place_outlined)),
+                    validator: (v) => required(v, 2, 100),
+                  ),
+                  const SizedBox(height: Space.s),
+                  PickerField(
+                    label: l10n.translate('meetupDateField'),
+                    icon: Icons.event_outlined,
+                    value: formatMeetupDate(context, _startsAt),
+                    onTap: _pickDate,
+                  ),
+                  const SizedBox(height: Space.l),
+                  Text('${l10n.translate('meetupMaxAttendees')} : $_max',
+                      style: t.bodyMedium),
+                  Slider(
+                    value: _max.toDouble(),
+                    min: 2,
+                    max: 20,
+                    divisions: 18,
+                    label: '$_max',
+                    onChanged: (v) => setState(() => _max = v.round()),
+                  ),
+                  TextFormField(
+                    controller: _description,
+                    maxLength: 500,
+                    maxLines: 4,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                        labelText: l10n.translate('meetupDescriptionField'),
+                        alignLabelWithHint: true),
+                  ),
+                ],
+              ),
             ),
-            TextFormField(
-              controller: _place,
-              maxLength: 100,
-              decoration: InputDecoration(
-                  labelText: l10n.translate('meetupPlaceField'),
-                  helperText: l10n.translate('meetupPlaceHelp')),
-              validator: (v) => required(v, 2, 100),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.event),
-              title: Text(formatMeetupDate(context, _startsAt)),
-              trailing: const Icon(Icons.edit_calendar),
-              onTap: _pickDate,
-            ),
-            Text('${l10n.translate('meetupMaxAttendees')} : $_max'),
-            Slider(
-              value: _max.toDouble(),
-              min: 2,
-              max: 20,
-              divisions: 18,
-              label: '$_max',
-              onChanged: (v) => setState(() => _max = v.round()),
-            ),
-            TextFormField(
-              controller: _description,
-              maxLength: 500,
-              maxLines: 4,
-              decoration: InputDecoration(
-                  labelText: l10n.translate('meetupDescriptionField')),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
+            const SizedBox(height: Space.xl),
+            FilledButton(
               onPressed: _saving ? null : _submit,
-              icon: const Icon(Icons.celebration),
-              label: Text(l10n.translate('organizeMeetup')),
+              child: _saving
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(l10n.translate('organizeMeetup')),
             ),
           ],
         ),
@@ -350,7 +402,8 @@ class _MeetupDetailScreenState extends State<MeetupDetailScreen> {
       await action();
     } catch (e) {
       debugPrint('❌ Rencontre: $e');
-      messenger.showSnackBar(SnackBar(content: Text(l10n.translate('actionFailed'))));
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.translate('actionFailed'))));
     }
     if (mounted) {
       setState(() {
@@ -360,13 +413,39 @@ class _MeetupDetailScreenState extends State<MeetupDetailScreen> {
     }
   }
 
+  Future<void> _confirmCancel(Meetup meetup) async {
+    final l10n = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.translate('cancelMeetup')),
+        content: Text(l10n.translate('cancelMeetupConfirm')),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.translate('back'))),
+          TextButton(
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(ctx).colorScheme.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.translate('cancelMeetup')),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _run(() => _service.cancel(meetup.id));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
     final profileProv = context.watch<ProfileProvider>();
     final me = profileProv.profile;
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.translate('meetupsTitle'))),
+
+    return AppScaffold(
+      title: Text(l10n.translate('meetupsTitle')),
       body: FutureBuilder<(Meetup?, List<MeetupAttendee>, bool)>(
         future: _future,
         builder: (context, snap) {
@@ -376,59 +455,79 @@ class _MeetupDetailScreenState extends State<MeetupDetailScreen> {
           final (meetup, attendees, attending) =
               snap.data ?? (null, const <MeetupAttendee>[], false);
           if (meetup == null) {
-            return Center(child: Text(l10n.translate('meetupGone')));
+            return Center(
+              child: EmptyState(
+                  icon: Icons.event_busy_outlined,
+                  title: l10n.translate('meetupGone')),
+            );
           }
           final isCreator = me?.uid == meetup.creatorUid;
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: AppScaffold.pagePadding(context),
             children: [
-              Text(meetup.title,
-                  style: Theme.of(context).textTheme.headlineSmall),
-              if (meetup.cancelled)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(l10n.translate('meetupCancelled'),
-                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              GlassCard(
+                padding: const EdgeInsets.all(Space.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(meetup.title, style: t.headlineSmall),
+                    if (meetup.cancelled) ...[
+                      const SizedBox(height: Space.s),
+                      Pill(l10n.translate('meetupCancelled'), tone: Tone.danger),
+                    ],
+                    const SizedBox(height: Space.m),
+                    InfoRow(
+                        icon: Icons.event_outlined,
+                        label: l10n.translate('meetupDateField'),
+                        value: formatMeetupDate(context, meetup.startsAt)),
+                    const CardDivider(),
+                    InfoRow(
+                        icon: Icons.place_outlined,
+                        label: l10n.translate('meetupPlaceField'),
+                        value: meetup.placeHint),
+                    const CardDivider(),
+                    InfoRow(
+                        icon: Icons.person_outline_rounded,
+                        label: l10n.translate('meetupOrganizer'),
+                        value: meetup.creatorName ??
+                            l10n.translate('anonymousProfile')),
+                    if (meetup.description.isNotEmpty) ...[
+                      const SizedBox(height: Space.m),
+                      Text(meetup.description,
+                          style:
+                              t.bodyMedium?.copyWith(color: c.onSurfaceVariant)),
+                    ],
+                  ],
                 ),
-              const SizedBox(height: 12),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.event),
-                title: Text(formatMeetupDate(context, meetup.startsAt)),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.place_outlined),
-                title: Text(meetup.placeHint),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.person_outline),
-                title: Text(meetup.creatorName ?? l10n.translate('anonymousProfile')),
-                subtitle: Text(l10n.translate('meetupOrganizer')),
-              ),
-              if (meetup.description.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(meetup.description),
-              ],
-              const SizedBox(height: 16),
-              Text(
-                '${l10n.translate('meetupAttendees')} '
-                '(${meetup.attendeeCount}/${meetup.maxAttendees})',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              for (final a in attendees)
-                ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.person),
-                  title: Text(a.name ?? l10n.translate('anonymousProfile')),
+              SectionHeader('${l10n.translate('meetupAttendees')} '
+                  '(${meetup.attendeeCount}/${meetup.maxAttendees})'),
+              if (attendees.isNotEmpty)
+                GlassCard(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: Space.m, vertical: Space.s),
+                  child: Column(
+                    children: [
+                      for (final a in attendees)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading:
+                              InitialsAvatar(name: a.name ?? '?', size: 36),
+                          title:
+                              Text(a.name ?? l10n.translate('anonymousProfile')),
+                        ),
+                    ],
+                  ),
                 ),
-              const SizedBox(height: 16),
+              const SizedBox(height: Space.l),
               if (!meetup.cancelled && !isCreator && canTakePart(profileProv))
                 attending
                     ? OutlinedButton.icon(
-                        onPressed: _busy ? null : () => _run(() => _service.leave(meetup.id)),
-                        icon: const Icon(Icons.logout),
+                        onPressed: _busy
+                            ? null
+                            : () => _run(() => _service.leave(meetup.id)),
+                        icon: const Icon(Icons.logout_rounded),
                         label: Text(l10n.translate('leaveMeetup')),
                       )
                     : FilledButton.icon(
@@ -436,20 +535,24 @@ class _MeetupDetailScreenState extends State<MeetupDetailScreen> {
                             ? null
                             : () => _run(() => _service.join(meetup.id,
                                 publicName: me!.publicName ? me.name : null)),
-                        icon: const Icon(Icons.how_to_reg),
+                        icon: const Icon(Icons.how_to_reg_outlined),
                         label: Text(l10n.translate(
                             meetup.isFull ? 'meetupFull' : 'joinMeetup')),
                       ),
               if (isCreator && !meetup.cancelled)
                 OutlinedButton.icon(
-                  onPressed: _busy ? null : () => _run(() => _service.cancel(meetup.id)),
-                  icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+                  style: OutlinedButton.styleFrom(foregroundColor: c.error),
+                  onPressed: _busy ? null : () => _confirmCancel(meetup),
+                  icon: const Icon(Icons.event_busy_outlined),
                   label: Text(l10n.translate('cancelMeetup')),
                 ),
-              const SizedBox(height: 16),
+              const SizedBox(height: Space.l),
               const SafetyTipsCard(),
-              if (!isCreator)
+              if (!isCreator) ...[
+                const SizedBox(height: Space.s),
                 TextButton.icon(
+                  style: TextButton.styleFrom(
+                      foregroundColor: c.onSurfaceVariant),
                   onPressed: _busy
                       ? null
                       : () {
@@ -461,9 +564,10 @@ class _MeetupDetailScreenState extends State<MeetupDetailScreen> {
                                 content: Text(l10n.translate('reportSent'))));
                           });
                         },
-                  icon: const Icon(Icons.flag_outlined),
+                  icon: const Icon(Icons.flag_outlined, size: 18),
                   label: Text(l10n.translate('reportOrganizer')),
                 ),
+              ],
             ],
           );
         },

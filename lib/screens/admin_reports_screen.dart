@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../services/moderation_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/ui/components.dart';
+import '../widgets/ui/glass.dart';
 
 /// Écran admin : profils signalés, avec masquage / rétablissement.
 /// (Écran réservé aux admins, en français comme le reste de l'administration.)
@@ -33,120 +36,109 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Échec : $e')));
     }
-    _reload();
+    if (mounted) _reload();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0E21),
-      appBar: AppBar(
-        title: const Text('🚩 Signalements',
-            style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF1D1E33),
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _reload,
-            tooltip: 'Actualiser',
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<ReportGroup>>(
-        future: _groups,
-        builder: (context, snap) {
-          if (snap.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snap.hasError) {
-            return Center(
-              child: Text('Erreur : ${snap.error}',
-                  style: const TextStyle(color: Colors.white70)),
-            );
-          }
-          final groups = snap.data ?? [];
-          if (groups.isEmpty) {
-            return const Center(
-              child: Text('Aucun signalement en attente 🎉',
-                  style: TextStyle(color: Colors.white70, fontSize: 16)),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: groups.length,
-            itemBuilder: (_, i) => _buildCard(groups[i]),
-          );
+    final padding = AppScaffold.pagePadding(context);
+    return AppScaffold(
+      title: const Text('Signalements'),
+      body: RefreshIndicator(
+        edgeOffset: padding.top,
+        onRefresh: () async {
+          _reload();
+          await _groups;
         },
+        child: FutureBuilder<List<ReportGroup>>(
+          future: _groups,
+          builder: (context, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final groups = snap.data ?? const <ReportGroup>[];
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: padding,
+              children: [
+                if (snap.hasError)
+                  NoticeCard(
+                      icon: Icons.error_outline_rounded,
+                      text: 'Erreur : ${snap.error}',
+                      tone: Tone.danger)
+                else if (groups.isEmpty)
+                  const GlassCard(
+                    child: EmptyState(
+                        icon: Icons.verified_outlined,
+                        title: 'Aucun signalement en attente'),
+                  ),
+                for (final g in groups) ...[
+                  _card(g),
+                  const SizedBox(height: Space.s),
+                ],
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildCard(ReportGroup g) {
-    final status = switch (g.hidden) {
-      true => ('Masqué', Colors.redAccent),
-      false => ('Rétabli', Colors.greenAccent),
-      null => ('Visible', Colors.amber),
+  Widget _card(ReportGroup g) {
+    final t = Theme.of(context).textTheme;
+    final (label, tone) = switch (g.hidden) {
+      true => ('Masqué', Tone.danger),
+      false => ('Rétabli', Tone.primary),
+      null => ('Visible', Tone.accent),
     };
-    return Card(
-      color: const Color(0xFF1D1E33),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    g.displayName ?? g.reportedUid,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold),
-                  ),
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(g.displayName ?? g.reportedUid,
+                    style: t.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ),
+              Pill(label, tone: tone),
+            ],
+          ),
+          const SizedBox(height: Space.xs),
+          Text(
+            '${g.reporterCount} personne(s) · '
+            '${g.reasons.entries.map((e) => '${_reasonLabels[e.key] ?? e.key} ×${e.value}').join(', ')}',
+            style: t.bodyMedium,
+          ),
+          SelectableText(g.reportedUid,
+              style: t.bodySmall?.copyWith(fontFamily: 'monospace')),
+          const SizedBox(height: Space.s),
+          Wrap(
+            spacing: Space.s,
+            children: [
+              if (g.hidden != true)
+                FilledButton.tonal(
+                  onPressed: () => _run(() => _service.hide(g.reportedUid),
+                      'Profil masqué de l\'annuaire'),
+                  child: const Text('Masquer'),
                 ),
-                Chip(
-                  label: Text(status.$1),
-                  backgroundColor: status.$2.withValues(alpha: 0.2),
-                  labelStyle: TextStyle(color: status.$2),
-                ),
-              ],
-            ),
-            Text(
-              '${g.reporterCount} personne(s) • '
-              '${g.reasons.entries.map((e) => '${_reasonLabels[e.key] ?? e.key} ×${e.value}').join(', ')}',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            SelectableText('UID : ${g.reportedUid}',
-                style: const TextStyle(color: Colors.white38, fontSize: 11)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                if (g.hidden != true)
-                  FilledButton.tonal(
-                    onPressed: () => _run(() => _service.hide(g.reportedUid),
-                        'Profil masqué de l\'annuaire'),
-                    child: const Text('Masquer'),
-                  ),
-                if (g.hidden == true)
-                  FilledButton.tonal(
-                    onPressed: () => _run(
-                        () => _service.restore(g.reportedUid), 'Profil rétabli'),
-                    child: const Text('Rétablir'),
-                  ),
-                TextButton(
+              if (g.hidden == true)
+                FilledButton.tonal(
                   onPressed: () => _run(
-                      () => _service.dismissReports(g.reportedUid),
-                      'Signalements classés'),
-                  child: const Text('Rejeter les signalements'),
+                      () => _service.restore(g.reportedUid), 'Profil rétabli'),
+                  child: const Text('Rétablir'),
                 ),
-              ],
-            ),
-          ],
-        ),
+              TextButton(
+                onPressed: () => _run(
+                    () => _service.dismissReports(g.reportedUid),
+                    'Signalements classés'),
+                child: const Text('Rejeter'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

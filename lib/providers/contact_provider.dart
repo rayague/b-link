@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../models/contact.dart';
 import '../services/db_helper.dart';
 import '../services/notification_service.dart';
 import '../services/firebase_sync_service.dart';
 import '../services/analytics_service.dart';
+import '../services/contact_photo_store.dart';
 import '../utils/birthday.dart';
 
 class ContactProvider extends ChangeNotifier {
@@ -12,6 +15,9 @@ class ContactProvider extends ChangeNotifier {
   List<Contact> _contacts = [];
   bool _loading = false;
   bool _syncing = false;
+
+  /// Langue des rappels, mémorisée pour les reprogrammations suivantes.
+  String _locale = 'fr';
 
   List<Contact> get contacts => _contacts;
   bool get loading => _loading;
@@ -36,6 +42,7 @@ class ContactProvider extends ChangeNotifier {
 
   Future<void> loadContacts(
       {String locale = 'fr', bool syncWithFirebase = true}) async {
+    _locale = locale;
     _loading = true;
     notifyListeners();
     // try/finally : une erreur ne doit jamais laisser l'overlay de chargement
@@ -167,19 +174,15 @@ class ContactProvider extends ChangeNotifier {
     return plan;
   }
 
-  Future<void> addContact(Contact contact, {String locale = 'fr'}) async {
+  Future<void> addContact(Contact contact, {String? locale}) async {
     // L'UUID (ID Firestore, stable entre appareils) est attribué avant
     // l'insertion ; l'ID local (rappels) est attribué par SQLite.
     final withUuid =
         contact.uuid == null ? contact.copyWith(uuid: Contact.newUuid()) : contact;
     final id = await _db.insertContact(withUuid) as int;
     final c = withUuid.copyWith(id: id);
-    await _scheduleFor(c, locale);
-
-    // Sauvegarder dans Firebase
-    if (_firebaseSync != null && _firebaseSync!.isUserAuthenticated) {
-      await _firebaseSync!.saveContact(c);
-    }
+    await _scheduleFor(c, locale ?? _locale);
+    _saveRemote(c);
 
     // Analytics: Track contact added
     AnalyticsService().logContactAdded(
@@ -187,45 +190,63 @@ class ContactProvider extends ChangeNotifier {
       hasPhone: c.phone != null && c.phone!.isNotEmpty,
     );
 
-    await loadContacts(locale: locale, syncWithFirebase: false);
+    await _refresh();
   }
 
-  Future<void> updateContact(Contact contact, {String locale = 'fr'}) async {
+  Future<void> updateContact(Contact contact, {String? locale}) async {
     // Les écrans d'édition reconstruisent le contact sans son UUID.
     final c = contact.uuid != null || contact.id == null
         ? contact
         : contact.copyWith(uuid: byId(contact.id!)?.uuid);
+    final previousPhoto = c.id == null ? null : byId(c.id!)?.imageUri;
     await _db.updateContact(c);
-    await _scheduleFor(c, locale); // annule puis reprogramme
-
-    // Mettre à jour dans Firebase
-    if (_firebaseSync != null && _firebaseSync!.isUserAuthenticated) {
-      await _firebaseSync!.saveContact(c);
+    if (previousPhoto != c.imageUri) {
+      unawaited(ContactPhotoStore().delete(previousPhoto));
     }
+    await _scheduleFor(c, locale ?? _locale); // annule puis reprogramme
+    _saveRemote(c);
 
     // Analytics: Track contact updated
     AnalyticsService().logContactUpdated(
       relation: c.relation,
     );
 
-    await loadContacts(locale: locale, syncWithFirebase: false);
+    await _refresh();
   }
 
   Future<void> deleteContact(int id) async {
     final contact = byId(id);
     await _db.deleteContact(id);
+    unawaited(ContactPhotoStore().delete(contact?.imageUri));
     await _notif.cancelBirthdayReminders(id);
     AnalyticsService().logContactDeleted(relation: contact?.relation ?? '');
 
-    // Supprimer de Firebase
+    // Supprimer de Firebase (sans attendre : voir _saveRemote).
     final uuid = contact?.uuid;
     if (uuid != null &&
         _firebaseSync != null &&
         _firebaseSync!.isUserAuthenticated) {
-      await _firebaseSync!.deleteContact(uuid);
+      unawaited(_firebaseSync!.deleteContact(uuid));
     }
 
-    await loadContacts(syncWithFirebase: false);
+    await _refresh();
+  }
+
+  /// Relit les contacts locaux après une modification, sans l'écran de
+  /// chargement ni la reprogrammation de tous les rappels (chaque
+  /// modification programme déjà les siens).
+  Future<void> _refresh() async {
+    _contacts = await _db.getContacts();
+    notifyListeners();
+  }
+
+  /// Envoie le contact à Firestore sans l'attendre : hors ligne, la future
+  /// ne se termine qu'au retour du réseau (le SDK a déjà mis l'écriture en
+  /// file d'attente), ce qui bloquait la feuille d'ajout.
+  void _saveRemote(Contact c) {
+    if (_firebaseSync != null && _firebaseSync!.isUserAuthenticated) {
+      unawaited(_firebaseSync!.saveContact(c));
+    }
   }
 
   /// Efface les contacts locaux et annule tous les rappels (déconnexion), pour
@@ -237,6 +258,7 @@ class ContactProvider extends ChangeNotifier {
       debugPrint('❌ Annulation des rappels impossible: $e');
     }
     await _db.clearUserData();
+    await ContactPhotoStore().clear();
     _contacts = [];
     notifyListeners();
   }
@@ -248,6 +270,7 @@ class ContactProvider extends ChangeNotifier {
 
   /// Reschedule all birthday reminders when language changes
   Future<void> rescheduleAllReminders(String locale) async {
+    _locale = locale;
     await _notif.rescheduleAllReminders(_contacts, locale);
   }
 

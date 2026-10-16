@@ -8,8 +8,10 @@ import '../models/user_profile.dart';
 /// statistiques. Le SDK Firestore gère lui-même le cache hors ligne et la
 /// file d'écriture : aucune file de synchronisation maison n'est nécessaire.
 class FirebaseSyncService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // Paresseux : construire le service (et les providers qui l'utilisent)
+  // ne touche pas Firebase, ce qui permet de les tester sans émulateur.
+  late final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// Obtenir l'ID utilisateur actuel
   String? get _userId => _auth.currentUser?.uid;
@@ -142,6 +144,9 @@ class FirebaseSyncService {
 
     try {
       final data = contact.toJson()..remove('id'); // l'ID local reste local
+      // La photo est un fichier de cet appareil : son chemin n'a aucun sens
+      // ailleurs (et les anciennes versions l'envoyaient : on l'efface).
+      data['imageUri'] = FieldValue.delete();
       data['userId'] = _userId;
       data['lastUpdated'] = FieldValue.serverTimestamp();
       await _contacts.doc(contact.uuid).set(data, SetOptions(merge: true));
@@ -161,6 +166,7 @@ class FirebaseSyncService {
       final contacts = snapshot.docs.map((doc) {
         final data = doc.data()
           ..remove('id')
+          ..remove('imageUri') // chemin local d'un autre appareil
           ..['uuid'] = doc.id;
         return Contact.fromJson(data);
       }).toList();

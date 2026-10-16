@@ -71,9 +71,7 @@ flutter:
   assets:
     - assets/messages_en.txt
     - assets/messages_fr.txt
-    - assets/logoApp.jpg
-    - assets/pictureFirst.jpg
-    - assets/pictureSecond.jpg
+    - assets/icon/app_icon.png
 
 # Icône de l'app, générée depuis le logo (assets/logoApp.jpg recadré sur le
 # motif central). Régénérer : dart run flutter_launcher_icons

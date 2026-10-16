@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../theme/app_theme.dart';
+import 'ui/components.dart';
+import 'ui/glass.dart';
 
 /// "Le saviez-vous ?" : petites anecdotes sur une date de naissance.
 ///
@@ -27,9 +30,14 @@ class BirthInsightsWidget extends StatelessWidget {
     this.personName,
   });
 
+  static const _header = {
+    'fr': (title: 'Le saviez-vous ?', subtitle: "Petites histoires autour d'une date de naissance"),
+    'en': (title: 'Did you know?', subtitle: 'Little stories about a birth date'),
+  };
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final t = Theme.of(context).textTheme;
     final lang = AppLocalizations.of(context).locale.languageCode == 'fr'
         ? 'fr'
         : 'en';
@@ -37,133 +45,54 @@ class BirthInsightsWidget extends StatelessWidget {
         personName: personName);
     final header = _header[lang]!;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF374151), const Color(0xFF1F2937)]
-              : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFFBBF24).withValues(alpha: 0.3),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFBBF24).withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+    return GlassCard(
+      padding: const EdgeInsets.all(Space.l),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFBBF24), Color(0xFFFCD34D)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
+              const IconBadge(Icons.auto_awesome_outlined, tone: Tone.accent),
+              const SizedBox(width: Space.m),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      header.title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : const Color(0xFF78350F),
-                      ),
-                    ),
-                    Text(
-                      header.subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            isDark ? Colors.grey[400] : const Color(0xFF92400E),
-                      ),
-                    ),
+                    Text(header.title, style: t.titleMedium),
+                    Text(header.subtitle, style: t.bodySmall),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          ...insights.map((insight) => _buildInsightCard(insight, isDark)),
-        ],
-      ),
-    );
-  }
-
-  static const _header = {
-    'fr': (title: 'Le saviez-vous ?', subtitle: 'Petites histoires autour d\'une date de naissance'),
-    'en': (title: 'Did you know?', subtitle: 'Little stories about a birth date'),
-  };
-
-  Widget _buildInsightCard(BirthInsight insight, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1F2937) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark ? Colors.grey[800]! : const Color(0xFFFED7AA),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: insight.color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(insight.icon, color: insight.color, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+          for (final insight in insights) ...[
+            const SizedBox(height: Space.m),
+            const Divider(),
+            const SizedBox(height: Space.m),
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  insight.title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : const Color(0xFF1F2937),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  insight.description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.4,
-                    color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
+                Icon(insight.icon,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                const SizedBox(width: Space.m),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(insight.title, style: t.titleSmall),
+                      const SizedBox(height: 2),
+                      Text(insight.description,
+                          style: t.bodyMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
+          ],
         ],
       ),
     );

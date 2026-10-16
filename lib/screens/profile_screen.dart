@@ -1,26 +1,32 @@
+import 'package:country_picker/country_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../providers/profile_provider.dart';
-import '../models/user_profile.dart';
-import '../widgets/social_links_widget.dart';
-import '../widgets/birth_insights_widget.dart';
-import '../l10n/app_localizations.dart';
-import '../utils/network_error_handler.dart';
-import 'admin_stats_screen.dart';
-import '../services/admin_service.dart';
-import '../services/analytics_service.dart';
-import '../utils/zodiac.dart';
-import '../l10n/zodiac_content.dart';
-import 'package:country_picker/country_picker.dart';
-import '../utils/account_actions.dart' as account;
-import '../services/safety_service.dart';
-import '../services/photo_service.dart';
-import '../widgets/profile_avatar.dart';
-import '../utils/app_links.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/zodiac_content.dart';
+import '../models/user_profile.dart';
+import '../providers/profile_provider.dart';
+import '../services/admin_service.dart';
+import '../services/analytics_service.dart';
+import '../services/photo_service.dart';
+import '../services/safety_service.dart';
+import '../theme/app_theme.dart';
+import '../utils/account_actions.dart' as account;
+import '../utils/app_links.dart';
+import '../utils/birthday_labels.dart';
+import '../utils/zodiac.dart';
+import '../widgets/birth_insights_widget.dart';
+import '../widgets/profile_avatar.dart';
+import '../widgets/social_links_widget.dart';
+import '../widgets/ui/components.dart';
+import '../widgets/ui/glass.dart';
+import 'admin_stats_screen.dart';
+
+/// Profil de l'utilisateur : informations, confidentialité, réseaux,
+/// réglages et compte.
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
   const ProfileScreen({super.key});
@@ -29,19 +35,20 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _birthPlaceController;
-  late TextEditingController _birthCountryController;
-  late TextEditingController _birthCityController;
+  final _name = TextEditingController();
+  final _birthPlace = TextEditingController();
+  final _birthCountry = TextEditingController();
+  final _currentCity = TextEditingController();
   Map<String, String> _socialLinks = {};
   DateTime? _birthDate;
   TimeOfDay? _birthTime;
-  bool _isEditing = false;
+  bool _editing = false;
+  bool _saving = false;
+  late final Future<bool> _isAdmin = _checkAdmin();
 
-  // Privacy settings
+  // Confidentialité
   bool _isPublic = false;
   bool _publicName = false;
   bool _publicBirthDate = false;
@@ -55,34 +62,32 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _publicSocials = false;
   bool _publicZodiac = false;
 
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-
   @override
   void initState() {
     super.initState();
+    AnalyticsService().logScreenView(screenName: 'ProfileScreen');
+    _fill(context.read<ProfileProvider>().profile);
+  }
 
-    AnalyticsService().logScreenView(
-      screenName: 'ProfileScreen',
-      screenClass: 'ProfileScreen',
-    );
-    final prov = context.read<ProfileProvider>();
-    final p = prov.profile;
-    _nameController = TextEditingController(text: p?.name ?? '');
-    _birthPlaceController = TextEditingController(text: p?.birthplace ?? '');
-    _birthCountryController =
-        TextEditingController(text: p?.birthCountry ?? '');
-    _birthCityController = TextEditingController(text: p?.birthCity ?? '');
-    _socialLinks =
-        p?.socialLinks != null ? Map<String, String>.from(p!.socialLinks!) : {};
+  @override
+  void dispose() {
+    _name.dispose();
+    _birthPlace.dispose();
+    _birthCountry.dispose();
+    _currentCity.dispose();
+    super.dispose();
+  }
+
+  /// Remplit le formulaire (ouverture, et « Annuler » qui oublie les
+  /// modifications en cours).
+  void _fill(UserProfile? p) {
+    _name.text = p?.name ?? '';
+    _birthPlace.text = p?.birthplace ?? '';
+    _birthCountry.text = p?.birthCountry ?? '';
+    _currentCity.text = p?.birthCity ?? '';
+    _socialLinks = Map<String, String>.from(p?.socialLinks ?? const {});
     _birthDate = p?.birthDate;
-    if (p?.birthTime != null) {
-      final parts = p!.birthTime!.split(':');
-      _birthTime =
-          TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-    }
-
-    // Load privacy settings
+    _birthTime = _parseTime(p?.birthTime);
     _isPublic = p?.isPublic ?? false;
     _publicName = p?.publicName ?? false;
     _publicBirthDate = p?.publicBirthDate ?? false;
@@ -95,1516 +100,112 @@ class _ProfileScreenState extends State<ProfileScreen>
     _publicPhoto = p?.publicPhoto ?? false;
     _publicSocials = p?.publicSocials ?? false;
     _publicZodiac = p?.publicZodiac ?? false;
-
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
-    _animationController.forward();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final profile = context.watch<ProfileProvider>().profile;
-    final zodiacSign =
-        _birthDate != null ? Zodiac.computeZodiac(_birthDate!) : null;
-
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF111827) : Colors.white,
-      body: Stack(
-        children: [
-          // Decorative circles
-          Positioned(
-            right: -50,
-            top: -50,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.1),
-              ),
-            ),
-          ),
-          Positioned(
-            left: -30,
-            bottom: -30,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
-            ),
-          ),
-          // Main content
-          SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  pinned: true,
-                  expandedHeight: 220,
-                  backgroundColor: Colors.transparent,
-                  flexibleSpace: LayoutBuilder(
-                    builder: (context, constraints) {
-                      // Détecter si l'AppBar est collapsée
-                      final isCollapsed =
-                          constraints.maxHeight <= kToolbarHeight + 40;
-
-                      // Correction overflow: limiter la hauteur du contenu
-                      return Align(
-                        alignment: Alignment.center,
-                        child: SizedBox(
-                          height: constraints.maxHeight,
-                          width: double.infinity,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.max,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Center(
-                                  child: GestureDetector(
-                                    onTap: _changePhoto,
-                                    child: Stack(
-                                      children: [
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black
-                                                    .withValues(alpha: 0.2),
-                                                blurRadius: 20,
-                                                offset: const Offset(0, 10),
-                                              ),
-                                            ],
-                                          ),
-                                          child: ProfileAvatar(
-                                            uid: profile?.uid,
-                                            name: profile?.name ?? '',
-                                            size: 90,
-                                            showPhoto:
-                                                profile?.hasPhoto ?? false,
-                                            gradient: const [
-                                              Colors.white,
-                                              Color(0xFFF3E8FF)
-                                            ],
-                                            initialColor:
-                                                const Color(0xFF8B5CF6),
-                                          ),
-                                        ),
-                                        const Positioned(
-                                          right: 0,
-                                          bottom: 0,
-                                          child: CircleAvatar(
-                                            radius: 14,
-                                            backgroundColor: Color(0xFF8B5CF6),
-                                            child: Icon(Icons.camera_alt,
-                                                size: 16, color: Colors.white),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              if (!isCollapsed)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Text(
-                                    profile?.name ?? '',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  actions: [
-                    // Bouton Admin - Visible uniquement pour les admins
-                    FutureBuilder<bool>(
-                      future: _isAdminUser(),
-                      builder: (context, snapshot) {
-                        if (snapshot.data == true) {
-                          return IconButton(
-                            icon: const Icon(
-                              Icons.admin_panel_settings,
-                              color: Colors.orange,
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const AdminStatsScreen(),
-                                ),
-                              );
-                            },
-                            tooltip: 'Statistiques Admin',
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        _isEditing ? Icons.close : Icons.edit,
-                        color: Colors.white,
-                      ),
-                      onPressed: () => setState(() => _isEditing = !_isEditing),
-                    ),
-                  ],
-                ),
-                // Content
-                SliverToBoxAdapter(
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Profile Info Card
-                            _buildInfoCard(isDark),
-                            const SizedBox(height: 20),
-                            // Zodiac Card (if birth date is set)
-                            if (zodiacSign != null) ...[
-                              _buildZodiacCard(zodiacSign, isDark),
-                              const SizedBox(height: 20),
-                            ],
-                            // Birth Insights (fun facts)
-                            if (_birthDate != null) ...[
-                              BirthInsightsWidget(
-                                birthDate: _birthDate!,
-                                birthTime: _birthTime != null
-                                    ? '${_birthTime!.hour.toString().padLeft(2, '0')}:${_birthTime!.minute.toString().padLeft(2, '0')}'
-                                    : null,
-                                birthPlace: _birthPlaceController.text.isEmpty
-                                    ? null
-                                    : _birthPlaceController.text,
-                                birthCountry:
-                                    _birthCountryController.text.isEmpty
-                                        ? null
-                                        : _birthCountryController.text,
-                              ),
-                              const SizedBox(height: 20),
-                            ],
-                            // Actions
-                            _buildActionsSection(isDark),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ], // <-- Correction : fermeture du tableau slivers
-            ),
-          ),
-        ],
-      ),
-    );
+  /// « HH:mm » ; une valeur mal formée est ignorée au lieu de faire
+  /// planter l'écran.
+  static TimeOfDay? _parseTime(String? s) {
+    final parts = s?.split(':');
+    if (parts == null || parts.length < 2) return null;
+    final h = int.tryParse(parts[0]), m = int.tryParse(parts[1]);
+    if (h == null || m == null || h > 23 || m > 59) return null;
+    return TimeOfDay(hour: h, minute: m);
   }
 
-  Future<void> _saveProfile() async {
-    // Valider le formulaire avant sauvegarde
-    if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 8),
-              Text(AppLocalizations.of(context)
-                  .translate('pleaseFillAllRequiredFields')),
-            ],
-          ),
-          backgroundColor: Colors.red[400],
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
+  String? get _timeString => _birthTime == null
+      ? null
+      : '${_birthTime!.hour.toString().padLeft(2, '0')}:'
+          '${_birthTime!.minute.toString().padLeft(2, '0')}';
 
-    // Vérifier que la date de naissance est définie
-    if (_birthDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 8),
-              Text(AppLocalizations.of(context).translate('birthDateRequired')),
-            ],
-          ),
-          backgroundColor: Colors.red[400],
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
+  Future<bool> _checkAdmin() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
     try {
-      // Le document Firestore est écrit en `merge` avec toutes les clés :
-      // tout champ non repris ici serait remis à null. On conserve donc les
-      // champs que cet écran n'édite pas.
-      final previous = context.read<ProfileProvider>().profile;
-      final name = _nameController.text.trim();
-      final nameChanged = previous == null || previous.name != name;
-      final nameParts = name.split(RegExp(r'\s+'));
-      final updatedProfile = UserProfile(
-        uid: previous?.uid,
-        name: name,
-        givenName: nameChanged ? nameParts.first : previous.givenName,
-        familyName:
-            nameChanged ? nameParts.skip(1).join(' ') : previous.familyName,
-        timezone: previous?.timezone,
-        bio: previous?.bio,
-        zodiac: Zodiac.computeZodiac(_birthDate!),
-        birthDate: _birthDate!,
-        birthTime: _birthTime != null
-            ? '${_birthTime!.hour.toString().padLeft(2, '0')}:${_birthTime!.minute.toString().padLeft(2, '0')}'
-            : null,
-        birthplace: _birthPlaceController.text.trim().isEmpty
-            ? null
-            : _birthPlaceController.text.trim(),
-        birthCountry: _birthCountryController.text.trim().isEmpty
-            ? null
-            : _birthCountryController.text.trim(),
-        birthCity: _birthCityController.text.trim().isEmpty
-            ? null
-            : _birthCityController.text.trim(),
-        socialLinks: Map<String, String>.from(_socialLinks),
-        // Paramètres de confidentialité
-        isPublic: _isPublic,
-        publicName: _publicName,
-        publicBirthDate: _publicBirthDate,
-        publicBirthTime: _publicBirthTime,
-        publicBirthPlace: _publicBirthPlace,
-        publicBirthCountry: _publicBirthCountry,
-        publicBirthCity: _publicBirthCity,
-        countryCode: _countryCode,
-        publicCountry: _publicCountry,
-        // Sinon chaque enregistrement "oublierait" la photo.
-        hasPhoto: previous?.hasPhoto ?? false,
-        publicPhoto: _publicPhoto,
-        publicSocials: _publicSocials,
-        publicZodiac: _publicZodiac,
-      );
-
-      // Sauvegarder via le provider (local + Firebase)
-      await context.read<ProfileProvider>().save(updatedProfile, push: true);
-
-      // Passer en mode lecture
-      setState(() {
-        _isEditing = false;
-      });
-
-      // Afficher un message de succès
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 8),
-                Text(AppLocalizations.of(context).translate('profileSaved')),
-              ],
-            ),
-            backgroundColor: const Color(0xFF10B981),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      // Gérer les erreurs avec messages personnalisés
-      if (mounted) {
-        final errorMessage = NetworkErrorHandler.getFirebaseErrorMessage(e);
-        NetworkErrorHandler.showErrorSnackBar(
-          context,
-          errorMessage,
-          onRetry: _saveProfile,
-        );
-      }
-      // Ne pas sortir du mode édition en cas d'erreur
-      debugPrint('❌ Erreur sauvegarde profil: $e');
+      return await AdminService().isUserAdmin(uid);
+    } catch (_) {
+      return false;
     }
   }
 
-  Widget _buildInfoCard(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF374151) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.person, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                AppLocalizations.of(context).translate('personalInfo'),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
+  /// Moins de 16 ans : pas d'annuaire public (voir UserProfile.minPublicAge).
+  bool get _canBePublic =>
+      _birthDate == null || UserProfile.canBePublic(_birthDate!);
 
-          // Name Field
-          _buildModernTextField(
-            controller: _nameController,
-            label: AppLocalizations.of(context).translate('fullName'),
-            hint: 'Ex: Marie Dupont',
-            icon: Icons.badge_outlined,
-            isDark: isDark,
-            enabled: _isEditing,
-            validator: (v) => v == null || v.isEmpty ? 'Nom requis' : null,
-          ),
-          const SizedBox(height: 16),
-
-          // Birth Date
-          _buildDateSelector(isDark),
-          const SizedBox(height: 16),
-
-          // Birth Time (Optional)
-          _buildTimeSelector(isDark),
-          const SizedBox(height: 16),
-
-          // Birth Country (Required)
-          _buildModernTextField(
-            controller: _birthCountryController,
-            label: AppLocalizations.of(context).translate('birthCountry'),
-            hint: 'Ex: France',
-            icon: Icons.flag_outlined,
-            isDark: isDark,
-            enabled: _isEditing,
-            validator: (v) => v == null || v.isEmpty
-                ? AppLocalizations.of(context).translate('enterName')
-                : null,
-          ),
-          const SizedBox(height: 16),
-
-          // Birth Place/City (Required)
-          _buildModernTextField(
-            controller: _birthPlaceController,
-            label: AppLocalizations.of(context).translate('birthCity'),
-            hint: 'Ex: Paris',
-            icon: Icons.location_city_outlined,
-            isDark: isDark,
-            enabled: _isEditing,
-            validator: (v) =>
-                v == null || v.isEmpty ? 'Ville de naissance requise' : null,
-          ),
-          const SizedBox(height: 16),
-
-          // Current City
-          _buildModernTextField(
-            controller: _birthCityController,
-            label: AppLocalizations.of(context).translate('currentCity'),
-            hint: 'Ex: Lyon',
-            icon: Icons.home_outlined,
-            isDark: isDark,
-            enabled: _isEditing,
-          ),
-          const SizedBox(height: 16),
-
-          // Pays de résidence (filtre "Mon pays" de l'annuaire)
-          _buildCountryField(isDark),
-          const SizedBox(height: 24),
-
-          // Privacy Settings Section
-          // Profil masqué par la modération : l'expliquer plutôt que de
-          // laisser croire que l'interrupteur "public" ne fonctionne pas.
-          if (context.watch<ProfileProvider>().hiddenByModeration) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.visibility_off_outlined, color: Colors.orange),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(AppLocalizations.of(context)
-                        .translate('profileHiddenByModeration')),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-          if (_isEditing) _buildPrivacySection(context, isDark),
-          if (_isEditing) const SizedBox(height: 24),
-
-          // Social Links Section
-          _buildSocialLinksSection(isDark),
-
-          if (_isEditing) ...[
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton(
-                  onPressed: _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.save_rounded, color: Colors.white),
-                      const SizedBox(width: 8),
-                      Text(
-                        AppLocalizations.of(context).translate('save'),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModernTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    required bool isDark,
-    bool enabled = true,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey[300] : const Color(0xFF374151),
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          enabled: enabled,
-          validator: validator,
-          style: TextStyle(
-            fontSize: 16,
-            color: isDark ? Colors.white : const Color(0xFF1F2937),
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: isDark ? Colors.grey[600] : Colors.grey[400],
-            ),
-            prefixIcon: Icon(
-              icon,
-              color: enabled
-                  ? (isDark ? Colors.grey[400] : const Color(0xFF6B7280))
-                  : Colors.grey[600],
-            ),
-            filled: true,
-            fillColor: enabled
-                ? (isDark ? const Color(0xFF1F2937) : const Color(0xFFF9FAFB))
-                : (isDark ? const Color(0xFF111827) : Colors.grey[100]),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color:
-                    isDark ? const Color(0xFF4B5563) : const Color(0xFFE5E7EB),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: Color(0xFF8B5CF6),
-                width: 2,
-              ),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color:
-                    isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
-              ),
-            ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDateSelector(bool isDark) {
+  Future<void> _save() async {
     final l10n = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.translate('birthDate'),
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey[300] : const Color(0xFF374151),
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: _isEditing
-              ? () async {
-                  final d = await showDatePicker(
-                    context: context,
-                    initialDate: _birthDate ?? DateTime.now(),
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime.now(),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.light(
-                            primary: Color(0xFF8B5CF6),
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (d != null) setState(() => _birthDate = d);
-                }
-              : null,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: _isEditing
-                  ? (isDark ? const Color(0xFF1F2937) : const Color(0xFFF9FAFB))
-                  : (isDark ? const Color(0xFF111827) : Colors.grey[100]),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color:
-                    isDark ? const Color(0xFF4B5563) : const Color(0xFFE5E7EB),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.cake_outlined,
-                  color: _isEditing
-                      ? (isDark ? Colors.grey[400] : const Color(0xFF6B7280))
-                      : Colors.grey[600],
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  _birthDate == null
-                      ? l10n.translate('selectDate')
-                      : '${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: _birthDate == null
-                        ? (isDark ? Colors.grey[600] : Colors.grey[400])
-                        : (isDark ? Colors.white : const Color(0xFF1F2937)),
-                  ),
-                ),
-                const Spacer(),
-                Icon(
-                  Icons.calendar_today,
-                  size: 20,
-                  color: isDark ? Colors.grey[600] : Colors.grey[400],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+    final messenger = ScaffoldMessenger.of(context);
+    if (!_formKey.currentState!.validate() || _birthDate == null) {
+      messenger.showSnackBar(SnackBar(
+          content: Text(l10n.translate(_birthDate == null
+              ? 'birthDateRequired'
+              : 'pleaseFillAllRequiredFields'))));
+      return;
+    }
+    final provider = context.read<ProfileProvider>();
+    // Le document Firestore est écrit en `merge` avec toutes les clés : tout
+    // champ non repris ici serait remis à null. On conserve donc les champs
+    // que cet écran n'édite pas.
+    final previous = provider.profile;
+    final name = _name.text.trim();
+    final nameChanged = previous == null || previous.name != name;
+    final nameParts = name.split(RegExp(r'\s+'));
+    String? opt(TextEditingController c) =>
+        c.text.trim().isEmpty ? null : c.text.trim();
+    final updated = UserProfile(
+      uid: previous?.uid,
+      name: name,
+      givenName: nameChanged ? nameParts.first : previous.givenName,
+      familyName: nameChanged ? nameParts.skip(1).join(' ') : previous.familyName,
+      timezone: previous?.timezone,
+      bio: previous?.bio,
+      zodiac: Zodiac.computeZodiac(_birthDate!),
+      birthDate: _birthDate!,
+      birthTime: _timeString,
+      birthplace: opt(_birthPlace),
+      birthCountry: opt(_birthCountry),
+      birthCity: opt(_currentCity),
+      socialLinks: Map<String, String>.from(_socialLinks),
+      isPublic: _isPublic && _canBePublic,
+      publicName: _publicName,
+      publicBirthDate: _publicBirthDate,
+      publicBirthTime: _publicBirthTime,
+      publicBirthPlace: _publicBirthPlace,
+      publicBirthCountry: _publicBirthCountry,
+      publicBirthCity: _publicBirthCity,
+      countryCode: _countryCode,
+      publicCountry: _publicCountry,
+      // Sinon chaque enregistrement « oublierait » la photo.
+      hasPhoto: previous?.hasPhoto ?? false,
+      publicPhoto: _publicPhoto,
+      publicSocials: _publicSocials,
+      publicZodiac: _publicZodiac,
     );
+
+    setState(() => _saving = true);
+    try {
+      await provider.save(updated, push: true);
+      if (!mounted) return;
+      setState(() => _editing = false);
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.translate('profileSaved'))));
+    } catch (e) {
+      debugPrint('❌ Erreur sauvegarde profil: $e');
+      messenger.showSnackBar(SnackBar(
+        content: Text(l10n.translate('profileSaveFailed')),
+        action: SnackBarAction(label: l10n.translate('retry'), onPressed: _save),
+      ));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
-  Widget _buildTimeSelector(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Heure de naissance (optionnel)',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey[300] : const Color(0xFF374151),
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: _isEditing
-              ? () async {
-                  final t = await showTimePicker(
-                    context: context,
-                    initialTime: _birthTime ?? TimeOfDay.now(),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.light(
-                            primary: Color(0xFF8B5CF6),
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (t != null) setState(() => _birthTime = t);
-                }
-              : null,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: _isEditing
-                  ? (isDark ? const Color(0xFF1F2937) : const Color(0xFFF9FAFB))
-                  : (isDark ? const Color(0xFF111827) : Colors.grey[100]),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color:
-                    isDark ? const Color(0xFF4B5563) : const Color(0xFFE5E7EB),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.access_time,
-                  color: _isEditing
-                      ? (isDark ? Colors.grey[400] : const Color(0xFF6B7280))
-                      : Colors.grey[600],
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  _birthTime == null
-                      ? AppLocalizations.of(context).translate('selectTime')
-                      : _birthTime!.format(context),
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: _birthTime == null
-                        ? (isDark ? Colors.grey[600] : Colors.grey[400])
-                        : (isDark ? Colors.white : const Color(0xFF1F2937)),
-                  ),
-                ),
-                const Spacer(),
-                Icon(
-                  Icons.schedule,
-                  size: 20,
-                  color: isDark ? Colors.grey[600] : Colors.grey[400],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
+  void _cancelEdit() {
+    setState(() {
+      _fill(context.read<ProfileProvider>().profile);
+      _editing = false;
+    });
   }
 
-  Widget _buildZodiacCard(String zodiacSign, bool isDark) {
-    // zodiacSign est l'identifiant (nom français) : affichage traduit.
-    final lang = AppLocalizations.of(context).locale.languageCode;
-    final emoji = ZodiacContent.emoji(zodiacSign);
-    final description = ZodiacContent.description(zodiacSign, lang);
-    final period = ZodiacContent.period(zodiacSign, lang);
-    final signName = ZodiacContent.name(zodiacSign, lang);
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF374151), const Color(0xFF1F2937)]
-              : [const Color(0xFFFDF4FF), const Color(0xFFF3E8FF)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                emoji,
-                style: const TextStyle(fontSize: 40),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      signName,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : const Color(0xFF8B5CF6),
-                      ),
-                    ),
-                    Text(
-                      period,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color:
-                            isDark ? Colors.grey[400] : const Color(0xFF6B7280),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            description,
-            style: TextStyle(
-              fontSize: 15,
-              height: 1.5,
-              color: isDark ? Colors.grey[300] : const Color(0xFF374151),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionsSection(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '⚡ Actions',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildActionButton(
-          icon: Icons.share_rounded,
-          title: AppLocalizations.of(context).translate('recommendApp'),
-          subtitle: AppLocalizations.of(context).translate('recommendAppDesc'),
-          gradient: const [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-          isDark: isDark,
-          onTap: () async {
-            final profile = context.read<ProfileProvider>().profile;
-            final shareText = profile == null
-                ? AppLocalizations.of(context).translate('shareDefaultText')
-                : AppLocalizations.of(context).translate('shareProfileText').replaceAll('{name}', profile.name);
-            await SharePlus.instance.share(ShareParams(
-                text: shareText, subject: AppLocalizations.of(context).translate('shareDefaultText')));
-          },
-        ),
-        const SizedBox(height: 12),
-        // RGPD : consentement aux statistiques, réversible à tout moment.
-        SwitchListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          secondary: const Icon(Icons.insights_outlined),
-          title: Text(AppLocalizations.of(context).translate('analyticsSetting')),
-          subtitle:
-              Text(AppLocalizations.of(context).translate('analyticsSettingDesc')),
-          value: AnalyticsService().consent == true,
-          onChanged: (granted) async {
-            await AnalyticsService().setConsent(granted);
-            if (mounted) setState(() {});
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildActionButton(
-          icon: Icons.block_rounded,
-          title: AppLocalizations.of(context).translate('blockedProfiles'),
-          subtitle:
-              AppLocalizations.of(context).translate('blockedProfilesDesc'),
-          gradient: const [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-          isDark: isDark,
-          onTap: _showBlockedProfiles,
-        ),
-        const SizedBox(height: 12),
-        _buildActionButton(
-          icon: Icons.logout_rounded,
-          title: AppLocalizations.of(context).translate('logout'),
-          subtitle: AppLocalizations.of(context).translate('logoutConfirm'),
-          gradient: const [Color(0xFF6B7280), Color(0xFF9CA3AF)],
-          isDark: isDark,
-          onTap: () => account.signOut(context),
-        ),
-        const SizedBox(height: 12),
-        _buildActionButton(
-          icon: Icons.delete_forever_rounded,
-          title: AppLocalizations.of(context).translate('deleteAccount'),
-          subtitle:
-              AppLocalizations.of(context).translate('deleteAccountConfirm'),
-          gradient: const [Color(0xFFDC2626), Color(0xFFF87171)],
-          isDark: isDark,
-          onTap: () => account.deleteAccount(context),
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: TextButton.icon(
-            icon: const Icon(Icons.privacy_tip_outlined, size: 18),
-            label: Text(AppLocalizations.of(context).translate('privacyPolicy')),
-            onPressed: () => launchUrl(Uri.parse(AppLinks.privacy),
-                mode: LaunchMode.externalApplication),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required List<Color> gradient,
-    required bool isDark,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF374151) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: gradient),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: isDark ? Colors.grey[600] : Colors.grey[400],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSocialLinksSection(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              Icons.share_rounded,
-              size: 20,
-              color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              AppLocalizations.of(context).translate('socialNetworks'),
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : const Color(0xFF1F2937),
-              ),
-            ),
-            const Spacer(),
-            if (_isEditing)
-              IconButton(
-                onPressed: () => _showAddSocialLinkDialog(isDark),
-                icon: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.all(6),
-                  child: const Icon(
-                    Icons.add_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                tooltip:
-                    AppLocalizations.of(context).translate('addSocialNetwork'),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (_socialLinks.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark ? Colors.grey[800]! : const Color(0xFFE5E7EB),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.link_off_rounded,
-                  size: 48,
-                  color: isDark ? Colors.grey[700] : Colors.grey[300],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _isEditing
-                      ? AppLocalizations.of(context).translate('noSocialAddHint')
-                      : AppLocalizations.of(context).translate('noSocialYet'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? Colors.grey[500] : const Color(0xFF9CA3AF),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          SocialLinksWidget(
-            socialLinks: _socialLinks,
-            isCompact: false,
-          ),
-      ],
-    );
-  }
-
-  void _showAddSocialLinkDialog(bool isDark) {
-    String? selectedPlatform;
-    final urlController = TextEditingController();
-    final platforms = [
-      'Facebook',
-      'Instagram',
-      'Twitter',
-      'LinkedIn',
-      'YouTube',
-      'TikTok',
-      'Snapchat',
-      'WhatsApp',
-      'Telegram',
-      'GitHub',
-      'Discord',
-      'Reddit',
-      'Pinterest',
-      'Twitch',
-      'Spotify',
-      'Autre',
-    ];
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1F2937) : Colors.white,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppLocalizations.of(context).translate('add_social_link'),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedPlatform,
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      prefixIcon: const Icon(Icons.apps_rounded),
-                    ),
-                    hint: Text(
-                      AppLocalizations.of(context).translate('choose_platform'),
-                      style: TextStyle(
-                        color:
-                            isDark ? Colors.grey[500] : const Color(0xFF9CA3AF),
-                      ),
-                    ),
-                    dropdownColor:
-                        isDark ? const Color(0xFF374151) : Colors.white,
-                    items: platforms
-                        .map((platform) => DropdownMenuItem(
-                              value: platform,
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: _getSocialColors(
-                                            platform.toLowerCase()),
-                                      ),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Icon(
-                                      _getSocialIcon(platform.toLowerCase()),
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(platform),
-                                ],
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setModalState(() {
-                        selectedPlatform = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    AppLocalizations.of(context).translate('url_link'),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color:
-                          isDark ? Colors.grey[300] : const Color(0xFF374151),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: urlController,
-                    decoration: InputDecoration(
-                      hintText: 'https://...',
-                      prefixIcon: const Icon(Icons.link_rounded),
-                      filled: true,
-                      fillColor: isDark
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFF9FAFB),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: isDark
-                              ? Colors.grey[700]!
-                              : const Color(0xFFE5E7EB),
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: isDark
-                              ? Colors.grey[700]!
-                              : const Color(0xFFE5E7EB),
-                        ),
-                      ),
-                    ),
-                    style: TextStyle(
-                      color: isDark ? Colors.white : const Color(0xFF1F2937),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            side: BorderSide(
-                              color: isDark
-                                  ? Colors.grey[700]!
-                                  : const Color(0xFFE5E7EB),
-                            ),
-                          ),
-                          child: Text(
-                            AppLocalizations.of(context).translate('cancel'),
-                            style: TextStyle(
-                              color: isDark
-                                  ? Colors.grey[400]
-                                  : const Color(0xFF6B7280),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (selectedPlatform != null &&
-                                  urlController.text.isNotEmpty) {
-                                setState(() {
-                                  _socialLinks[selectedPlatform!
-                                      .toLowerCase()] = urlController.text;
-                                });
-                                Navigator.pop(context);
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              AppLocalizations.of(context).translate('add'),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPrivacySection(BuildContext context, bool isDark) {
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF374151), const Color(0xFF1F2937)]
-              : [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.lock_outline_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                l10n.translate('privacySettings'),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF1F2937),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Master Public Switch
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1F2937) : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _isPublic
-                    ? const Color(0xFF10B981)
-                    : (isDark ? Colors.grey[800]! : const Color(0xFFE5E7EB)),
-                width: 2,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: _isPublic
-                          ? [const Color(0xFF10B981), const Color(0xFF34D399)]
-                          : [const Color(0xFF6B7280), const Color(0xFF9CA3AF)],
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _isPublic ? Icons.public_rounded : Icons.lock_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.translate('publicProfile'),
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color:
-                              isDark ? Colors.white : const Color(0xFF1F2937),
-                        ),
-                      ),
-                      Text(
-                        !_canBePublic
-                            ? l10n.translate('publicAgeRestriction')
-                            : _isPublic
-                                ? l10n.translate('publicProfileDesc')
-                                : l10n.translate('privateProfile'),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark
-                              ? Colors.grey[400]
-                              : const Color(0xFF6B7280),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Switch(
-                  value: _isPublic && _canBePublic,
-                  onChanged: !_canBePublic ? null : (value) {
-                    setState(() {
-                      _isPublic = value;
-                      if (!value) {
-                        // If profile becomes private, disable all visibility
-                        _publicName = false;
-                        _publicBirthDate = false;
-                        _publicBirthTime = false;
-                        _publicBirthPlace = false;
-                        _publicBirthCountry = false;
-                        _publicBirthCity = false;
-                        _publicCountry = false;
-                        _publicPhoto = false;
-                        _publicSocials = false;
-                        _publicZodiac = false;
-                      }
-                    });
-                  },
-                  activeThumbColor: const Color(0xFF10B981),
-                ),
-              ],
-            ),
-          ),
-
-          if (_isPublic) ...[
-            const SizedBox(height: 16),
-            Text(
-              l10n.translate('visibleInfo'),
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildPrivacySwitch(l10n.translate('name'), _publicName,
-                Icons.badge_outlined, isDark, (val) {
-              setState(() => _publicName = val);
-            }),
-            _buildPrivacySwitch(l10n.translate('birthDate'), _publicBirthDate,
-                Icons.cake_outlined, isDark, (val) {
-              setState(() => _publicBirthDate = val);
-            }),
-            _buildPrivacySwitch(l10n.translate('birthTime'), _publicBirthTime,
-                Icons.access_time_outlined, isDark, (val) {
-              setState(() => _publicBirthTime = val);
-            }),
-            _buildPrivacySwitch(l10n.translate('birthCountry'),
-                _publicBirthCountry, Icons.flag_outlined, isDark, (val) {
-              setState(() => _publicBirthCountry = val);
-            }),
-            _buildPrivacySwitch(l10n.translate('birthCity'), _publicBirthPlace,
-                Icons.location_city_outlined, isDark, (val) {
-              setState(() => _publicBirthPlace = val);
-            }),
-            _buildPrivacySwitch(l10n.translate('currentCity'), _publicBirthCity,
-                Icons.home_outlined, isDark, (val) {
-              setState(() => _publicBirthCity = val);
-            }),
-            _buildPrivacySwitch(l10n.translate('showMyCountry'), _publicCountry,
-                Icons.flag_outlined, isDark, (val) {
-              setState(() => _publicCountry = val);
-            }),
-            _buildPrivacySwitch(l10n.translate('showMyPhoto'), _publicPhoto,
-                Icons.photo_camera_outlined, isDark, (val) {
-              setState(() => _publicPhoto = val);
-            }),
-            _buildPrivacySwitch(l10n.translate('myZodiac'), _publicZodiac,
-                Icons.stars_rounded, isDark, (val) {
-              setState(() => _publicZodiac = val);
-            }),
-            _buildPrivacySwitch(l10n.translate('socialNetworks'),
-                _publicSocials, Icons.share_outlined, isDark, (val) {
-              setState(() => _publicSocials = val);
-            }),
-          ],
-        ],
-      ),
-    );
-  }
-
-  /// Vérifier si l'utilisateur actuel est l'administrateur
   /// Choisir ou supprimer la photo de profil.
   Future<void> _changePhoto() async {
     final l10n = AppLocalizations.of(context);
@@ -1612,10 +213,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     final current = provider.profile;
     if (current == null) return;
     final messenger = ScaffoldMessenger.of(context);
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheet) => SafeArea(
+    final action = await showGlassSheet<String>(
+      context,
+      builder: (sheet) => Padding(
+        padding: const EdgeInsets.fromLTRB(Space.l, 0, Space.l, Space.l),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1626,8 +227,10 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             if (current.hasPhoto)
               ListTile(
-                leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: Text(l10n.translate('removePhoto')),
+                leading: Icon(Icons.delete_outline_rounded,
+                    color: Theme.of(sheet).colorScheme.error),
+                title: Text(l10n.translate('removePhoto'),
+                    style: TextStyle(color: Theme.of(sheet).colorScheme.error)),
                 onTap: () => Navigator.of(sheet).pop('remove'),
               ),
           ],
@@ -1653,47 +256,54 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   /// Liste des profils bloqués, avec déblocage.
-  Future<void> _showBlockedProfiles() async {
+  Future<void> _showBlocked() {
     final l10n = AppLocalizations.of(context);
     final safety = SafetyService();
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (sheetContext, setSheetState) =>
-            FutureBuilder<List<BlockedProfile>>(
+    return showGlassSheet<void>(
+      context,
+      builder: (sheet) => StatefulBuilder(
+        builder: (sheet, setSheet) => FutureBuilder<List<BlockedProfile>>(
           future: safety.blockedProfiles(),
           builder: (_, snap) {
             if (snap.connectionState != ConnectionState.done) {
               return const Padding(
-                padding: EdgeInsets.all(32),
+                padding: EdgeInsets.all(Space.xxl),
                 child: Center(child: CircularProgressIndicator()),
               );
             }
             final blocked = snap.data ?? const <BlockedProfile>[];
-            if (blocked.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(l10n.translate('noBlockedProfiles'),
-                    textAlign: TextAlign.center),
-              );
-            }
-            return ListView(
-              shrinkWrap: true,
-              children: [
-                for (final b in blocked)
-                  ListTile(
-                    leading: const Icon(Icons.person_off_outlined),
-                    title: Text(b.name ?? l10n.translate('anonymousProfile')),
-                    trailing: TextButton(
-                      onPressed: () async {
-                        await safety.unblock(b.uid);
-                        setSheetState(() {}); // recharge la liste
-                      },
-                      child: Text(l10n.translate('unblock')),
-                    ),
-                  ),
-              ],
+            return Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(Space.page, 0, Space.page, Space.l),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(l10n.translate('blockedProfiles'),
+                      style: Theme.of(sheet).textTheme.titleLarge),
+                  const SizedBox(height: Space.s),
+                  if (blocked.isEmpty)
+                    EmptyState(
+                        icon: Icons.block_outlined,
+                        title: l10n.translate('noBlockedProfiles'))
+                  else
+                    for (final b in blocked)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: InitialsAvatar(
+                            name: b.name ?? '?', size: 40),
+                        title: Text(
+                            b.name ?? l10n.translate('anonymousProfile')),
+                        trailing: TextButton(
+                          onPressed: () async {
+                            await safety.unblock(b.uid);
+                            setSheet(() {}); // recharge la liste
+                          },
+                          child: Text(l10n.translate('unblock')),
+                        ),
+                      ),
+                ],
+              ),
             );
           },
         ),
@@ -1701,174 +311,612 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  /// Sélecteur du pays de résidence (code ISO, noms traduits).
-  Widget _buildCountryField(bool isDark) {
+  Future<void> _addSocialLink() async {
     final l10n = AppLocalizations.of(context);
-    final country =
-        _countryCode == null ? null : Country.tryParse(_countryCode!);
-    final name = country == null
-        ? null
-        : CountryLocalizations.of(context)
-                ?.countryName(countryCode: country.countryCode) ??
-            country.name;
-    return ListTile(
-      enabled: _isEditing,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
-      ),
-      leading: Text(country?.flagEmoji ?? '🌍',
-          style: const TextStyle(fontSize: 24)),
-      title: Text(l10n.translate('countryOfResidence'),
-          style: const TextStyle(fontSize: 13)),
-      subtitle: Text(name ?? l10n.translate('chooseCountry')),
-      trailing: _isEditing ? const Icon(Icons.arrow_drop_down) : null,
-      onTap: !_isEditing
-          ? null
-          : () => showCountryPicker(
-                context: context,
-                onSelect: (c) => setState(() => _countryCode = c.countryCode),
-              ),
+    final result = await showGlassSheet<(String, String)>(
+      context,
+      builder: (_) => const _SocialLinkSheet(),
     );
+    if (result == null) return;
+    setState(() => _socialLinks[result.$1] = result.$2);
+    if (!mounted) return;
+    if (!_publicSocials && _isPublic) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.translate('socialLinksHiddenHint'))));
+    }
   }
 
-  /// Moins de 16 ans : pas d'annuaire public (voir UserProfile.minPublicAge).
-  bool get _canBePublic =>
-      _birthDate == null || UserProfile.canBePublic(_birthDate!);
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final provider = context.watch<ProfileProvider>();
+    final profile = provider.profile;
 
-  Future<bool> _isAdminUser() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return false;
-
-    // Vérifier dans Firestore si l'utilisateur est admin
-    final adminService = AdminService();
-    return await adminService.isUserAdmin(user.uid);
-  }
-
-  Widget _buildPrivacySwitch(
-    String label,
-    bool value,
-    IconData icon,
-    bool isDark,
-    Function(bool) onChanged,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1F2937) : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isDark ? Colors.grey[800]! : const Color(0xFFE5E7EB),
-          ),
+    return AppScaffold(
+      title: Text(l10n.translate('myProfile')),
+      actions: [
+        FutureBuilder<bool>(
+          future: _isAdmin,
+          builder: (context, snap) => snap.data == true
+              ? IconButton(
+                  tooltip: l10n.translate('adminStats'),
+                  icon: const Icon(Icons.admin_panel_settings_outlined),
+                  onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const AdminStatsScreen())),
+                )
+              : const SizedBox.shrink(),
         ),
-        child: Row(
+        if (_editing) ...[
+          TextButton(
+              onPressed: _saving ? null : _cancelEdit,
+              child: Text(l10n.translate('cancel'))),
+        ] else
+          IconButton(
+            tooltip: l10n.translate('edit'),
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => setState(() => _editing = true),
+          ),
+      ],
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: AppScaffold.pagePadding(context),
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: value
-                  ? const Color(0xFF3B82F6)
-                  : (isDark ? Colors.grey[600] : const Color(0xFF9CA3AF)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? Colors.grey[300] : const Color(0xFF374151),
-                ),
+            _header(profile),
+            if (provider.hiddenByModeration) ...[
+              const SizedBox(height: Space.m),
+              NoticeCard(
+                icon: Icons.visibility_off_outlined,
+                text: l10n.translate('profileHiddenByModeration'),
+                tone: Tone.danger,
               ),
+            ],
+            SectionHeader(l10n.translate('personalInfo')),
+            _editing ? _infoForm() : _infoView(),
+            if (_editing) ...[
+              SectionHeader(l10n.translate('privacySettings')),
+              _privacy(),
+            ],
+            SectionHeader(
+              l10n.translate('socialNetworks'),
+              actionLabel: _editing ? l10n.translate('add') : null,
+              onAction: _addSocialLink,
             ),
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: const Color(0xFF3B82F6),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            GlassCard(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Space.m, vertical: Space.s),
+              child: _socialLinks.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(Space.m),
+                      child: Text(
+                        l10n.translate(
+                            _editing ? 'noSocialAddHint' : 'noSocialYet'),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                    )
+                  : SocialLinksWidget(
+                      socialLinks: _socialLinks,
+                      onRemove: _editing
+                          ? (k) => setState(() => _socialLinks.remove(k))
+                          : null,
+                    ),
             ),
+            if (_editing) ...[
+              const SizedBox(height: Space.xl),
+              FilledButton(
+                onPressed: _saving ? null : _save,
+                child: _saving
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text(l10n.translate('save')),
+              ),
+            ] else ...[
+              if (_birthDate != null) ...[
+                SectionHeader(l10n.translate('yourZodiacSign')),
+                _zodiacCard(),
+                const SizedBox(height: Space.m),
+                BirthInsightsWidget(
+                  birthDate: _birthDate!,
+                  birthTime: _timeString,
+                  birthPlace: _birthPlace.text.isEmpty ? null : _birthPlace.text,
+                  birthCountry:
+                      _birthCountry.text.isEmpty ? null : _birthCountry.text,
+                ),
+              ],
+              SectionHeader(l10n.translate('settings')),
+              _settingsCard(),
+              SectionHeader(l10n.translate('account')),
+              _accountCard(profile),
+            ],
           ],
         ),
       ),
     );
   }
 
-  IconData _getSocialIcon(String platform) {
-    switch (platform.toLowerCase()) {
-      case 'facebook':
-        return Icons.facebook;
-      case 'instagram':
-        return Icons.camera_alt;
-      case 'twitter':
-      case 'x':
-        return Icons.alternate_email;
-      case 'linkedin':
-        return Icons.business;
-      case 'youtube':
-        return Icons.play_arrow;
-      case 'tiktok':
-        return Icons.music_note;
-      case 'snapchat':
-        return Icons.camera;
-      case 'whatsapp':
-        return Icons.phone;
-      case 'telegram':
-        return Icons.send;
-      case 'github':
-        return Icons.code;
-      case 'discord':
-        return Icons.forum;
-      case 'reddit':
-        return Icons.reddit;
-      case 'pinterest':
-        return Icons.push_pin;
-      case 'twitch':
-        return Icons.videocam;
-      case 'spotify':
-        return Icons.music_video;
-      default:
-        return Icons.link;
-    }
+  Widget _header(UserProfile? profile) {
+    final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
+    final sign = _birthDate == null ? null : Zodiac.computeZodiac(_birthDate!);
+    return GlassCard(
+      padding: const EdgeInsets.all(Space.xl),
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              InkWell(
+                customBorder: const CircleBorder(),
+                onTap: _changePhoto,
+                child: ProfileAvatar(
+                  uid: profile?.uid,
+                  name: profile?.name ?? '',
+                  size: 88,
+                  showPhoto: profile?.hasPhoto ?? false,
+                ),
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Material(
+                  color: c.primary,
+                  shape: CircleBorder(side: BorderSide(color: c.surface, width: 2)),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: _changePhoto,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(Icons.photo_camera_outlined,
+                          size: 16, color: c.onPrimary),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Space.l),
+          Text(profile?.name ?? '',
+              style: t.headlineSmall, textAlign: TextAlign.center),
+          if (_birthDate != null) ...[
+            const SizedBox(height: Space.xs),
+            Text(
+              [
+                fullDateLabel(l10n, _birthDate!),
+                if (sign != null)
+                  ZodiacContent.name(sign, l10n.locale.languageCode),
+              ].join(' · '),
+              style: t.bodyMedium?.copyWith(color: c.onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+          ],
+          const SizedBox(height: Space.m),
+          Pill(
+            l10n.translate(
+                profile?.isPublic == true ? 'publicProfile' : 'privateProfileShort'),
+            icon: profile?.isPublic == true
+                ? Icons.public_rounded
+                : Icons.lock_outline_rounded,
+            tone: profile?.isPublic == true ? Tone.primary : Tone.neutral,
+          ),
+        ],
+      ),
+    );
   }
 
-  List<Color> _getSocialColors(String platform) {
-    switch (platform.toLowerCase()) {
-      case 'facebook':
-        return [const Color(0xFF1877F2), const Color(0xFF42A5F5)];
-      case 'instagram':
-        return [const Color(0xFFE4405F), const Color(0xFFFCAF45)];
-      case 'twitter':
-      case 'x':
-        return [const Color(0xFF1DA1F2), const Color(0xFF42A5F5)];
-      case 'linkedin':
-        return [const Color(0xFF0A66C2), const Color(0xFF42A5F5)];
-      case 'youtube':
-        return [const Color(0xFFFF0000), const Color(0xFFE57373)];
-      case 'tiktok':
-        return [const Color(0xFF000000), const Color(0xFF69C9D0)];
-      case 'snapchat':
-        return [const Color(0xFFFFFC00), const Color(0xFFFDD835)];
-      case 'whatsapp':
-        return [const Color(0xFF25D366), const Color(0xFF66BB6A)];
-      case 'telegram':
-        return [const Color(0xFF0088CC), const Color(0xFF42A5F5)];
-      case 'github':
-        return [const Color(0xFF181717), const Color(0xFF424242)];
-      case 'discord':
-        return [const Color(0xFF5865F2), const Color(0xFF7289DA)];
-      case 'reddit':
-        return [const Color(0xFFFF4500), const Color(0xFFFF6B35)];
-      case 'pinterest':
-        return [const Color(0xFFE60023), const Color(0xFFE57373)];
-      case 'twitch':
-        return [const Color(0xFF9146FF), const Color(0xFFAB47BC)];
-      case 'spotify':
-        return [const Color(0xFF1DB954), const Color(0xFF66BB6A)];
-      default:
-        return [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)];
-    }
+  Widget _infoView() {
+    final l10n = AppLocalizations.of(context);
+    String? orNull(String s) => s.trim().isEmpty ? null : s.trim();
+    final country = _countryCode == null ? null : Country.tryParse(_countryCode!);
+    final rows = <Widget>[
+      InfoRow(
+          icon: Icons.person_outline_rounded,
+          label: l10n.translate('fullName'),
+          value: _name.text),
+      if (_birthDate != null)
+        InfoRow(
+            icon: Icons.cake_outlined,
+            label: l10n.translate('birthDate'),
+            value: [
+              fullDateLabel(l10n, _birthDate!),
+              if (_birthTime != null) _birthTime!.format(context),
+            ].join(' · ')),
+      if (orNull(_birthPlace.text) != null || orNull(_birthCountry.text) != null)
+        InfoRow(
+            icon: Icons.place_outlined,
+            label: l10n.translate('birthPlace'),
+            value: [orNull(_birthPlace.text), orNull(_birthCountry.text)]
+                .whereType<String>()
+                .join(', ')),
+      if (orNull(_currentCity.text) != null)
+        InfoRow(
+            icon: Icons.home_outlined,
+            label: l10n.translate('currentCity'),
+            value: _currentCity.text.trim()),
+      if (country != null)
+        InfoRow(
+            icon: Icons.flag_outlined,
+            label: l10n.translate('countryOfResidence'),
+            value: CountryLocalizations.of(context)
+                    ?.countryName(countryCode: country.countryCode) ??
+                country.name),
+    ];
+    return GlassCard(
+      padding:
+          const EdgeInsets.symmetric(horizontal: Space.l, vertical: Space.s),
+      child: Column(
+        children: [
+          for (final (i, row) in rows.indexed) ...[
+            if (i > 0) const CardDivider(),
+            row,
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _infoForm() {
+    final l10n = AppLocalizations.of(context);
+    final country = _countryCode == null ? null : Country.tryParse(_countryCode!);
+    String? required(String? v) =>
+        (v ?? '').trim().isEmpty ? l10n.translate('requiredField') : null;
+    return GlassCard(
+      child: Column(
+        children: [
+          TextFormField(
+            controller: _name,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+                labelText: l10n.translate('fullName'),
+                prefixIcon: const Icon(Icons.person_outline_rounded)),
+            validator: required,
+          ),
+          const SizedBox(height: Space.m),
+          PickerField(
+            label: l10n.translate('birthDate'),
+            icon: Icons.cake_outlined,
+            value: _birthDate == null ? null : fullDateLabel(l10n, _birthDate!),
+            placeholder: l10n.translate('selectDate'),
+            onTap: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: _birthDate ?? DateTime(2000),
+                firstDate: DateTime(1900),
+                lastDate: DateTime.now(),
+                initialEntryMode: DatePickerEntryMode.calendarOnly,
+              );
+              if (d != null) setState(() => _birthDate = d);
+            },
+          ),
+          const SizedBox(height: Space.m),
+          PickerField(
+            label: l10n.translate('birthTimeOptional'),
+            icon: Icons.schedule_rounded,
+            value: _birthTime?.format(context),
+            placeholder: l10n.translate('selectTime'),
+            onTap: () async {
+              final t = await showTimePicker(
+                  context: context,
+                  initialTime: _birthTime ?? const TimeOfDay(hour: 12, minute: 0));
+              if (t != null) setState(() => _birthTime = t);
+            },
+          ),
+          const SizedBox(height: Space.m),
+          TextFormField(
+            controller: _birthPlace,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+                labelText: l10n.translate('birthCity'),
+                prefixIcon: const Icon(Icons.place_outlined)),
+          ),
+          const SizedBox(height: Space.m),
+          TextFormField(
+            controller: _birthCountry,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+                labelText: l10n.translate('birthCountry'),
+                prefixIcon: const Icon(Icons.public_rounded)),
+          ),
+          const SizedBox(height: Space.m),
+          TextFormField(
+            controller: _currentCity,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+                labelText: l10n.translate('currentCity'),
+                prefixIcon: const Icon(Icons.home_outlined)),
+          ),
+          const SizedBox(height: Space.m),
+          PickerField(
+            label: l10n.translate('countryOfResidence'),
+            icon: Icons.flag_outlined,
+            leading: country == null ? null : Text(country.flagEmoji),
+            value: country == null
+                ? null
+                : CountryLocalizations.of(context)
+                        ?.countryName(countryCode: country.countryCode) ??
+                    country.name,
+            placeholder: l10n.translate('chooseCountry'),
+            onTap: () => showCountryPicker(
+              context: context,
+              onSelect: (c) => setState(() => _countryCode = c.countryCode),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _privacy() {
+    final l10n = AppLocalizations.of(context);
+    Widget toggle(String label, bool value, ValueChanged<bool> onChanged) =>
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          title: Text(label, style: Theme.of(context).textTheme.bodyLarge),
+          value: value,
+          onChanged: onChanged,
+        );
+    return GlassCard(
+      padding: const EdgeInsets.fromLTRB(Space.l, Space.s, Space.l, Space.s),
+      child: Column(
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(l10n.translate('publicProfile')),
+            subtitle: Text(l10n.translate(!_canBePublic
+                ? 'publicAgeRestriction'
+                : _isPublic
+                    ? 'publicProfileDesc'
+                    : 'privateProfile')),
+            value: _isPublic && _canBePublic,
+            onChanged: !_canBePublic
+                ? null
+                : (v) => setState(() {
+                      _isPublic = v;
+                      if (!v) {
+                        // Profil privé : plus rien n'est visible.
+                        _publicName = _publicBirthDate = _publicBirthTime =
+                            _publicBirthPlace = _publicBirthCountry =
+                                _publicBirthCity = _publicCountry =
+                                    _publicPhoto = _publicSocials =
+                                        _publicZodiac = false;
+                      }
+                    }),
+          ),
+          if (_isPublic && _canBePublic) ...[
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.only(top: Space.m, bottom: Space.xs),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(l10n.translate('visibleInfo'),
+                    style: Theme.of(context).textTheme.bodySmall),
+              ),
+            ),
+            toggle(l10n.translate('name'), _publicName,
+                (v) => setState(() => _publicName = v)),
+            toggle(l10n.translate('showMyPhoto'), _publicPhoto,
+                (v) => setState(() => _publicPhoto = v)),
+            toggle(l10n.translate('birthDate'), _publicBirthDate,
+                (v) => setState(() => _publicBirthDate = v)),
+            toggle(l10n.translate('birthTime'), _publicBirthTime,
+                (v) => setState(() => _publicBirthTime = v)),
+            toggle(l10n.translate('birthCity'), _publicBirthPlace,
+                (v) => setState(() => _publicBirthPlace = v)),
+            toggle(l10n.translate('birthCountry'), _publicBirthCountry,
+                (v) => setState(() => _publicBirthCountry = v)),
+            toggle(l10n.translate('currentCity'), _publicBirthCity,
+                (v) => setState(() => _publicBirthCity = v)),
+            toggle(l10n.translate('showMyCountry'), _publicCountry,
+                (v) => setState(() => _publicCountry = v)),
+            toggle(l10n.translate('zodiacSign'), _publicZodiac,
+                (v) => setState(() => _publicZodiac = v)),
+            toggle(l10n.translate('socialNetworks'), _publicSocials,
+                (v) => setState(() => _publicSocials = v)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _zodiacCard() {
+    final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
+    final sign = Zodiac.computeZodiac(_birthDate!);
+    final lang = l10n.locale.languageCode;
+    return GlassCard(
+      padding: const EdgeInsets.all(Space.l),
+      onTap: () => Navigator.of(context).pushNamed('/zodiac'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconBadge(Icons.auto_awesome_outlined, tone: Tone.accent),
+              const SizedBox(width: Space.m),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(ZodiacContent.name(sign, lang), style: t.titleMedium),
+                    Text(ZodiacContent.period(sign, lang), style: t.bodySmall),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: c.onSurfaceVariant),
+            ],
+          ),
+          const SizedBox(height: Space.m),
+          Text(ZodiacContent.description(sign, lang),
+              style: t.bodyMedium?.copyWith(color: c.onSurfaceVariant)),
+        ],
+      ),
+    );
+  }
+
+  Widget _settingsCard() {
+    final l10n = AppLocalizations.of(context);
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: Space.m, vertical: Space.s),
+      child: Column(
+        children: [
+          // RGPD : consentement aux statistiques, réversible à tout moment.
+          ActionRow(
+            icon: Icons.insights_outlined,
+            title: l10n.translate('analyticsSetting'),
+            subtitle: l10n.translate('analyticsSettingDesc'),
+            tone: Tone.neutral,
+            trailing: Switch(
+              value: AnalyticsService().consent == true,
+              onChanged: (granted) async {
+                await AnalyticsService().setConsent(granted);
+                if (mounted) setState(() {});
+              },
+            ),
+          ),
+          const CardDivider(),
+          ActionRow(
+            icon: Icons.block_outlined,
+            title: l10n.translate('blockedProfiles'),
+            subtitle: l10n.translate('blockedProfilesDesc'),
+            tone: Tone.neutral,
+            onTap: _showBlocked,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _accountCard(UserProfile? profile) {
+    final l10n = AppLocalizations.of(context);
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: Space.m, vertical: Space.s),
+      child: Column(
+        children: [
+          ActionRow(
+            icon: Icons.ios_share_rounded,
+            title: l10n.translate('recommendApp'),
+            subtitle: l10n.translate('recommendAppDesc'),
+            onTap: () => SharePlus.instance.share(ShareParams(
+              text: profile == null
+                  ? l10n.translate('shareDefaultText')
+                  : l10n
+                      .translate('shareProfileText')
+                      .replaceAll('{name}', profile.name),
+            )),
+          ),
+          const CardDivider(),
+          ActionRow(
+            icon: Icons.privacy_tip_outlined,
+            title: l10n.translate('privacyPolicy'),
+            tone: Tone.neutral,
+            onTap: () => launchUrl(Uri.parse(AppLinks.privacy),
+                mode: LaunchMode.externalApplication),
+          ),
+          const CardDivider(),
+          ActionRow(
+            icon: Icons.logout_rounded,
+            title: l10n.translate('logout'),
+            tone: Tone.neutral,
+            onTap: () => account.signOut(context),
+          ),
+          const CardDivider(),
+          ActionRow(
+            icon: Icons.delete_outline_rounded,
+            title: l10n.translate('deleteAccount'),
+            subtitle: l10n.translate('deleteAccountDesc'),
+            tone: Tone.danger,
+            onTap: () => account.deleteAccount(context),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ajout d'un réseau social : plateforme puis adresse du profil.
+class _SocialLinkSheet extends StatefulWidget {
+  const _SocialLinkSheet();
+
+  @override
+  State<_SocialLinkSheet> createState() => _SocialLinkSheetState();
+}
+
+class _SocialLinkSheetState extends State<_SocialLinkSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _url = TextEditingController();
+  String _platform = SocialLinksWidget.platforms.first;
+
+  @override
+  void dispose() {
+    _url.dispose();
+    super.dispose();
+  }
+
+  /// Une adresse plausible : un domaine, pas d'espace.
+  static bool _looksLikeUrl(String s) {
+    final v = s.trim();
+    if (v.isEmpty || v.contains(' ')) return false;
+    final uri = Uri.tryParse(v.startsWith('http') ? v : 'https://$v');
+    return uri != null && uri.host.contains('.');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(Space.page, 0, Space.page, Space.l),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.translate('add_social_link'),
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: Space.l),
+            DropdownButtonFormField<String>(
+              initialValue: _platform,
+              style: Theme.of(context).textTheme.bodyLarge,
+              borderRadius: BorderRadius.circular(Radii.control),
+              decoration: InputDecoration(
+                labelText: l10n.translate('choose_platform'),
+                prefixIcon: Icon(SocialLinksWidget.iconFor(_platform)),
+              ),
+              items: [
+                for (final p in SocialLinksWidget.platforms)
+                  DropdownMenuItem(
+                      value: p, child: Text(SocialLinksWidget.displayName(p))),
+              ],
+              onChanged: (v) => setState(() => _platform = v ?? _platform),
+            ),
+            const SizedBox(height: Space.m),
+            TextFormField(
+              controller: _url,
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              decoration: InputDecoration(
+                labelText: l10n.translate('url_link'),
+                hintText: 'instagram.com/…',
+                prefixIcon: const Icon(Icons.link_rounded),
+              ),
+              validator: (v) =>
+                  _looksLikeUrl(v ?? '') ? null : l10n.translate('invalidUrl'),
+            ),
+            const SizedBox(height: Space.xl),
+            FilledButton(
+              onPressed: () {
+                if (!_formKey.currentState!.validate()) return;
+                Navigator.of(context).pop((_platform, _url.text.trim()));
+              },
+              child: Text(l10n.translate('add')),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
