@@ -157,7 +157,7 @@ class _SameDayScreenState extends State<SameDayScreen>
       text: l10n
           .translate('inviteText')
           .replaceAll('{date}', date)
-          .replaceAll('{link}', AppLinks.store),
+          .replaceAll('{link}', AppLinks.invite),
     ));
   }
 

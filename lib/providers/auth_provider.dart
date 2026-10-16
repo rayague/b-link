@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import '../services/analytics_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool _googleInitialized = false;
@@ -38,10 +37,9 @@ class AuthProvider extends ChangeNotifier {
       final userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
 
-      final uid = userCredential.user?.uid;
-      if (uid != null) {
-        AnalyticsService().setUserId(uid);
-      }
+      // Volontairement aucun AnalyticsService().setUserId : les statistiques
+      // ne sont pas reliées au compte (voir hosting/privacy.html).
+      if (userCredential.user == null) return false;
       notifyListeners();
       return true;
     } on GoogleSignInException catch (e) {

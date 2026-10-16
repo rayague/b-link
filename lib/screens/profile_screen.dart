@@ -16,6 +16,8 @@ import '../l10n/zodiac_content.dart';
 import 'package:country_picker/country_picker.dart';
 import '../utils/account_actions.dart' as account;
 import '../services/safety_service.dart';
+import '../utils/app_links.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
@@ -1000,6 +1002,15 @@ class _ProfileScreenState extends State<ProfileScreen>
           gradient: const [Color(0xFFDC2626), Color(0xFFF87171)],
           isDark: isDark,
           onTap: () => account.deleteAccount(context),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton.icon(
+            icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+            label: Text(AppLocalizations.of(context).translate('privacyPolicy')),
+            onPressed: () => launchUrl(Uri.parse(AppLinks.privacy),
+                mode: LaunchMode.externalApplication),
+          ),
         ),
       ],
     );

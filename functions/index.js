@@ -118,6 +118,12 @@ exports.onAuthUserDeleted = functions.auth.user().onDelete(async (user) => {
   await db.collection('public_profiles').doc(user.uid).delete();
   await db.collection('moderation').doc(user.uid).delete();
   await db.collection('admins').doc(user.uid).delete();
+  // Signalements reçus et envoyés : ils contiennent l'identifiant de la
+  // personne (voir hosting/delete-account.html).
+  for (const field of ['reportedUid', 'reporterUid']) {
+    const reports = await db.collection('reports').where(field, '==', user.uid).get();
+    await Promise.all(reports.docs.map((d) => d.ref.delete()));
+  }
   return null;
 });
 

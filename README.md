@@ -68,7 +68,7 @@ cd test_rules && npm ci && npm test
 ## Déploiement Firebase
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes,functions
+firebase deploy --only firestore:rules,firestore:indexes,functions,hosting
 ```
 
 Le premier `super_admin` se crée hors de l'app (console Firebase ou script
