@@ -8,6 +8,7 @@ import '../models/contact.dart';
 import '../providers/contact_provider.dart';
 import '../providers/locale_provider.dart';
 import '../services/analytics_service.dart';
+import '../services/phone_contacts_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/birthday.dart';
 import '../utils/birthday_labels.dart';
@@ -106,6 +107,23 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
     await provider.deleteContact(contact.id!);
   }
 
+  /// Ouvre l'éditeur de contacts du téléphone, pré-rempli (nom, numéro,
+  /// anniversaire). Aucune permission n'est nécessaire.
+  Future<void> _saveToPhone(Contact contact) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (await PhoneContactsService().openCreator(contact)) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l10n.translate('savedToPhone'))));
+      }
+    } catch (e) {
+      debugPrint('❌ Enregistrement dans le carnet: $e');
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.translate('actionFailed'))));
+    }
+  }
+
   Future<void> _call(Contact contact) async {
     AnalyticsService()
         .logCallInitiated(relation: contact.relation, hasPhone: true);
@@ -149,8 +167,14 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
           onPressed: () => _edit(contact),
         ),
         PopupMenuButton<String>(
-          onSelected: (_) => _delete(contact),
+          onSelected: (v) => v == 'phone'
+              ? _saveToPhone(contact)
+              : _delete(contact),
           itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'phone',
+              child: Text(l10n.translate('saveToPhone')),
+            ),
             PopupMenuItem(
               value: 'delete',
               child: Text(l10n.translate('delete'),
@@ -213,7 +237,9 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: () => showBirthdayMessageSheet(context,
-                            name: contact.name, relation: contact.relation),
+                            name: contact.name,
+                            relation: contact.relation,
+                            phone: contact.phone),
                         icon: const Icon(Icons.edit_note_rounded),
                         label: Text(l10n.translate('writeMessage')),
                       ),

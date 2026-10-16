@@ -197,6 +197,9 @@ class AppScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
   final bool showAppBar;
 
+  /// Barre d'action fixée en bas (bouton principal d'un écran de saisie).
+  final Widget? bottomBar;
+
   const AppScaffold({
     super.key,
     this.title,
@@ -205,6 +208,7 @@ class AppScaffold extends StatelessWidget {
     required this.body,
     this.floatingActionButton,
     this.showAppBar = true,
+    this.bottomBar,
   });
 
   /// Marges d'une page défilante : barre d'état + barre en verre en haut,
@@ -230,6 +234,34 @@ class AppScaffold extends StatelessWidget {
             : null,
         body: body,
         floatingActionButton: floatingActionButton,
+        bottomNavigationBar: bottomBar == null
+            ? null
+            : ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(
+                      sigmaX: Glass.of(context).blur,
+                      sigmaY: Glass.of(context).blur),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Glass.of(context).fillStrong.withValues(alpha: 0.8),
+                      border: Border(
+                          top: BorderSide(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant
+                                  .withValues(alpha: 0.5))),
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                            Space.page, Space.m, Space.page, Space.m),
+                        child: bottomBar,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
       ),
     );
   }

@@ -59,5 +59,9 @@
 	<!-- RGPD : Analytics désactivé jusqu'au consentement. -->
 	<key>FIREBASE_ANALYTICS_COLLECTION_ENABLED</key>
 	<false/>
+	<key>NSContactsUsageDescription</key>
+	<string>B-Link reads your contacts' birthdays so you can import them and get reminders.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>B-Link uses the photo you choose as your profile picture or a contact's picture.</string>
 </dict>
 </plist>

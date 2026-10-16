@@ -2,6 +2,13 @@
 /// rappels. Fonctions pures : `now` est toujours passé en paramètre.
 library;
 
+/// Année enregistrée quand l'année de naissance est inconnue (anniversaire
+/// importé du carnet sans année). Bissextile, pour accepter le 29 février.
+const int unknownBirthYear = 4;
+
+/// false si l'année de naissance est inconnue (voir [unknownBirthYear]).
+bool hasBirthYear(DateTime birthDate) => birthDate.year != unknownBirthYear;
+
 bool _isLeapYear(int year) =>
     (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
 

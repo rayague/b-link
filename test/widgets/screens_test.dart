@@ -6,7 +6,10 @@ import 'package:b_link/providers/locale_provider.dart';
 import 'package:b_link/providers/profile_provider.dart';
 import 'package:b_link/providers/theme_provider.dart';
 import 'package:b_link/screens/home_screen.dart';
+import 'package:b_link/screens/import_contacts_screen.dart';
 import 'package:b_link/screens/list_screen.dart';
+import 'package:b_link/services/phone_contacts_service.dart';
+import 'package:flutter_contacts/flutter_contacts.dart' show PermissionStatus;
 import 'package:b_link/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -17,12 +20,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _FakeDb {
   final List<Contact> rows;
   _FakeDb(this.rows);
-  Future<List<Contact>> getContacts() async => rows;
+  Future<List<Contact>> getContacts() async => List.of(rows);
+  Future<int> insertContact(Contact c) async {
+    rows.add(c.copyWith(id: rows.length + 100));
+    return rows.length + 99;
+  }
+}
+
+class _FakePhone extends PhoneContactsService {
+  final PermissionStatus status;
+  _FakePhone(this.status);
+  @override
+  Future<PermissionStatus> requestRead() async => status;
+  @override
+  Future<List<PhoneContact>> load() async => [
+        PhoneContact(id: 'a', name: 'Léa', birthday: DateTime(1995, 3, 21)),
+        const PhoneContact(id: 'b', name: 'Noah'),
+        PhoneContact(id: 'c', name: 'Hugo', birthday: DateTime(1990, 1, 2)),
+      ];
 }
 
 class _FakeNotif {
   Future<void> init() async {}
   Future<void> rescheduleAllReminders(List<Contact> c, String l) async {}
+  Future<void> scheduleBirthdayReminders(dynamic c, String l) async {}
 }
 
 class _FakeProfile extends ProfileProvider {
@@ -129,5 +150,31 @@ void main() {
     await tester.pump();
     expect(find.text('Adam'), findsOneWidget);
     expect(find.text('Zoé'), findsNothing);
+  });
+
+  testWidgets('import preselects contacts with a birthday and skips known ones',
+      (tester) async {
+    final contacts = [
+      Contact(id: 1, name: 'Hugo', date: '1990-01-02', relation: 'BROTHER'),
+    ];
+    await _pump(tester,
+        ImportContactsScreen(service: _FakePhone(PermissionStatus.granted)),
+        contacts);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Léa'), findsOneWidget);
+    expect(find.text('Noah'), findsOneWidget);
+    expect(find.text('Hugo'), findsNothing); // déjà dans B-Link
+    expect(find.text('Importer (1)'), findsOneWidget);
+    await tester.tap(find.text('Importer (1)'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(contacts.map((c) => c.name), containsAll(['Hugo', 'Léa']));
+    expect(contacts.length, 2); // Noah, sans date, n'est pas importé
+  });
+
+  testWidgets('import explains a refused permission', (tester) async {
+    await _pump(tester,
+        ImportContactsScreen(service: _FakePhone(PermissionStatus.denied)), []);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text("Autoriser l'accès"), findsOneWidget);
   });
 }

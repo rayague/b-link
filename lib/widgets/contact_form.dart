@@ -55,7 +55,11 @@ class _ContactFormState extends State<ContactForm> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: _birth ?? DateTime(now.year - 25, now.month, now.day),
+      // Année inconnue (contact importé) : on part d'une année plausible.
+      initialDate: _birth != null && hasBirthYear(_birth!)
+          ? _birth!
+          : DateTime(now.year - 25, _birth?.month ?? now.month,
+              _birth?.day ?? now.day),
       firstDate: DateTime(1900),
       // Une date de naissance n'est jamais dans le futur.
       lastDate: now,

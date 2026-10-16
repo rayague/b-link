@@ -16,13 +16,16 @@ String countdownLabel(AppLocalizations l10n, int days) {
 String dayMonthLabel(AppLocalizations l10n, DateTime date) =>
     DateFormat.MMMMd(l10n.locale.languageCode).format(date);
 
-/// « 14 mars 1990 » / « March 14, 1990 ».
-String fullDateLabel(AppLocalizations l10n, DateTime date) =>
-    DateFormat.yMMMMd(l10n.locale.languageCode).format(date);
+/// « 14 mars 1990 » / « March 14, 1990 » (sans l'année si elle est
+/// inconnue).
+String fullDateLabel(AppLocalizations l10n, DateTime date) => hasBirthYear(date)
+    ? DateFormat.yMMMMd(l10n.locale.languageCode).format(date)
+    : dayMonthLabel(l10n, date);
 
 /// Âge atteint au prochain anniversaire (null si la date est dans le futur
 /// ou si l'année est inconnue).
 int? ageAtNextBirthday(DateTime birth, DateTime now) {
+  if (!hasBirthYear(birth)) return null;
   final next = nextBirthday(birth, now);
   final age = next.year - birth.year;
   return age > 0 && age < 130 ? age : null;

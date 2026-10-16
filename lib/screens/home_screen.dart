@@ -163,7 +163,9 @@ class _HeroCard extends StatelessWidget {
             const SizedBox(height: Space.l),
             FilledButton.icon(
               onPressed: () => showBirthdayMessageSheet(context,
-                  name: first.name, relation: first.relation),
+                  name: first.name,
+                  relation: first.relation,
+                  phone: first.phone),
               icon: const Icon(Icons.edit_note_rounded),
               label: Text(l10n.translate('writeMessage')),
             ),
@@ -186,6 +188,12 @@ class _HeroCard extends StatelessWidget {
             Text(l10n.translate('noUpcomingHint'),
                 style: t.bodyMedium?.copyWith(color: c.onSurfaceVariant)),
             const SizedBox(height: Space.l),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pushNamed('/import'),
+              icon: const Icon(Icons.contacts_outlined),
+              label: Text(l10n.translate('importContacts')),
+            ),
+            const SizedBox(height: Space.s),
             OutlinedButton.icon(
               onPressed: () => Navigator.of(context).pushNamed('/list'),
               icon: const Icon(Icons.person_add_alt_rounded),

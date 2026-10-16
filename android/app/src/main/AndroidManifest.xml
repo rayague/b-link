@@ -5,6 +5,10 @@
          USE_EXACT_ALARM est réservé par Google Play aux réveils/agendas. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Import des anniversaires depuis le carnet (lecture seule, à la
+         demande). L'ajout au carnet passe par l'éditeur du système, sans
+         permission d'écriture. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <application
         android:label="B-Link"
         android:icon="@mipmap/ic_launcher">

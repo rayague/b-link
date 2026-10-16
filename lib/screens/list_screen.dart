@@ -124,6 +124,13 @@ class _ListScreenState extends State<ListScreen> {
     final padding = AppScaffold.pagePadding(context, bottom: 96);
     return AppScaffold(
       title: Text(l10n.translate('myContacts')),
+      actions: [
+        IconButton(
+          tooltip: l10n.translate('importContacts'),
+          icon: const Icon(Icons.contacts_outlined),
+          onPressed: () => Navigator.of(context).pushNamed('/import'),
+        ),
+      ],
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAdd,
         icon: const Icon(Icons.add_rounded),
@@ -169,10 +176,21 @@ class _ListScreenState extends State<ListScreen> {
                           icon: Icons.people_outline_rounded,
                           title: l10n.translate('noContact'),
                           message: l10n.translate('pressToAdd'),
-                          action: FilledButton.icon(
-                            onPressed: _showAdd,
-                            icon: const Icon(Icons.add_rounded),
-                            label: Text(l10n.translate('addContactAction')),
+                          action: Column(
+                            children: [
+                              FilledButton.icon(
+                                onPressed: () =>
+                                    Navigator.of(context).pushNamed('/import'),
+                                icon: const Icon(Icons.contacts_outlined),
+                                label: Text(l10n.translate('importContacts')),
+                              ),
+                              const SizedBox(height: Space.s),
+                              TextButton.icon(
+                                onPressed: _showAdd,
+                                icon: const Icon(Icons.add_rounded),
+                                label: Text(l10n.translate('addContactAction')),
+                              ),
+                            ],
                           ),
                         )
                       : EmptyState(

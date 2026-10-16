@@ -193,6 +193,27 @@ class ContactProvider extends ChangeNotifier {
     await _refresh();
   }
 
+  /// Ajoute plusieurs contacts (import du carnet) : une seule relecture à
+  /// la fin au lieu d'une par contact.
+  Future<int> addContacts(List<Contact> contacts, {String? locale}) async {
+    var added = 0;
+    for (final contact in contacts) {
+      final withUuid = contact.uuid == null
+          ? contact.copyWith(uuid: Contact.newUuid())
+          : contact;
+      final id = await _db.insertContact(withUuid) as int;
+      final c = withUuid.copyWith(id: id);
+      await _scheduleFor(c, locale ?? _locale);
+      _saveRemote(c);
+      added++;
+    }
+    if (added > 0) {
+      AnalyticsService().logContactsImported(count: added);
+      await _refresh();
+    }
+    return added;
+  }
+
   Future<void> updateContact(Contact contact, {String? locale}) async {
     // Les écrans d'édition reconstruisent le contact sans son UUID.
     final c = contact.uuid != null || contact.id == null

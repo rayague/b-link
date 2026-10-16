@@ -117,6 +117,14 @@ class AnalyticsService {
     debugPrint('📊 Analytics: Contact added - $relation');
   }
 
+  /// Contacts importés depuis le carnet du téléphone
+  Future<void> logContactsImported({required int count}) async {
+    await _analytics?.logEvent(
+      name: 'contacts_imported',
+      parameters: {'count': count},
+    );
+  }
+
   /// Contact modifié
   Future<void> logContactUpdated({
     required String relation,
