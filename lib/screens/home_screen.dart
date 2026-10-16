@@ -5,6 +5,7 @@ import '../providers/theme_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/contact_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/greeting_card.dart';
 import '../utils/relations.dart';
 import '../utils/birthday.dart';
 import '../services/message_repository.dart';
@@ -559,9 +560,9 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  '💡 Appuyez sur "Copier" puis collez le message dans WhatsApp, SMS ou email',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context).translate('copyHelp'),
+                  style: const TextStyle(
                     color: Colors.white54,
                     fontSize: 11,
                     fontStyle: FontStyle.italic,
@@ -602,6 +603,15 @@ class _HomeScreenState extends State<HomeScreen>
                 AppLocalizations.of(context).translate('copyMessage'),
                 style: const TextStyle(
                     color: Color(0xFFEC4899), fontWeight: FontWeight.bold),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => showGreetingCardDialog(context,
+                  name: name, message: message, relation: relation),
+              icon: const Icon(Icons.image_outlined, color: Color(0xFFFBBF24)),
+              label: Text(
+                AppLocalizations.of(context).translate('makeCard'),
+                style: const TextStyle(color: Color(0xFFFBBF24)),
               ),
             ),
             TextButton(

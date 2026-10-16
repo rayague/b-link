@@ -8,6 +8,7 @@ import 'public_profile_screen.dart';
 import 'dart:math' as math;
 import '../services/message_repository.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/greeting_card.dart';
 import '../utils/relations.dart';
 import 'package:flutter/services.dart';
 import '../services/analytics_service.dart';
@@ -753,6 +754,22 @@ class _SameDayScreenState extends State<SameDayScreen>
                                                     color: Color(0xFFEC4899),
                                                     fontWeight:
                                                         FontWeight.bold),
+                                              ),
+                                            ),
+                                            TextButton.icon(
+                                              onPressed: () =>
+                                                  showGreetingCardDialog(
+                                                      context,
+                                                      name: displayName,
+                                                      message: msg,
+                                                      relation: relation),
+                                              icon: const Icon(
+                                                  Icons.image_outlined,
+                                                  color: Color(0xFFFBBF24)),
+                                              label: Text(
+                                                l10n.translate('makeCard'),
+                                                style: const TextStyle(
+                                                    color: Color(0xFFFBBF24)),
                                               ),
                                             ),
                                             TextButton(
