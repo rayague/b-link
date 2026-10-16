@@ -411,8 +411,8 @@ class _ExploreGrid extends StatelessWidget {
       tile(Icons.wb_sunny_outlined, l10n.translate('myDay'),
           l10n.translate('exploreMyDayDesc'), '/my-day',
           tone: Tone.accent),
-      tile(Icons.auto_awesome_outlined, l10n.translate('yourZodiacSign'),
-          l10n.translate('exploreZodiacDesc'), '/zodiac'),
+      tile(Icons.blur_on_rounded, l10n.translate('constellation'),
+          l10n.translate('exploreConstellationDesc'), '/constellation'),
     ];
     return Column(
       children: [

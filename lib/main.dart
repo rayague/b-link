@@ -29,6 +29,7 @@ import 'screens/meetups_screen.dart';
 import 'screens/import_contacts_screen.dart';
 import 'screens/my_day_screen.dart';
 import 'screens/wishes_screen.dart';
+import 'screens/constellation_screen.dart';
 import 'providers/profile_provider.dart';
 import 'services/background_sync.dart';
 import 'widgets/consent_dialog.dart';
@@ -111,6 +112,7 @@ class _App extends StatelessWidget {
         ImportContactsScreen.routeName: (_) => const ImportContactsScreen(),
         MyDayScreen.routeName: (_) => const MyDayScreen(),
         WishesScreen.routeName: (_) => const WishesScreen(),
+        ConstellationScreen.routeName: (_) => const ConstellationScreen(),
       },
     );
   }

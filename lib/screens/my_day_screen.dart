@@ -192,6 +192,8 @@ class _MyDayScreenState extends State<MyDayScreen> {
                       .translate('dayRank')
                       .replaceAll('{rank}', '${stats.rankOf(dayKey)}'),
                   subtitle: l10n.translate('dayRankDesc'),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/constellation'),
                 ),
               ],
               const SizedBox(height: Space.l),
