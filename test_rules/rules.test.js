@@ -308,3 +308,112 @@ test('requête par ville paginée autorisée', async () => {
     where('cityKey', '==', 'CI:abidjan'), where('birthDayKey', '==', '10-15'), limit(50));
   await assertSucceeds(getDocs(q));
 });
+
+// ---------- rencontres entre jumeaux ----------
+
+const { writeBatch, Timestamp, increment, updateDoc } = require('firebase/firestore');
+
+const inOneWeek = () => Timestamp.fromMillis(Date.now() + 7 * 24 * 3600 * 1000);
+const eventData = (creator, extra = {}) => ({
+  creatorUid: creator, creatorName: null, title: 'Apéro des jumeaux',
+  description: 'On fête ça ensemble !', placeHint: 'Café de la Gare',
+  birthDayKey: '10-14', cityKey: 'FR:lyon', startsAt: inOneWeek(),
+  maxAttendees: 2, attendeeCount: 0, cancelled: false,
+  createdAt: serverTimestamp(), ...extra,
+});
+
+async function seedTwins() {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    // alice (déjà seedée) et bob : nés le 14/10 ; carol : un autre jour.
+    await setDoc(doc(db, 'users/bob'), { birthDayKey: '10-14' });
+    await setDoc(doc(db, 'users/carol'), { birthDayKey: '03-02' });
+    await setDoc(doc(db, 'users/dave'), { birthDayKey: '10-14' }); // pas dans l'annuaire
+    await setDoc(doc(db, 'users/erin'), { birthDayKey: '10-14' });
+    for (const uid of ['bob', 'carol', 'erin']) {
+      await setDoc(doc(db, `public_profiles/${uid}`), publicProfile(uid));
+    }
+    await setDoc(doc(db, 'events/e1'), { ...eventData('alice'), createdAt: Timestamp.now() });
+  });
+}
+
+const join = (uid, eventId = 'e1', delta = 1) => {
+  const db = google(uid);
+  const b = writeBatch(db);
+  b.set(doc(db, `events/${eventId}/attendees/${uid}`), { uid, name: null, joinedAt: serverTimestamp() });
+  b.update(doc(db, `events/${eventId}`), { attendeeCount: increment(delta) });
+  return b.commit();
+};
+
+test('un jumeau présent dans l\'annuaire organise une rencontre', async () => {
+  await seedTwins();
+  await assertSucceeds(setDoc(doc(google('bob'), 'events/new'), eventData('bob')));
+});
+
+test('rencontre invalide refusée (date passée, compteur, champ inconnu, autre jour)', async () => {
+  await seedTwins();
+  const past = Timestamp.fromMillis(Date.now() - 1000);
+  await assertFails(setDoc(doc(google('bob'), 'events/x1'), eventData('bob', { startsAt: past })));
+  await assertFails(setDoc(doc(google('bob'), 'events/x2'), eventData('bob', { attendeeCount: 5 })));
+  await assertFails(setDoc(doc(google('bob'), 'events/x3'), eventData('bob', { phone: '06...' })));
+  await assertFails(setDoc(doc(google('bob'), 'events/x4'), eventData('bob', { birthDayKey: '03-02' })));
+  await assertFails(setDoc(doc(google('bob'), 'events/x5'), eventData('bob', { maxAttendees: 500 })));
+});
+
+test('hors annuaire public : ni organiser ni participer', async () => {
+  await seedTwins();
+  await assertFails(setDoc(doc(google('dave'), 'events/d1'), eventData('dave')));
+  await assertFails(join('dave'));
+});
+
+test('seuls les jumeaux voient la rencontre, et en requête paginée', async () => {
+  await seedTwins();
+  await assertSucceeds(getDoc(doc(google('bob'), 'events/e1')));
+  await assertFails(getDoc(doc(google('carol'), 'events/e1')));
+  const ok = query(collection(google('bob'), 'events'),
+    where('birthDayKey', '==', '10-14'), where('cityKey', '==', 'FR:lyon'), limit(50));
+  await assertSucceeds(getDocs(ok));
+  const otherDay = query(collection(google('bob'), 'events'),
+    where('birthDayKey', '==', '03-02'), limit(50));
+  await assertFails(getDocs(otherDay));
+  const unbounded = query(collection(google('bob'), 'events'), where('birthDayKey', '==', '10-14'));
+  await assertFails(getDocs(unbounded));
+});
+
+test('inscription et désinscription en lot, compteur cohérent', async () => {
+  await seedTwins();
+  await assertSucceeds(join('bob'));
+  await assertFails(join('bob')); // déjà inscrit
+  const db = google('bob');
+  const b = writeBatch(db);
+  b.delete(doc(db, 'events/e1/attendees/bob'));
+  b.update(doc(db, 'events/e1'), { attendeeCount: increment(-1) });
+  await assertSucceeds(b.commit());
+});
+
+test('impossible de tricher sur le compteur ou de dépasser la capacité', async () => {
+  await seedTwins();
+  await assertFails(join('bob', 'e1', 2)); // +2
+  await assertFails(setDoc(doc(google('bob'), 'events/e1/attendees/bob'),
+    { uid: 'bob', name: null, joinedAt: serverTimestamp() })); // sans compteur
+  await assertFails(updateDoc(doc(google('bob'), 'events/e1'), { attendeeCount: 1 })); // sans participation
+  await assertSucceeds(join('bob'));
+  await assertSucceeds(join('erin')); // 2/2
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'public_profiles/alice'), publicProfile('alice')));
+  await assertFails(join('alice')); // complet
+});
+
+test('l\'organisateur modifie ou annule, les autres non ; annulée = plus d\'inscription', async () => {
+  await seedTwins();
+  await assertFails(updateDoc(doc(google('bob'), 'events/e1'), { title: 'Piraté' }));
+  await assertSucceeds(updateDoc(doc(google('alice'), 'events/e1'), { cancelled: true }));
+  await assertFails(updateDoc(doc(google('alice'), 'events/e1'), { attendeeCount: 10 }));
+  await assertFails(join('bob'));
+});
+
+test('suppression par l\'organisateur ou un admin seulement', async () => {
+  await seedTwins();
+  await assertFails(deleteDoc(doc(google('bob'), 'events/e1')));
+  await assertSucceeds(deleteDoc(doc(google('alice'), 'events/e1')));
+});

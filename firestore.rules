@@ -88,6 +88,95 @@ service cloud.firestore {
       allow delete: if isOwner(userId) || isAdmin();
     }
 
+    // ==================== RENCONTRES (EVENTS) ====================
+    // Rencontres entre jumeaux d'anniversaire d'une même ville. Visibles
+    // seulement des personnes nées le même jour ; organiser ou participer
+    // exige d'être dans l'annuaire public (Google, 16+, non masqué).
+    function myBirthDayKey() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.birthDayKey;
+    }
+
+    function isInDirectory() {
+      return exists(/databases/$(database)/documents/public_profiles/$(request.auth.uid));
+    }
+
+    function eventPath(eventId) {
+      return /databases/$(database)/documents/events/$(eventId);
+    }
+
+    match /events/{eventId} {
+      allow get: if isRealUser() && resource.data.birthDayKey == myBirthDayKey();
+      allow list: if isRealUser()
+        && request.query.limit <= 50
+        && resource.data.birthDayKey == myBirthDayKey();
+
+      allow create: if isRealUser() && isInDirectory()
+        && request.resource.data.keys().hasOnly([
+             'creatorUid', 'creatorName', 'title', 'description', 'placeHint',
+             'birthDayKey', 'cityKey', 'startsAt', 'maxAttendees',
+             'attendeeCount', 'cancelled', 'createdAt'])
+        && request.resource.data.creatorUid == request.auth.uid
+        && request.resource.data.birthDayKey == myBirthDayKey()
+        && request.resource.data.cityKey is string
+        && request.resource.data.cityKey.matches('^[A-Z]{2}:[a-z0-9 ]{1,80}$')
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 3
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.get('description', '').size() <= 500
+        && request.resource.data.placeHint is string
+        && request.resource.data.placeHint.size() >= 2
+        && request.resource.data.placeHint.size() <= 100
+        && request.resource.data.startsAt is timestamp
+        && request.resource.data.startsAt > request.time
+        && request.resource.data.maxAttendees is int
+        && request.resource.data.maxAttendees >= 2
+        && request.resource.data.maxAttendees <= 50
+        && request.resource.data.attendeeCount == 0
+        && request.resource.data.cancelled == false
+        && request.resource.data.createdAt == request.time;
+
+      // L'organisateur modifie les détails ou annule (jamais le compteur).
+      allow update: if isOwner(resource.data.creatorUid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['title', 'description', 'placeHint', 'startsAt', 'cancelled'])
+        && request.resource.data.title.size() >= 3
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.get('description', '').size() <= 500
+        && request.resource.data.placeHint.size() <= 100;
+
+      // Inscription / désinscription : le compteur ne bouge que d'une unité,
+      // dans le même lot que la création / suppression de sa participation.
+      allow update: if isRealUser()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendeeCount'])
+        && (
+          (request.resource.data.attendeeCount == resource.data.attendeeCount + 1
+            && request.resource.data.attendeeCount <= resource.data.maxAttendees
+            && !exists(/databases/$(database)/documents/events/$(eventId)/attendees/$(request.auth.uid))
+            && existsAfter(/databases/$(database)/documents/events/$(eventId)/attendees/$(request.auth.uid)))
+          || (request.resource.data.attendeeCount == resource.data.attendeeCount - 1
+            && exists(/databases/$(database)/documents/events/$(eventId)/attendees/$(request.auth.uid))
+            && !existsAfter(/databases/$(database)/documents/events/$(eventId)/attendees/$(request.auth.uid)))
+        );
+
+      allow delete: if isOwner(resource.data.creatorUid) || isAdmin();
+
+      match /attendees/{attendeeId} {
+        allow read: if isRealUser() && get(eventPath(eventId)).data.birthDayKey == myBirthDayKey();
+        allow create: if isOwner(attendeeId) && isRealUser() && isInDirectory()
+          && get(eventPath(eventId)).data.birthDayKey == myBirthDayKey()
+          && get(eventPath(eventId)).data.cancelled == false
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'joinedAt'])
+          && request.resource.data.uid == attendeeId
+          && request.resource.data.joinedAt == request.time
+          // Le compteur doit être incrémenté dans le même lot.
+          && getAfter(eventPath(eventId)).data.attendeeCount
+               == get(eventPath(eventId)).data.attendeeCount + 1;
+        allow delete: if isOwner(attendeeId)
+          && getAfter(eventPath(eventId)).data.attendeeCount
+               == get(eventPath(eventId)).data.attendeeCount - 1;
+      }
+    }
+
     // ==================== MODERATION ====================
     // moderation/{uid} : décision de modération (masquage de l'annuaire),
     // écrite par la Cloud Function onReportCreated ou par un admin. Le

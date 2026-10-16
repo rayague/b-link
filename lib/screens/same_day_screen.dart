@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/profile_provider.dart';
 import '../models/user_profile.dart';
 import 'public_profile_screen.dart';
+import 'meetups_screen.dart';
 import 'dart:math' as math;
 import '../services/message_repository.dart';
 import '../l10n/app_localizations.dart';
@@ -875,6 +876,12 @@ class _SameDayScreenState extends State<SameDayScreen>
         ),
         Row(
           children: [
+            TextButton.icon(
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(MeetupsScreen.routeName),
+              icon: const Icon(Icons.celebration_outlined, size: 18),
+              label: Text(l10n.translate('meetupsButton')),
+            ),
             const Spacer(),
             if (me != null)
               TextButton.icon(

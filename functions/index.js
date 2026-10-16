@@ -121,6 +121,19 @@ exports.onAuthUserDeleted = functions.auth.user().onDelete(async (user) => {
   await db.collection('public_profiles').doc(user.uid).delete();
   await db.collection('moderation').doc(user.uid).delete();
   await db.collection('admins').doc(user.uid).delete();
+  // Rencontres organisées (participations supprimées par onEventDeleted) et
+  // participations aux rencontres des autres (compteur décrémenté).
+  const myEvents = await db.collection('events').where('creatorUid', '==', user.uid).get();
+  await Promise.all(myEvents.docs.map((d) => d.ref.delete()));
+  const joined = await db.collectionGroup('attendees').where('uid', '==', user.uid).get();
+  for (const a of joined.docs) {
+    const eventRef = a.ref.parent.parent;
+    await db.runTransaction(async (tx) => {
+      const ev = await tx.get(eventRef);
+      tx.delete(a.ref);
+      if (ev.exists) tx.update(eventRef, { attendeeCount: FieldValue.increment(-1) });
+    });
+  }
   // Photo de profil (storage.rules : profile_photos/{uid}/photo.jpg).
   await getStorage()
     .bucket()
@@ -237,5 +250,15 @@ exports.onPublicProfileCreated = functions.firestore
         await twinDoc.ref.set({ lastTwinNotifiedAt: serverTimestamp() }, { merge: true });
       }
     }
+    return null;
+  });
+
+/**
+ * Rencontre supprimée : ses participations (sous-collection) aussi.
+ */
+exports.onEventDeleted = functions.firestore
+  .document('events/{eventId}')
+  .onDelete(async (snap) => {
+    await db.recursiveDelete(snap.ref.collection('attendees'));
     return null;
   });
