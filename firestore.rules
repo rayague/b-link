@@ -177,6 +177,32 @@ service cloud.firestore {
       }
     }
 
+    // ==================== VŒUX D'ANNIVERSAIRE ====================
+    // wishes/{toUid}/received/{fromUid}_{année} : un vœu choisi parmi des
+    // messages prédéfinis (aucun texte libre, donc rien à modérer), au plus
+    // un par expéditeur, destinataire et année. Expéditeur et destinataire
+    // sont dans l'annuaire public ; le nom affiché est forcément le nom
+    // public de l'expéditeur (ou aucun). Seul le destinataire lit ses vœux.
+    match /wishes/{toUid}/received/{wishId} {
+      allow read: if isOwner(toUid);
+      allow create: if isRealUser() && isInDirectory()
+        && request.auth.uid != toUid
+        && !isHiddenByModeration(request.auth.uid)
+        && exists(/databases/$(database)/documents/public_profiles/$(toUid))
+        && wishId == request.auth.uid + '_' + string(request.time.year())
+        && request.resource.data.keys().hasOnly(['fromUid', 'fromName', 'wish', 'year', 'createdAt'])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.wish is int
+        && request.resource.data.wish >= 0
+        && request.resource.data.wish < 6
+        && request.resource.data.year == request.time.year()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.get('fromName', null)
+             == get(/databases/$(database)/documents/public_profiles/$(request.auth.uid)).data.get('name', null);
+      allow delete: if isOwner(toUid)
+        || (isSignedIn() && resource.data.fromUid == request.auth.uid);
+    }
+
     // ==================== MODERATION ====================
     // moderation/{uid} : décision de modération (masquage de l'annuaire),
     // écrite par la Cloud Function onReportCreated ou par un admin. Le

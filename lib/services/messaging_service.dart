@@ -19,6 +19,14 @@ class MessagingService {
   MessagingService._internal();
 
   static const typeNewTwin = 'new_twin';
+  static const typeWish = 'wish';
+
+  /// Écran ouvert au toucher d'une notification, selon son type.
+  static String? routeFor(Map<String, dynamic> data) => switch (data['type']) {
+        typeNewTwin => '/same-day',
+        typeWish => '/wishes',
+        _ => null,
+      };
 
   String? _token;
   String _locale = 'en';
@@ -26,10 +34,11 @@ class MessagingService {
   StreamSubscription<RemoteMessage>? _foregroundSub;
   StreamSubscription<RemoteMessage>? _openedSub;
 
-  final _openSameDay = StreamController<void>.broadcast();
+  final _openRoute = StreamController<String>.broadcast();
 
-  /// Émis quand l'utilisateur touche une notification "nouveau jumeau".
-  Stream<void> get openSameDayRequests => _openSameDay.stream;
+  /// Émis quand l'utilisateur touche une notification push : l'écran à
+  /// ouvrir.
+  Stream<String> get openRouteRequests => _openRoute.stream;
 
   String? get _uid => FirebaseAuth.instance.currentUser?.uid;
 
@@ -77,7 +86,7 @@ class MessagingService {
         NotificationService().showPush(
           title: n.title ?? '',
           body: n.body ?? '',
-          openSameDay: message.data['type'] == typeNewTwin,
+          route: routeFor(message.data),
         );
       });
 
@@ -90,7 +99,8 @@ class MessagingService {
   }
 
   void _handleOpened(RemoteMessage message) {
-    if (message.data['type'] == typeNewTwin) _openSameDay.add(null);
+    final route = routeFor(message.data);
+    if (route != null) _openRoute.add(route);
   }
 
   /// La langue de l'app a changé : les prochaines notifications suivent.

@@ -8,7 +8,7 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
 const { getStorage } = require('firebase-admin/storage');
 const { shouldAutoHide, REPORT_THRESHOLD } = require('./moderation');
-const { shouldNotifyTwin, twinMessage, INVALID_TOKEN_CODES } = require('./twins');
+const { shouldNotifyTwin, twinMessage, wishMessage, INVALID_TOKEN_CODES } = require('./twins');
 const { aggregate } = require('./constellation');
 
 initializeApp();
@@ -140,6 +140,10 @@ exports.onAuthUserDeleted = functions.auth.user().onDelete(async (user) => {
     .bucket()
     .file(`profile_photos/${user.uid}/photo.jpg`)
     .delete({ ignoreNotFound: true });
+  // Vœux reçus, et vœux envoyés aux autres (ils portent l'identifiant).
+  await db.recursiveDelete(db.collection('wishes').doc(user.uid));
+  const sent = await db.collectionGroup('received').where('fromUid', '==', user.uid).get();
+  await Promise.all(sent.docs.map((d) => d.ref.delete()));
   // Signalements reçus et envoyés : ils contiennent l'identifiant de la
   // personne (voir hosting/delete-account.html).
   for (const field of ['reportedUid', 'reporterUid']) {
@@ -284,4 +288,36 @@ exports.refreshConstellation = functions.pubsub
       .doc('constellation')
       .set({ ...stats, updatedAt: serverTimestamp() });
     functions.logger.info('constellation', { total: stats.total });
+  });
+
+/**
+ * Vœu d'anniversaire reçu : notification push au destinataire, dans la
+ * langue de chacun de ses appareils.
+ */
+exports.onWishCreated = functions.firestore
+  .document('wishes/{toUid}/received/{wishId}')
+  .onCreate(async (snap, context) => {
+    const toUid = context.params.toUid;
+    const wish = snap.data() || {};
+    const userRef = db.collection('users').doc(toUid);
+    const devices = await userRef.collection('devices').get();
+    if (devices.empty) return null;
+    const byLang = {};
+    for (const d of devices.docs) {
+      (byLang[d.get('locale') === 'fr' ? 'fr' : 'en'] ||= []).push(d.id);
+    }
+    for (const [lang, tokens] of Object.entries(byLang)) {
+      const res = await getMessaging().sendEachForMulticast({
+        tokens,
+        notification: wishMessage(lang, wish.fromName),
+        data: { type: 'wish' },
+        android: { priority: 'high' },
+      });
+      res.responses.forEach((r, i) => {
+        if (!r.success && r.error && INVALID_TOKEN_CODES.has(r.error.code)) {
+          userRef.collection('devices').doc(tokens[i]).delete().catch(() => {});
+        }
+      });
+    }
+    return null;
   });

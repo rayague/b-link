@@ -47,6 +47,28 @@ function twinMessage(lang, publicName) {
   };
 }
 
+/**
+ * Notification « vœu d'anniversaire reçu ». Le nom n'est présent que s'il
+ * est public (les règles Firestore l'imposent).
+ */
+function wishMessage(lang, fromName) {
+  const name = typeof fromName === 'string' && fromName.trim() ? fromName.trim() : null;
+  if (lang === 'fr') {
+    return {
+      title: "Un vœu d'anniversaire pour vous",
+      body: name
+        ? `${name} vous souhaite un joyeux anniversaire.`
+        : "Une personne née le même jour que vous vous souhaite un joyeux anniversaire.",
+    };
+  }
+  return {
+    title: 'A birthday wish for you',
+    body: name
+      ? `${name} wishes you a happy birthday.`
+      : 'Someone born on the same day as you wishes you a happy birthday.',
+  };
+}
+
 /** Codes d'erreur FCM signifiant que le jeton n'est plus valide. */
 const INVALID_TOKEN_CODES = new Set([
   'messaging/registration-token-not-registered',
@@ -58,5 +80,6 @@ module.exports = {
   TWIN_NOTIFY_INTERVAL_MS,
   shouldNotifyTwin,
   twinMessage,
+  wishMessage,
   INVALID_TOKEN_CODES,
 };

@@ -115,27 +115,27 @@ class NotificationService {
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    if (response.payload == _openSameDayPayload) {
-      _sameDayTaps.add(null);
+    final payload = response.payload;
+    if (payload != null && payload.startsWith(_routePrefix)) {
+      _routeTaps.add(payload.substring(_routePrefix.length));
       return;
     }
     final id = _contactIdFrom(response.payload);
     if (id != null) _taps.add(id);
   }
 
-  static const _openSameDayPayload = 'open:same-day';
-  final StreamController<void> _sameDayTaps = StreamController<void>.broadcast();
+  static const _routePrefix = 'route:';
+  final StreamController<String> _routeTaps =
+      StreamController<String>.broadcast();
 
-  /// Touchers d'une notification push affichée au premier plan (nouveau
-  /// jumeau) : ouvrir "Même jour".
-  Stream<void> get sameDayTaps => _sameDayTaps.stream;
+  /// Touchers d'une notification push affichée au premier plan : l'écran à
+  /// ouvrir (« /same-day » pour un nouveau jumeau, « /wishes » pour un vœu).
+  Stream<String> get routeTaps => _routeTaps.stream;
 
   /// Affiche une notification push reçue alors que l'app est ouverte
   /// (Firebase Messaging ne le fait pas lui-même au premier plan).
   Future<void> showPush(
-      {required String title,
-      required String body,
-      bool openSameDay = false}) async {
+      {required String title, required String body, String? route}) async {
     if (!_initialized) await init(requestPermissions: false);
     await _plugin.show(
       // ID négatif dérivé du texte : pas de collision avec les rappels.
@@ -153,7 +153,7 @@ class NotificationService {
         iOS: DarwinNotificationDetails(
             presentAlert: true, presentBadge: true, presentSound: true),
       ),
-      payload: openSameDay ? _openSameDayPayload : null,
+      payload: route == null ? null : '$_routePrefix$route',
     );
   }
 

@@ -18,6 +18,7 @@ import '../widgets/contact_avatar.dart';
 import '../widgets/message_sheet.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/reminder_settings_section.dart';
+import '../widgets/today_twins_section.dart';
 import '../widgets/ui/components.dart';
 import '../widgets/ui/glass.dart';
 
@@ -98,9 +99,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: t.headlineMedium,
                 ),
                 const SizedBox(height: Space.xl),
+                if (profile != null &&
+                    daysUntilBirthday(profile.birthDate, now) == 0) ...[
+                  _MyBirthdayCard(firstName: firstName),
+                  const SizedBox(height: Space.m),
+                ],
                 _HeroCard(today: today, next: later.isEmpty ? null : later.first),
                 const SizedBox(height: Space.m),
                 _StatsRow(contacts: contacts.contacts, now: now),
+                const TodayTwinsSection(),
                 if (listed.isNotEmpty) ...[
                   SectionHeader(
                     l10n.translate('upcomingTitle'),
@@ -125,6 +132,46 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const OfflineBanner(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Le jour de son propre anniversaire : accès au mur de vœux.
+class _MyBirthdayCard extends StatelessWidget {
+  final String firstName;
+  const _MyBirthdayCard({required this.firstName});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
+    return GlassCard(
+      tint: c.secondary,
+      padding: const EdgeInsets.all(Space.xl),
+      onTap: () => Navigator.of(context).pushNamed('/wishes'),
+      child: Row(
+        children: [
+          const IconBadge(Icons.cake_outlined, tone: Tone.accent, size: 48),
+          const SizedBox(width: Space.l),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    l10n
+                        .translate('happyBirthdayName')
+                        .replaceAll('{name}', firstName),
+                    style: t.titleLarge),
+                const SizedBox(height: 2),
+                Text(l10n.translate('seeYourWishes'),
+                    style: t.bodyMedium?.copyWith(color: c.onSurfaceVariant)),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: c.onSurfaceVariant),
         ],
       ),
     );

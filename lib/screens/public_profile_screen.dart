@@ -6,12 +6,14 @@ import '../models/user_profile.dart';
 import '../services/analytics_service.dart';
 import '../services/safety_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/birthday.dart';
 import '../utils/birthday_labels.dart';
 import '../widgets/birth_insights_widget.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/social_links_widget.dart';
 import '../widgets/ui/components.dart';
 import '../widgets/ui/glass.dart';
+import '../widgets/wish_sheet.dart';
 
 /// Profil public d'un jumeau d'anniversaire : seulement ce qu'il a choisi
 /// de montrer, avec signalement et blocage.
@@ -185,6 +187,21 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 const SizedBox(height: Space.s),
                 Pill(l10n.translate('birthdayTwin'),
                     icon: Icons.cake_outlined, tone: Tone.accent),
+                // Le jour J, on peut lui envoyer un vœu.
+                if (profile.uid != null &&
+                    daysUntilBirthday(profile.birthDate, DateTime.now()) == 0) ...[
+                  const SizedBox(height: Space.l),
+                  FilledButton.icon(
+                    onPressed: () => showWishSheet(context,
+                        uid: profile.uid!,
+                        name: profile.isPublic && profile.publicName
+                            ? profile.name.split(' ').first
+                            : l10n.translate('anonymousProfile'),
+                        showPhoto: profile.publicPhoto),
+                    icon: const Icon(Icons.cake_outlined, size: 18),
+                    label: Text(l10n.translate('sendWish')),
+                  ),
+                ],
               ],
             ),
           ),

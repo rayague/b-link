@@ -34,3 +34,10 @@ test('formulation neutre (pas de "né(e)")', () => {
     }
   }
 });
+
+test('wish notification uses the public name or stays anonymous', () => {
+  const { wishMessage } = require('./twins');
+  assert.match(wishMessage('fr', 'Léa').body, /^Léa vous souhaite/);
+  assert.doesNotMatch(wishMessage('fr', null).body, /null/);
+  assert.match(wishMessage('en', '  ').body, /^Someone/);
+});

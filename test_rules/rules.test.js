@@ -417,3 +417,94 @@ test('suppression par l\'organisateur ou un admin seulement', async () => {
   await assertFails(deleteDoc(doc(google('bob'), 'events/e1')));
   await assertSucceeds(deleteDoc(doc(google('alice'), 'events/e1')));
 });
+
+// ---------- vœux d'anniversaire ----------
+
+const year = new Date().getUTCFullYear();
+const wish = (from, extra = {}) => ({
+  fromUid: from,
+  fromName: 'Bob',
+  wish: 2,
+  year,
+  createdAt: serverTimestamp(),
+  ...extra,
+});
+
+async function seedBob(extra = {}) {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'public_profiles/bob'),
+      publicProfile('bob', { name: 'Bob', ...extra }));
+  });
+}
+
+test('un membre de l\'annuaire peut souhaiter un anniversaire (une fois par an)', async () => {
+  await seedBob();
+  const db = google('bob');
+  const ref = doc(db, `wishes/alice/received/bob_${year}`);
+  await assertSucceeds(setDoc(ref, wish('bob')));
+  // Deuxième envoi la même année : c'est une modification, refusée.
+  await assertFails(setDoc(ref, wish('bob', { wish: 3 })));
+});
+
+test('le vœu doit porter le nom public de l\'expéditeur', async () => {
+  await seedBob();
+  const ref = doc(google('bob'), `wishes/alice/received/bob_${year}`);
+  await assertFails(setDoc(ref, wish('bob', { fromName: 'Alice' })));
+  await assertFails(setDoc(ref, wish('bob', { fromName: null })));
+});
+
+test('nom masqué : le vœu est anonyme', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'public_profiles/bob'), {
+      uid: 'bob', birthDayKey: '10-14', isPublic: true, publicName: false,
+    });
+  });
+  const ref = doc(google('bob'), `wishes/alice/received/bob_${year}`);
+  await assertSucceeds(setDoc(ref, wish('bob', { fromName: null })));
+});
+
+test('pas de texte libre ni de message hors liste', async () => {
+  await seedBob();
+  const ref = doc(google('bob'), `wishes/alice/received/bob_${year}`);
+  await assertFails(setDoc(ref, wish('bob', { wish: 6 })));
+  await assertFails(setDoc(ref, wish('bob', { text: 'insulte' })));
+});
+
+test('identifiant de vœu, expéditeur et année imposés', async () => {
+  await seedBob();
+  const db = google('bob');
+  await assertFails(setDoc(doc(db, `wishes/alice/received/bob_${year + 1}`), wish('bob')));
+  await assertFails(setDoc(doc(db, `wishes/alice/received/carol_${year}`), wish('bob')));
+  await assertFails(setDoc(doc(db, `wishes/alice/received/bob_${year}`),
+    wish('carol')));
+});
+
+test('hors annuaire, anonyme ou masqué par la modération : pas de vœu', async () => {
+  const ref = (db) => doc(db, `wishes/alice/received/bob_${year}`);
+  await assertFails(setDoc(ref(google('bob')), wish('bob'))); // pas de profil public
+  await seedBob();
+  await assertFails(setDoc(ref(anonymous('bob')), wish('bob')));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'moderation/bob'), { hidden: true });
+  });
+  await assertFails(setDoc(ref(google('bob')), wish('bob')));
+});
+
+test('on ne se souhaite pas son propre anniversaire, ni à un profil absent', async () => {
+  await assertFails(setDoc(doc(google('alice'), `wishes/alice/received/alice_${year}`),
+    wish('alice', { fromName: 'Alice' })));
+  await seedBob();
+  await assertFails(setDoc(doc(google('bob'), `wishes/ghost/received/bob_${year}`),
+    wish('bob')));
+});
+
+test('seul le destinataire lit ses vœux ; chacun peut retirer le sien', async () => {
+  await seedBob();
+  const ref = (db) => doc(db, `wishes/alice/received/bob_${year}`);
+  await assertSucceeds(setDoc(ref(google('bob')), wish('bob')));
+  await assertSucceeds(getDoc(ref(google('alice'))));
+  await assertFails(getDoc(ref(google('bob'))));
+  await assertFails(getDoc(ref(google('carol'))));
+  await assertFails(deleteDoc(ref(google('carol'))));
+  await assertSucceeds(deleteDoc(ref(google('bob'))));
+});

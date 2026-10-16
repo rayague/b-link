@@ -130,6 +130,11 @@ class AnalyticsService {
     await _analytics?.logEvent(name: 'my_day_shared');
   }
 
+  /// Vœu d'anniversaire envoyé à un membre
+  Future<void> logWishSent() async {
+    await _analytics?.logEvent(name: 'wish_sent');
+  }
+
   /// Contact modifié
   Future<void> logContactUpdated({
     required String relation,

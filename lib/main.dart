@@ -28,6 +28,7 @@ import 'screens/zodiac_screen.dart';
 import 'screens/meetups_screen.dart';
 import 'screens/import_contacts_screen.dart';
 import 'screens/my_day_screen.dart';
+import 'screens/wishes_screen.dart';
 import 'providers/profile_provider.dart';
 import 'services/background_sync.dart';
 import 'widgets/consent_dialog.dart';
@@ -109,6 +110,7 @@ class _App extends StatelessWidget {
         MeetupsScreen.routeName: (_) => const MeetupsScreen(),
         ImportContactsScreen.routeName: (_) => const ImportContactsScreen(),
         MyDayScreen.routeName: (_) => const MyDayScreen(),
+        WishesScreen.routeName: (_) => const WishesScreen(),
       },
     );
   }
@@ -173,19 +175,19 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
 
     // Notifications push "nouveau jumeau d'anniversaire".
     final messaging = MessagingService();
-    _sameDaySubs.addAll([
-      messaging.openSameDayRequests.listen((_) => _openSameDay()),
-      notifications.sameDayTaps.listen((_) => _openSameDay()),
+    _pushSubs.addAll([
+      messaging.openRouteRequests.listen(_openRoute),
+      notifications.routeTaps.listen(_openRoute),
     ]);
     await messaging.register(locale.locale.languageCode);
   }
 
   StreamSubscription<int>? _tapSub;
-  final List<StreamSubscription<void>> _sameDaySubs = [];
+  final List<StreamSubscription<String>> _pushSubs = [];
 
-  void _openSameDay() {
+  void _openRoute(String route) {
     if (!mounted) return;
-    Navigator.of(context).pushNamed('/same-day');
+    Navigator.of(context).pushNamed(route);
   }
 
   void _openContact(int contactId) {
@@ -199,7 +201,7 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
   @override
   void dispose() {
     _tapSub?.cancel();
-    for (final s in _sameDaySubs) {
+    for (final s in _pushSubs) {
       s.cancel();
     }
     super.dispose();

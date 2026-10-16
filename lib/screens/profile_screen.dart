@@ -798,6 +798,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         children: [
           ActionRow(
+            icon: Icons.mark_email_unread_outlined,
+            title: l10n.translate('myWishes'),
+            subtitle: l10n.translate('myWishesDesc'),
+            tone: Tone.accent,
+            onTap: () => Navigator.of(context).pushNamed('/wishes'),
+          ),
+          const CardDivider(),
+          ActionRow(
             icon: Icons.ios_share_rounded,
             title: l10n.translate('recommendApp'),
             subtitle: l10n.translate('recommendAppDesc'),
