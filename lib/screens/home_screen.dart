@@ -11,6 +11,7 @@ import '../services/message_repository.dart';
 import '../services/analytics_service.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/reminder_settings_section.dart';
+import '../services/messaging_service.dart';
 import '../utils/account_actions.dart' as account;
 import 'dart:math' as math;
 
@@ -1087,4 +1088,5 @@ class CustomSettingsSheet extends StatelessWidget {
 void changeAppLocale(BuildContext context, String languageCode) {
   context.read<LocaleProvider>().setLocale(Locale(languageCode));
   context.read<ContactProvider>().rescheduleAllReminders(languageCode);
+  MessagingService().updateLocale(languageCode);
 }

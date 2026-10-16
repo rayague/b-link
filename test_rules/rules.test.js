@@ -273,3 +273,23 @@ test('on ne peut ni se bloquer soi-même ni ajouter des champs arbitraires', asy
   await assertFails(setDoc(doc(google('bob'), 'users/bob/blocks/bob'), { name: 'Moi' }));
   await assertFails(setDoc(doc(google('bob'), 'users/bob/blocks/alice'), { name: 'A', note: 'x' }));
 });
+
+// ---------- appareils (notifications push) ----------
+
+test('un utilisateur enregistre et retire le jeton de son appareil', async () => {
+  const ref = doc(google('bob'), 'users/bob/devices/token-123');
+  await assertSucceeds(setDoc(ref, { platform: 'android', locale: 'fr', updatedAt: serverTimestamp() }));
+  await assertSucceeds(deleteDoc(ref));
+});
+
+test('les jetons de notification des autres sont inaccessibles', async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'users/bob/devices/t'), { platform: 'ios', locale: 'en' }));
+  await assertFails(getDoc(doc(google('alice'), 'users/bob/devices/t')));
+  await assertFails(setDoc(doc(google('alice'), 'users/bob/devices/x'), { platform: 'ios', locale: 'en' }));
+});
+
+test('un jeton avec des champs ou une langue inattendus est refusé', async () => {
+  await assertFails(setDoc(doc(google('bob'), 'users/bob/devices/t'), { platform: 'android', locale: 'de' }));
+  await assertFails(setDoc(doc(google('bob'), 'users/bob/devices/t'), { platform: 'android', locale: 'fr', extra: 1 }));
+});

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/contact_provider.dart';
 import '../providers/locale_provider.dart';
+import '../services/messaging_service.dart';
 import '../services/reminder_settings.dart';
 
 /// Réglages des rappels : heure, rappel une semaine avant, rappel la veille.
@@ -18,12 +19,16 @@ class ReminderSettingsSection extends StatefulWidget {
 
 class _ReminderSettingsSectionState extends State<ReminderSettingsSection> {
   ReminderSettings? _settings;
+  bool _notifyNewTwins = true;
 
   @override
   void initState() {
     super.initState();
     ReminderSettings.load().then((s) {
       if (mounted) setState(() => _settings = s);
+    });
+    MessagingService().notifyNewTwins().then((v) {
+      if (mounted) setState(() => _notifyNewTwins = v);
     });
   }
 
@@ -86,6 +91,22 @@ class _ReminderSettingsSectionState extends State<ReminderSettingsSection> {
           subtitle: Text(l10n.translate('reminderDayBeforeDesc')),
           value: s.dayBefore,
           onChanged: (v) => _update(s.copyWith(dayBefore: v)),
+        ),
+        // Préférence du compte (lue par le serveur), pas de l'appareil.
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.group_add_outlined),
+          title: Text(l10n.translate('newTwinsSetting')),
+          subtitle: Text(l10n.translate('newTwinsSettingDesc')),
+          value: _notifyNewTwins,
+          onChanged: (v) async {
+            setState(() => _notifyNewTwins = v);
+            try {
+              await MessagingService().setNotifyNewTwins(v);
+            } catch (_) {
+              if (mounted) setState(() => _notifyNewTwins = !v);
+            }
+          },
         ),
       ],
     );

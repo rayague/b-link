@@ -115,8 +115,46 @@ class NotificationService {
   }
 
   void _onNotificationTapped(NotificationResponse response) {
+    if (response.payload == _openSameDayPayload) {
+      _sameDayTaps.add(null);
+      return;
+    }
     final id = _contactIdFrom(response.payload);
     if (id != null) _taps.add(id);
+  }
+
+  static const _openSameDayPayload = 'open:same-day';
+  final StreamController<void> _sameDayTaps = StreamController<void>.broadcast();
+
+  /// Touchers d'une notification push affichée au premier plan (nouveau
+  /// jumeau) : ouvrir "Même jour".
+  Stream<void> get sameDayTaps => _sameDayTaps.stream;
+
+  /// Affiche une notification push reçue alors que l'app est ouverte
+  /// (Firebase Messaging ne le fait pas lui-même au premier plan).
+  Future<void> showPush(
+      {required String title,
+      required String body,
+      bool openSameDay = false}) async {
+    if (!_initialized) await init(requestPermissions: false);
+    await _plugin.show(
+      // ID négatif dérivé du texte : pas de collision avec les rappels.
+      -3 - (title.hashCode & 0x0FFFFFFF),
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'twins',
+          'Jumeaux d\'anniversaire',
+          channelDescription: 'Nouvelles personnes nées le même jour que vous',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(
+            presentAlert: true, presentBadge: true, presentSound: true),
+      ),
+      payload: openSameDay ? _openSameDayPayload : null,
+    );
   }
 
   /// Envoie une notification de test immédiate

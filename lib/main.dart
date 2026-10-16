@@ -14,6 +14,7 @@ import 'providers/auth_provider.dart';
 import 'providers/contact_provider.dart';
 import 'services/analytics_service.dart';
 import 'services/connectivity_service.dart';
+import 'services/messaging_service.dart';
 import 'services/notification_service.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/auth_screen.dart';
@@ -179,9 +180,23 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
     _tapSub ??= notifications.contactTaps.listen(_openContact);
     final launchId = notifications.takeLaunchContactId();
     if (launchId != null) _openContact(launchId);
+
+    // Notifications push "nouveau jumeau d'anniversaire".
+    final messaging = MessagingService();
+    _sameDaySubs.addAll([
+      messaging.openSameDayRequests.listen((_) => _openSameDay()),
+      notifications.sameDayTaps.listen((_) => _openSameDay()),
+    ]);
+    await messaging.register(locale.locale.languageCode);
   }
 
   StreamSubscription<int>? _tapSub;
+  final List<StreamSubscription<void>> _sameDaySubs = [];
+
+  void _openSameDay() {
+    if (!mounted) return;
+    Navigator.of(context).pushNamed('/same-day');
+  }
 
   void _openContact(int contactId) {
     if (!mounted) return;
@@ -194,6 +209,9 @@ class _EntryPointStatefulState extends State<EntryPointStateful> {
   @override
   void dispose() {
     _tapSub?.cancel();
+    for (final s in _sameDaySubs) {
+      s.cancel();
+    }
     super.dispose();
   }
 

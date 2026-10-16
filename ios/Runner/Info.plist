@@ -54,6 +54,7 @@
 	<array>
 		<string>fetch</string>
 		<string>processing</string>
+		<string>remote-notification</string>
 	</array>
 	<!-- RGPD : Analytics désactivé jusqu'au consentement. -->
 	<key>FIREBASE_ANALYTICS_COLLECTION_ENABLED</key>

@@ -5,7 +5,9 @@ const functions = require('firebase-functions/v1');
 const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getMessaging } = require('firebase-admin/messaging');
 const { shouldAutoHide, REPORT_THRESHOLD } = require('./moderation');
+const { shouldNotifyTwin, twinMessage, INVALID_TOKEN_CODES } = require('./twins');
 
 initializeApp();
 const db = getFirestore();
@@ -162,5 +164,72 @@ exports.onReportCreated = functions.firestore
       });
       tx.delete(db.collection('public_profiles').doc(reportedUid));
     });
+    return null;
+  });
+
+/**
+ * "Nouveau jumeau d'anniversaire" : quand un profil apparaît dans l'annuaire
+ * public, prévient par notification push les utilisateurs nés le même jour
+ * (règles dans twins.js : au plus une fois par jour et par personne,
+ * désactivable). Une même personne n'est annoncée qu'une seule fois, même si
+ * elle repasse son profil de privé à public.
+ */
+exports.onPublicProfileCreated = functions.firestore
+  .document('public_profiles/{uid}')
+  .onCreate(async (snap, context) => {
+    const newUid = context.params.uid;
+    const profile = snap.data() || {};
+    const birthDayKey = profile.birthDayKey;
+    if (typeof birthDayKey !== 'string') return null;
+
+    // Annonce unique par personne.
+    const newUserRef = db.collection('users').doc(newUid);
+    const firstAnnouncement = await db.runTransaction(async (tx) => {
+      const doc = await tx.get(newUserRef);
+      if (doc.exists && doc.get('twinAnnouncedAt')) return false;
+      tx.set(newUserRef, { twinAnnouncedAt: serverTimestamp() }, { merge: true });
+      return true;
+    });
+    if (!firstAnnouncement) return null;
+
+    const publicName = profile.publicName ? profile.name : null;
+    const now = Date.now();
+    const twins = await db
+      .collection('users')
+      .where('birthDayKey', '==', birthDayKey)
+      .get();
+
+    for (const twinDoc of twins.docs) {
+      const recipient = { uid: twinDoc.id, ...twinDoc.data() };
+      if (!shouldNotifyTwin(recipient, newUid, now)) continue;
+
+      const devices = await twinDoc.ref.collection('devices').get();
+      if (devices.empty) continue;
+
+      // Un message par langue d'appareil.
+      const byLang = {};
+      for (const d of devices.docs) {
+        (byLang[d.get('locale') === 'fr' ? 'fr' : 'en'] ||= []).push(d.id);
+      }
+      let delivered = false;
+      for (const [lang, tokens] of Object.entries(byLang)) {
+        const res = await getMessaging().sendEachForMulticast({
+          tokens,
+          notification: twinMessage(lang, publicName),
+          data: { type: 'new_twin' },
+          android: { priority: 'high' },
+        });
+        res.responses.forEach((r, i) => {
+          if (r.success) delivered = true;
+          else if (r.error && INVALID_TOKEN_CODES.has(r.error.code)) {
+            // Jeton expiré ou app désinstallée : on nettoie.
+            twinDoc.ref.collection('devices').doc(tokens[i]).delete().catch(() => {});
+          }
+        });
+      }
+      if (delivered) {
+        await twinDoc.ref.set({ lastTwinNotifiedAt: serverTimestamp() }, { merge: true });
+      }
+    }
     return null;
   });

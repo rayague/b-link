@@ -52,3 +52,14 @@ Le `GoogleService-Info.plist` actuel ne contient ni `CLIENT_ID` ni
 3. Tester : connexion Google, inscription, « Même jour », réception d'un
    rappel (le rafraîchissement d'arrière-plan peut se déclencher depuis
    Xcode : Debug > Simulate Background Fetch).
+
+### 3. Notifications push (nouveau jumeau d'anniversaire)
+
+1. Apple Developer : créer une clé APNs (Keys > Apple Push Notifications
+   service), puis la téléverser dans la console Firebase (Paramètres du
+   projet > Cloud Messaging > app iOS).
+2. Dans Xcode (Runner > Signing & Capabilities) : ajouter **Push
+   Notifications** (crée l'entitlement `aps-environment`). Le mode
+   d'arrière-plan `remote-notification` est déjà déclaré dans `Info.plist`.
+3. Tester sur un vrai iPhone (les notifications push ne fonctionnent pas sur
+   le simulateur).

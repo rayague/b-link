@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/contact_provider.dart';
 import '../providers/profile_provider.dart';
+import '../services/messaging_service.dart';
 import '../services/safety_service.dart';
 
 /// Actions de compte partagées par les écrans (menu, profil).
@@ -51,6 +52,10 @@ Future<void> signOut(BuildContext context) async {
     return;
   }
   if (!context.mounted) return;
+  // Avant la déconnexion : il faut encore être authentifié pour retirer le
+  // jeton de cet appareil.
+  await MessagingService().unregister();
+  if (!context.mounted) return;
   await context.read<AuthProvider>().logout();
   if (!context.mounted) return;
   await _clearLocalAndExit(context);
@@ -74,6 +79,7 @@ Future<void> deleteAccount(BuildContext context) async {
   try {
     if (!await auth.reauthenticateWithGoogle()) return; // annulé
     await profile.deleteRemoteData();
+    await MessagingService().unregister();
     await auth.deleteFirebaseUser();
   } catch (e) {
     debugPrint('❌ Suppression du compte: $e');

@@ -36,6 +36,15 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
 
+      // Appareils (jetons de notification push) : privés ; lus par les Cloud
+      // Functions (Admin SDK) pour prévenir d'un nouveau jumeau.
+      match /devices/{token} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.keys().hasOnly(['platform', 'locale', 'updatedAt'])
+          && request.resource.data.locale in ['fr', 'en'];
+      }
+
       // Profils bloqués : privés, synchronisés entre appareils.
       match /blocks/{blockedId} {
         allow read, delete: if isOwner(userId);

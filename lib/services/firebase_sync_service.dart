@@ -232,7 +232,7 @@ class FirebaseSyncService {
 
     // Sous-collections privées. Un batch Firestore est limité à 500
     // opérations : on découpe.
-    for (final sub in ['contacts', 'blocks']) {
+    for (final sub in ['contacts', 'blocks', 'devices']) {
       final docs = (await userRef.collection(sub).get()).docs;
       const chunkSize = 400;
       for (var i = 0; i < docs.length; i += chunkSize) {
