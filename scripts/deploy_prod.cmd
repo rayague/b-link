@@ -25,5 +25,5 @@ call npm ci --no-audit --no-fund || (popd & exit /b 1)
 call npm test || (popd & echo Tests des regles en echec : deploiement annule. & exit /b 1)
 popd
 echo Deploiement des regles et des Cloud Functions sur %PROJECT_ID%...
-call firebase deploy --only firestore:rules,firestore:indexes,functions,hosting --project %PROJECT_ID% || exit /b 1
+call firebase deploy --only firestore:rules,firestore:indexes,storage,functions,hosting --project %PROJECT_ID% || exit /b 1
 echo Deploiement termine.

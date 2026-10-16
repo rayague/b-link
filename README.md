@@ -68,8 +68,12 @@ cd test_rules && npm ci && npm test
 ## Déploiement Firebase
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes,functions,hosting
+firebase deploy --only firestore:rules,firestore:indexes,storage,functions,hosting
 ```
+
+Au premier déploiement de `storage.rules`, la CLI Firebase demande d'autoriser
+Cloud Storage à lire Firestore (règles croisées pour la visibilité des photos) :
+il faut accepter. Le bucket Storage nécessite le forfait Blaze.
 
 Le premier `super_admin` se crée hors de l'app (console Firebase ou script
 Admin SDK) ; les suivants via la fonction `grantAdmin`. Aucun identifiant ne

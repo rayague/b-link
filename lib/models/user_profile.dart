@@ -28,6 +28,8 @@ class UserProfile {
   bool publicSocials;
   bool publicZodiac;
   bool publicCountry;
+  bool hasPhoto; // photo dans Storage (profile_photos/{uid}/photo.jpg)
+  bool publicPhoto; // photo visible des autres membres
 
   String? birthDayKey; // MM-DD for indexing
 
@@ -57,6 +59,8 @@ class UserProfile {
     this.publicSocials = false,
     this.publicZodiac = false,
     this.publicCountry = false,
+    this.hasPhoto = false,
+    this.publicPhoto = false,
     this.birthDayKey,
   });
 
@@ -99,6 +103,8 @@ class UserProfile {
       publicSocials: toBool(map['publicSocials']),
       publicZodiac: toBool(map['publicZodiac']),
       publicCountry: toBool(map['publicCountry']),
+      hasPhoto: toBool(map['hasPhoto']),
+      publicPhoto: toBool(map['publicPhoto']),
       birthDayKey: map['birthDayKey'] as String?,
     );
   }
@@ -152,6 +158,8 @@ class UserProfile {
         'publicSocials': publicSocials,
         'publicZodiac': publicZodiac,
         'publicCountry': publicCountry,
+        'hasPhoto': hasPhoto,
+        'publicPhoto': publicPhoto,
         'birthDayKey': birthDayKey,
       };
 
@@ -203,6 +211,8 @@ class UserProfile {
       'publicSocials': publicSocials,
       'publicZodiac': publicZodiac,
       'publicCountry': publicCountry,
+      // Lu par storage.rules pour autoriser la lecture de la photo.
+      'publicPhoto': publicPhoto && hasPhoto,
     };
     void put(bool allowed, String key, Object? value) {
       if (allowed && value != null) data[key] = value;

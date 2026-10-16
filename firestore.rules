@@ -72,7 +72,7 @@ service cloud.firestore {
              'socialLinks', 'isPublic', 'publicName', 'publicBirthDate',
              'publicBirthTime', 'publicBirthPlace', 'publicBirthCountry',
              'publicBirthCity', 'publicSocials', 'publicZodiac', 'updatedAt',
-             'countryCode', 'publicCountry'
+             'countryCode', 'publicCountry', 'publicPhoto'
            ])
         // Pays de résidence : code ISO 3166-1 alpha-2 (filtre "Mon pays").
         && (!('countryCode' in request.resource.data)

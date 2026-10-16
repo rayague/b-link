@@ -54,6 +54,7 @@ dependencies:
   flutter_timezone: ^5.1.1
   country_picker: ^2.0.28
   firebase_messaging: ^16.7.0
+  firebase_storage: ^13.6.0
 
 dev_dependencies:
   flutter_test:

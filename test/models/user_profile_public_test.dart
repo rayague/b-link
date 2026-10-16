@@ -68,6 +68,7 @@ void main() {
         'publicName', 'publicBirthDate', 'publicBirthTime', 'publicBirthPlace',
         'publicBirthCountry', 'publicBirthCity', 'publicSocials',
         'publicZodiac', 'updatedAt', 'countryCode', 'publicCountry',
+        'publicPhoto',
       };
       final p = _profile(
           publicName: true, publicBirthDate: true, publicSocials: true)
@@ -99,6 +100,17 @@ void main() {
       expect(_profile().shouldBePublished, isTrue);
       expect(_profile(isPublic: false).shouldBePublished, isFalse);
     });
+  });
+
+  test('the photo is published only if it exists and is opted in', () {
+    final p = _profile()..publicPhoto = true;
+    expect(p.toPublicJson()['publicPhoto'], isFalse); // pas de photo
+    p.hasPhoto = true;
+    expect(p.toPublicJson()['publicPhoto'], isTrue);
+    p.publicPhoto = false;
+    expect(p.toPublicJson()['publicPhoto'], isFalse);
+    // Jamais d'URL ni de chemin de fichier dans la projection publique.
+    expect(p.toPublicJson().keys.any((k) => k.toLowerCase().contains('url')), isFalse);
   });
 
   test('a public projection without birthDate can still be read', () {

@@ -6,6 +6,7 @@ const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
+const { getStorage } = require('firebase-admin/storage');
 const { shouldAutoHide, REPORT_THRESHOLD } = require('./moderation');
 const { shouldNotifyTwin, twinMessage, INVALID_TOKEN_CODES } = require('./twins');
 
@@ -120,6 +121,11 @@ exports.onAuthUserDeleted = functions.auth.user().onDelete(async (user) => {
   await db.collection('public_profiles').doc(user.uid).delete();
   await db.collection('moderation').doc(user.uid).delete();
   await db.collection('admins').doc(user.uid).delete();
+  // Photo de profil (storage.rules : profile_photos/{uid}/photo.jpg).
+  await getStorage()
+    .bucket()
+    .file(`profile_photos/${user.uid}/photo.jpg`)
+    .delete({ ignoreNotFound: true });
   // Signalements reçus et envoyés : ils contiennent l'identifiant de la
   // personne (voir hosting/delete-account.html).
   for (const field of ['reportedUid', 'reporterUid']) {

@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/contact_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/messaging_service.dart';
+import '../services/photo_service.dart';
 import '../services/safety_service.dart';
 
 /// Actions de compte partagées par les écrans (menu, profil).
@@ -42,6 +43,7 @@ Future<void> _clearLocalAndExit(BuildContext context) async {
   if (!context.mounted) return;
   await context.read<ProfileProvider>().reset();
   await SafetyService().clearLocalCache();
+  PhotoService().clearCache();
   navigator.pushNamedAndRemoveUntil('/onboarding', (_) => false);
 }
 
@@ -78,6 +80,7 @@ Future<void> deleteAccount(BuildContext context) async {
   final messenger = ScaffoldMessenger.of(context);
   try {
     if (!await auth.reauthenticateWithGoogle()) return; // annulé
+    await PhotoService().deleteMine();
     await profile.deleteRemoteData();
     await MessagingService().unregister();
     await auth.deleteFirebaseUser();

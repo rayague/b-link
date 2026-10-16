@@ -12,6 +12,7 @@ import '../utils/relations.dart';
 import 'package:flutter/services.dart';
 import '../services/analytics_service.dart';
 import '../services/safety_service.dart';
+import '../widgets/profile_avatar.dart';
 import '../services/directory_service.dart';
 import '../utils/app_links.dart';
 import 'package:country_picker/country_picker.dart';
@@ -524,30 +525,16 @@ class _SameDayScreenState extends State<SameDayScreen>
                                     horizontal: 16, vertical: 8),
                                 onTap: () =>
                                     _showProfileDetails(context, it, isDark),
-                                leading: Container(
-                                  width: 56,
-                                  height: 56,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        _getColorForName(name, 0),
-                                        _getColorForName(name, 1),
-                                      ],
-                                    ),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      name.isNotEmpty
-                                          ? name[0].toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
+                                leading: ProfileAvatar(
+                                  uid: it['uid'] as String?,
+                                  name: name,
+                                  size: 56,
+                                  // Ne tente de charger que les photos partagées.
+                                  showPhoto: it['publicPhoto'] == true,
+                                  gradient: [
+                                    _getColorForName(name, 0),
+                                    _getColorForName(name, 1),
+                                  ],
                                 ),
                                 title: Text(
                                   name,

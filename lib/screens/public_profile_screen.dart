@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../l10n/zodiac_content.dart';
 import '../services/analytics_service.dart';
 import '../services/safety_service.dart';
+import '../widgets/profile_avatar.dart';
 
 class PublicProfileScreen extends StatelessWidget {
   static const routeName = '/public-profile';
@@ -171,13 +172,19 @@ class PublicProfileScreen extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                child: Icon(
-                                  profile.isPublic
-                                      ? Icons.person_rounded
-                                      : Icons.lock_rounded,
-                                  size: 40,
-                                  color: const Color(0xFF8B5CF6),
-                                ),
+                                child: profile.publicPhoto
+                                    ? ProfileAvatar(
+                                        uid: profile.uid,
+                                        name: profile.name,
+                                        size: 80,
+                                      )
+                                    : Icon(
+                                        profile.isPublic
+                                            ? Icons.person_rounded
+                                            : Icons.lock_rounded,
+                                        size: 40,
+                                        color: const Color(0xFF8B5CF6),
+                                      ),
                               ),
                               if (!isCollapsed)
                                 Padding(

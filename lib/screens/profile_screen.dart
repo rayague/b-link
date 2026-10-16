@@ -16,6 +16,8 @@ import '../l10n/zodiac_content.dart';
 import 'package:country_picker/country_picker.dart';
 import '../utils/account_actions.dart' as account;
 import '../services/safety_service.dart';
+import '../services/photo_service.dart';
+import '../widgets/profile_avatar.dart';
 import '../utils/app_links.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -49,6 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _publicBirthCity = false;
   String? _countryCode; // pays de résidence (ISO alpha-2)
   bool _publicCountry = false;
+  bool _publicPhoto = false;
   bool _publicSocials = false;
   bool _publicZodiac = false;
 
@@ -89,6 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     _publicBirthCity = p?.publicBirthCity ?? false;
     _countryCode = p?.countryCode;
     _publicCountry = p?.publicCountry ?? false;
+    _publicPhoto = p?.publicPhoto ?? false;
     _publicSocials = p?.publicSocials ?? false;
     _publicZodiac = p?.publicZodiac ?? false;
 
@@ -165,36 +169,47 @@ class _ProfileScreenState extends State<ProfileScreen>
                             children: [
                               Expanded(
                                 child: Center(
-                                  child: Container(
-                                    width: 90,
-                                    height: 90,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Colors.white,
-                                          Color(0xFFF3E8FF)
-                                        ],
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.2),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 10),
+                                  child: GestureDetector(
+                                    onTap: _changePhoto,
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withValues(alpha: 0.2),
+                                                blurRadius: 20,
+                                                offset: const Offset(0, 10),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ProfileAvatar(
+                                            uid: profile?.uid,
+                                            name: profile?.name ?? '',
+                                            size: 90,
+                                            showPhoto:
+                                                profile?.hasPhoto ?? false,
+                                            gradient: const [
+                                              Colors.white,
+                                              Color(0xFFF3E8FF)
+                                            ],
+                                            initialColor:
+                                                const Color(0xFF8B5CF6),
+                                          ),
+                                        ),
+                                        const Positioned(
+                                          right: 0,
+                                          bottom: 0,
+                                          child: CircleAvatar(
+                                            radius: 14,
+                                            backgroundColor: Color(0xFF8B5CF6),
+                                            child: Icon(Icons.camera_alt,
+                                                size: 16, color: Colors.white),
+                                          ),
                                         ),
                                       ],
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        profile?.name.isNotEmpty == true
-                                            ? profile!.name[0].toUpperCase()
-                                            : '👤',
-                                        style: const TextStyle(
-                                          fontSize: 40,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF8B5CF6),
-                                        ),
-                                      ),
                                     ),
                                   ),
                                 ),
@@ -384,6 +399,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         publicBirthCity: _publicBirthCity,
         countryCode: _countryCode,
         publicCountry: _publicCountry,
+        // Sinon chaque enregistrement "oublierait" la photo.
+        hasPhoto: previous?.hasPhoto ?? false,
+        publicPhoto: _publicPhoto,
         publicSocials: _publicSocials,
         publicZodiac: _publicZodiac,
       );
@@ -1517,6 +1535,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         _publicBirthCountry = false;
                         _publicBirthCity = false;
                         _publicCountry = false;
+                        _publicPhoto = false;
                         _publicSocials = false;
                         _publicZodiac = false;
                       }
@@ -1567,6 +1586,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                 Icons.flag_outlined, isDark, (val) {
               setState(() => _publicCountry = val);
             }),
+            _buildPrivacySwitch(l10n.translate('showMyPhoto'), _publicPhoto,
+                Icons.photo_camera_outlined, isDark, (val) {
+              setState(() => _publicPhoto = val);
+            }),
             _buildPrivacySwitch(l10n.translate('myZodiac'), _publicZodiac,
                 Icons.stars_rounded, isDark, (val) {
               setState(() => _publicZodiac = val);
@@ -1582,6 +1605,53 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   /// Vérifier si l'utilisateur actuel est l'administrateur
+  /// Choisir ou supprimer la photo de profil.
+  Future<void> _changePhoto() async {
+    final l10n = AppLocalizations.of(context);
+    final provider = context.read<ProfileProvider>();
+    final current = provider.profile;
+    if (current == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(l10n.translate('changePhoto')),
+              onTap: () => Navigator.of(sheet).pop('pick'),
+            ),
+            if (current.hasPhoto)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: Text(l10n.translate('removePhoto')),
+                onTap: () => Navigator.of(sheet).pop('remove'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (action == null) return;
+    try {
+      if (action == 'pick') {
+        if (!await PhotoService().pickAndUpload()) return;
+        current.hasPhoto = true;
+      } else {
+        await PhotoService().deleteMine();
+        current.hasPhoto = false;
+      }
+      await provider.save(current);
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('❌ Photo de profil: $e');
+      messenger.showSnackBar(
+          SnackBar(content: Text(l10n.translate('photoUploadFailed'))));
+    }
+  }
+
   /// Liste des profils bloqués, avec déblocage.
   Future<void> _showBlockedProfiles() async {
     final l10n = AppLocalizations.of(context);

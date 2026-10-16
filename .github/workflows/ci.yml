@@ -60,4 +60,4 @@ jobs:
         working-directory: test_rules
         run: |
           npm ci
-          npx firebase-tools emulators:exec --only firestore --project demo-b-link "node --test"
+          npx firebase-tools emulators:exec --only firestore,storage --project demo-b-link "node --test --test-concurrency=1"
