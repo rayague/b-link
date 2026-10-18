@@ -60,14 +60,10 @@ class _MessageSheetState extends State<_MessageSheet> {
 
   Future<void> _next() async {
     final lang = AppLocalizations.of(context).locale.languageCode;
-    final previous = _message;
-    var msg = await _repo.getRandomForRelation(widget.relation, widget.name,
+    // Le dépôt ne repropose jamais un message déjà montré (tant qu'il en
+    // reste d'autres pour cette relation).
+    final msg = await _repo.getRandomForRelation(widget.relation, widget.name,
         lang: lang);
-    // Un second tirage évite de reproposer le même texte.
-    if (msg == previous) {
-      msg = await _repo.getRandomForRelation(widget.relation, widget.name,
-          lang: lang);
-    }
     AnalyticsService().logBirthdayMessageGenerated(
         relation: widget.relation, messageLength: msg.length);
     if (mounted) setState(() => _message = msg);

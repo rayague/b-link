@@ -466,7 +466,8 @@ test('nom masqué : le vœu est anonyme', async () => {
 test('pas de texte libre ni de message hors liste', async () => {
   await seedBob();
   const ref = doc(google('bob'), `wishes/alice/received/bob_${year}`);
-  await assertFails(setDoc(ref, wish('bob', { wish: 6 })));
+  await assertFails(setDoc(ref, wish('bob', { wish: 30 })));
+  await assertFails(setDoc(ref, wish('bob', { wish: -1 })));
   await assertFails(setDoc(ref, wish('bob', { text: 'insulte' })));
 });
 
@@ -507,4 +508,21 @@ test('seul le destinataire lit ses vœux ; chacun peut retirer le sien', async (
   await assertFails(getDoc(ref(google('carol'))));
   await assertFails(deleteDoc(ref(google('carol'))));
   await assertSucceeds(deleteDoc(ref(google('bob'))));
+});
+
+test('messages déjà reçus : lisibles par les membres, jamais écrits par le client', async () => {
+  await seedBob();
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'wishes/alice'), { year, used: [2, 5] });
+  });
+  await assertSucceeds(getDoc(doc(google('bob'), 'wishes/alice')));
+  await assertFails(getDoc(doc(anonymous('bob'), 'wishes/alice')));
+  await assertFails(getDoc(doc(google('carol'), 'wishes/alice'))); // hors annuaire
+  await assertFails(setDoc(doc(google('bob'), 'wishes/alice'), { year, used: [] }));
+});
+
+test('un vœu parmi les 30 messages est accepté', async () => {
+  await seedBob();
+  await assertSucceeds(setDoc(doc(google('bob'), `wishes/alice/received/bob_${year}`),
+    wish('bob', { wish: 29 })));
 });

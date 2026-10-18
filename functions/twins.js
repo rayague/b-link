@@ -69,6 +69,17 @@ function wishMessage(lang, fromName) {
   };
 }
 
+/**
+ * Messages déjà reçus par le destinataire cette année, après l'ajout de
+ * [wish] (remis à zéro au changement d'année).
+ */
+function usedWishes(previous, wish, year) {
+  const prev = previous && previous.year === year && Array.isArray(previous.used)
+    ? previous.used.filter((n) => Number.isInteger(n))
+    : [];
+  return { year, used: [...new Set([...prev, wish])].sort((a, b) => a - b) };
+}
+
 /** Codes d'erreur FCM signifiant que le jeton n'est plus valide. */
 const INVALID_TOKEN_CODES = new Set([
   'messaging/registration-token-not-registered',
@@ -81,5 +92,6 @@ module.exports = {
   shouldNotifyTwin,
   twinMessage,
   wishMessage,
+  usedWishes,
   INVALID_TOKEN_CODES,
 };

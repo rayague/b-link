@@ -8,7 +8,7 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
 const { getStorage } = require('firebase-admin/storage');
 const { shouldAutoHide, REPORT_THRESHOLD } = require('./moderation');
-const { shouldNotifyTwin, twinMessage, wishMessage, INVALID_TOKEN_CODES } = require('./twins');
+const { shouldNotifyTwin, twinMessage, wishMessage, usedWishes, INVALID_TOKEN_CODES } = require('./twins');
 const { aggregate } = require('./constellation');
 
 initializeApp();
@@ -299,6 +299,14 @@ exports.onWishCreated = functions.firestore
   .onCreate(async (snap, context) => {
     const toUid = context.params.toUid;
     const wish = snap.data() || {};
+    // Messages déjà reçus : l'app n'en propose plus d'identiques.
+    if (Number.isInteger(wish.wish) && Number.isInteger(wish.year)) {
+      const usedRef = db.collection('wishes').doc(toUid);
+      await db.runTransaction(async (tx) => {
+        const doc = await tx.get(usedRef);
+        tx.set(usedRef, usedWishes(doc.exists ? doc.data() : null, wish.wish, wish.year));
+      });
+    }
     const userRef = db.collection('users').doc(toUid);
     const devices = await userRef.collection('devices').get();
     if (devices.empty) return null;

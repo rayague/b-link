@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -41,8 +42,64 @@ class Wish {
 /// (`wishes/{destinataire}/received/{expéditeur}_{année}`, voir
 /// firestore.rules) : un message prédéfini par personne et par an.
 class WishService {
-  /// Nombre de messages prédéfinis (clés de traduction wish_0 … wish_5).
-  static const count = 6;
+  /// Nombre de messages prédéfinis (clés de traduction wish_0 … wish_29).
+  static const count = 30;
+
+  /// Messages envoyés récemment depuis cet appareil, évités en priorité.
+  static const _recentKey = 'wish_recent';
+  static const _recentSize = 12;
+
+  /// Ordre de proposition des messages (pur, testable) : d'abord ceux que
+  /// le destinataire n'a pas reçus et que l'on n'a pas envoyés récemment,
+  /// puis ceux qu'il n'a pas reçus, puis, si tout a été reçu, tous.
+  /// L'ordre est mélangé avec [seed].
+  static List<int> proposals(
+      {required Set<int> receivedByThem,
+      required List<int> sentRecently,
+      required int seed}) {
+    final shuffled = List<int>.generate(count, (i) => i)
+      ..shuffle(math.Random(seed));
+    final fresh = [
+      for (final i in shuffled)
+        if (!receivedByThem.contains(i) && !sentRecently.contains(i)) i,
+    ];
+    final notReceived = [
+      for (final i in shuffled)
+        if (!receivedByThem.contains(i) && !fresh.contains(i)) i,
+    ];
+    final ordered = [...fresh, ...notReceived];
+    return ordered.isEmpty ? shuffled : ordered;
+  }
+
+  /// Numéros des messages déjà reçus cette année par [toUid] (vide si
+  /// inconnu ou hors ligne).
+  Future<Set<int>> receivedBy(String toUid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('wishes')
+          .doc(toUid)
+          .get()
+          .timeout(const Duration(seconds: 6));
+      final data = doc.data();
+      if (data == null || data['year'] != _year) return {};
+      return {
+        for (final n in (data['used'] as List? ?? const []))
+          if (n is int) n,
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Messages envoyés récemment depuis cet appareil (le plus récent en
+  /// dernier).
+  Future<List<int>> sentRecently() async {
+    final prefs = await SharedPreferences.getInstance();
+    return [
+      for (final s in prefs.getStringList(_recentKey) ?? const <String>[])
+        if (int.tryParse(s) != null) int.parse(s),
+    ];
+  }
 
   static const _ackTimeout = Duration(seconds: 10);
 
@@ -88,6 +145,13 @@ class WishService {
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_sentKey(toUid), true);
+    final recent = await sentRecently();
+    recent
+      ..remove(wish)
+      ..add(wish);
+    await prefs.setStringList(_recentKey, [
+      for (final n in recent.skip(math.max(0, recent.length - _recentSize))) '$n',
+    ]);
   }
 
   /// Vœux reçus cette année, du plus récent au plus ancien.

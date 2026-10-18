@@ -41,3 +41,15 @@ test('wish notification uses the public name or stays anonymous', () => {
   assert.doesNotMatch(wishMessage('fr', null).body, /null/);
   assert.match(wishMessage('en', '  ').body, /^Someone/);
 });
+
+test('wishes already received are tracked per year, without duplicates', () => {
+  const { usedWishes } = require('./twins');
+  assert.deepStrictEqual(usedWishes(null, 4, 2026), { year: 2026, used: [4] });
+  assert.deepStrictEqual(usedWishes({ year: 2026, used: [4, 9] }, 4, 2026),
+    { year: 2026, used: [4, 9] });
+  assert.deepStrictEqual(usedWishes({ year: 2026, used: [9] }, 2, 2026),
+    { year: 2026, used: [2, 9] });
+  // Nouvelle année : on repart de zéro.
+  assert.deepStrictEqual(usedWishes({ year: 2025, used: [1, 2] }, 3, 2026),
+    { year: 2026, used: [3] });
+});

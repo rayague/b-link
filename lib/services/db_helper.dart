@@ -181,6 +181,32 @@ class DBHelper {
     return null;
   }
 
+  /// Message tiré au hasard pour la relation, en évitant les [exclude]
+  /// (déjà montrés) : d'abord ceux propres à la relation, puis les messages
+  /// génériques. Dans la langue demandée, sinon en anglais. null si tous
+  /// ont déjà été montrés.
+  Future<({int id, String text})?> pickMessage(String relation,
+      {String lang = 'en', Set<int> exclude = const {}}) async {
+    final db = await database;
+    final rel = relation.toLowerCase();
+    for (final l in {lang, 'en'}) {
+      final count = Sqflite.firstIntValue(await db.rawQuery(
+              'SELECT COUNT(*) FROM messages WHERE lang = ? AND relation IN (?, ?)',
+              [l, rel, 'default'])) ??
+          0;
+      if (count == 0) continue; // langue absente : repli
+      final ids = exclude.toList();
+      final notIn = ids.isEmpty ? '' : 'AND id NOT IN (${List.filled(ids.length, '?').join(',')})';
+      final res = await db.rawQuery(
+          'SELECT id, text FROM messages WHERE lang = ? AND relation IN (?, ?) '
+          '$notIn ORDER BY (relation = ?) DESC, RANDOM() LIMIT 1',
+          [l, rel, 'default', ...ids, rel]);
+      if (res.isEmpty) return null;
+      return (id: res.first['id'] as int, text: res.first['text'] as String);
+    }
+    return null;
+  }
+
   Future<String?> _getMeta(String key) async {
     final db = await database;
     final res =

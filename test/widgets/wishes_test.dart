@@ -27,6 +27,10 @@ class _FakeWishes extends WishService {
   @override
   Future<bool> alreadySent(String toUid) async => false;
   @override
+  Future<Set<int>> receivedBy(String toUid) async => {};
+  @override
+  Future<List<int>> sentRecently() async => const [];
+  @override
   Future<void> send(
       {required String toUid, required int wish, String? fromName}) async {
     sent.add((toUid, wish, fromName));
@@ -127,14 +131,54 @@ void main() {
   testWidgets('the wall shows each wish in the reader\'s language',
       (tester) async {
     final service = _FakeWishes([
-      Wish(id: '1', fromUid: 'bob', fromName: 'Bob', wish: 3, createdAt: DateTime(2026, 3, 21, 9)),
+      Wish(id: '1', fromUid: 'bob', fromName: 'Bob', wish: 12, createdAt: DateTime(2026, 3, 21, 9)),
       const Wish(id: '2', fromUid: 'x', wish: 1),
     ]);
     await _pump(tester, WishesScreen(service: service), _me());
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('2 vœux reçus'), findsOneWidget);
     expect(find.text('Bob'), findsOneWidget);
-    expect(find.text('Que ta journée soit aussi lumineuse que toi.'), findsOneWidget);
+    expect(find.textContaining("Que la chance t'accompagne"), findsOneWidget);
     expect(find.text("Un jumeau d'anniversaire"), findsOneWidget);
+  });
+
+  group('which wishes are offered', () {
+    test('never a message the person already received, if possible', () {
+      final order = WishService.proposals(
+          receivedByThem: {0, 1, 2, 3}, sentRecently: const [], seed: 1);
+      expect(order, hasLength(WishService.count - 4));
+      expect(order.toSet().intersection({0, 1, 2, 3}), isEmpty);
+      expect(order.toSet().length, order.length); // aucun doublon
+    });
+
+    test('messages I sent recently come last', () {
+      final order = WishService.proposals(
+          receivedByThem: const {}, sentRecently: const [5, 6], seed: 2);
+      expect(order.sublist(order.length - 2).toSet(), {5, 6});
+    });
+
+    test('when everything was received, all messages are offered again', () {
+      final order = WishService.proposals(
+          receivedByThem: {for (var i = 0; i < WishService.count; i++) i},
+          sentRecently: const [],
+          seed: 3);
+      expect(order.toSet().length, WishService.count);
+    });
+
+    test('every message exists in both languages, with emojis', () {
+      final emoji = RegExp(r'[🌀-🫿☀-➿]', unicode: true);
+      for (final lang in ['fr', 'en']) {
+        final l10n = AppLocalizations(Locale(lang));
+        final texts = <String>{};
+        for (var i = 0; i < WishService.count; i++) {
+          final s = l10n.translate('wish_$i');
+          expect(s, isNot('wish_$i'));
+          expect(s.length, greaterThan(70), reason: 'wish_$i ($lang)');
+          expect(emoji.hasMatch(s), isTrue, reason: 'wish_$i ($lang)');
+          texts.add(s);
+        }
+        expect(texts.length, WishService.count); // tous différents
+      }
+    });
   });
 }
