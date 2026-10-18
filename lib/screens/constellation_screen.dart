@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -34,8 +35,11 @@ class _ConstellationScreenState extends State<ConstellationScreen>
       (widget.service ?? ConstellationService()).load();
   late final AnimationController _entry = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 1800));
+  // Une boucle de 12 s : scintillement, respiration du halo, comète.
   late final AnimationController _clock =
-      AnimationController(vsync: this, duration: const Duration(seconds: 6));
+      AnimationController(vsync: this, duration: const Duration(seconds: 12));
+  late final AnimationController _select = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 380));
   int? _selected;
   bool _started = false;
 
@@ -49,6 +53,7 @@ class _ConstellationScreenState extends State<ConstellationScreen>
   void dispose() {
     _entry.dispose();
     _clock.dispose();
+    _select.dispose();
     super.dispose();
   }
 
@@ -61,6 +66,7 @@ class _ConstellationScreenState extends State<ConstellationScreen>
       if (!mounted) return;
       if (MediaQuery.of(context).disableAnimations) {
         _entry.value = 1;
+        _select.value = 1;
       } else {
         _entry.forward();
         _clock.repeat();
@@ -96,8 +102,16 @@ class _ConstellationScreenState extends State<ConstellationScreen>
             me: me,
             entry: _entry,
             clock: _clock,
+            select: _select,
             selected: _selected,
-            onSelect: (i) => setState(() => _selected = i),
+            onSelect: (i) {
+              if (i == _selected) return;
+              HapticFeedback.selectionClick();
+              setState(() => _selected = i);
+              if (!MediaQuery.of(context).disableAnimations) {
+                _select.forward(from: 0);
+              }
+            },
           );
         },
       ),
@@ -110,6 +124,7 @@ class _Content extends StatelessWidget {
   final UserProfile? me;
   final Animation<double> entry;
   final Animation<double> clock;
+  final Animation<double> select;
   final int? selected;
   final ValueChanged<int?> onSelect;
 
@@ -118,6 +133,7 @@ class _Content extends StatelessWidget {
     required this.me,
     required this.entry,
     required this.clock,
+    required this.select,
     required this.selected,
     required this.onSelect,
   });
@@ -153,10 +169,13 @@ class _Content extends StatelessWidget {
           selected: selected,
           entry: entry,
           clock: clock,
+          select: select,
           onSelect: onSelect,
           centerTitle: number.format(stats.total),
           centerSubtitle: l10n.translate(stats.total == 1 ? 'memberOne' : 'members'),
         ),
+        const SizedBox(height: Space.s),
+        const _Legend(),
         const SizedBox(height: Space.m),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
@@ -255,6 +274,7 @@ class _NightSky extends StatelessWidget {
   final int? selected;
   final Animation<double> entry;
   final Animation<double> clock;
+  final Animation<double> select;
   final ValueChanged<int?> onSelect;
   final String centerTitle;
   final String centerSubtitle;
@@ -265,25 +285,27 @@ class _NightSky extends StatelessWidget {
     required this.selected,
     required this.entry,
     required this.clock,
+    required this.select,
     required this.onSelect,
     required this.centerTitle,
     required this.centerSubtitle,
   });
 
-  static const _star = Color(0xFFEDEFFF);
-  static const _faint = Color(0xFF8E94BC);
-  static const _label = Color(0xB3C9CDEA);
+  static const _cool = Color(0xFFCAD3FF);
+  static const _warm = Color(0xFFFFF1D0);
+  static const _label = Color(0xFFC9CDEA);
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final lang = l10n.locale.languageCode;
+    final t = Theme.of(context).textTheme;
+    final now = DateTime.now();
     final counts = List<int>.filled(DayRing.days, 0);
     stats.days.forEach((key, n) {
       final i = DayRing.indexOfKey(key);
       if (i != null) counts[i] = n;
     });
-    final levels = normalizeCounts(counts);
     final months = [
       for (var m = 1; m <= 12; m++)
         DateFormat.MMM(lang)
@@ -291,6 +313,12 @@ class _NightSky extends StatelessWidget {
             .replaceAll('.', '')
             .toUpperCase(),
     ];
+    String? tag;
+    final sel = selected;
+    if (sel != null) {
+      final (m, d) = DayRing.monthDayOf(sel);
+      tag = '${dayMonthLabel(l10n, DateTime(2000, m, d))} · ${counts[sel]}';
+    }
 
     return Semantics(
       label: l10n
@@ -303,8 +331,8 @@ class _NightSky extends StatelessWidget {
           child: DecoratedBox(
             decoration: const BoxDecoration(
               gradient: RadialGradient(
-                radius: 0.85,
-                colors: [Color(0xFF242A4D), Color(0xFF12152A), Color(0xFF0A0C17)],
+                radius: 0.9,
+                colors: [Color(0xFF20264A), Color(0xFF10132A), Color(0xFF070913)],
                 stops: [0, 0.55, 1],
               ),
             ),
@@ -312,39 +340,20 @@ class _NightSky extends StatelessWidget {
               final size = box.biggest;
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTapUp: (d) {
-                  final i = ConstellationPainter.dayAt(size, d.localPosition);
-                  onSelect(i == selected ? null : i);
-                },
+                onTapUp: (d) =>
+                    onSelect(ConstellationPainter.dayAt(size, d.localPosition)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
                     RepaintBoundary(
                       child: CustomPaint(
-                        painter: RingPainter(
-                            entry: entry,
-                            line: _faint,
-                            labelStyle: Theme.of(context)
-                                .textTheme
-                                .labelSmall!
-                                .copyWith(
-                                    color: _label,
-                                    fontSize: 9.5,
-                                    letterSpacing: 1),
-                            monthLabels: months),
-                      ),
-                    ),
-                    RepaintBoundary(
-                      child: CustomPaint(
-                        painter: ConstellationPainter(
-                          levels: levels,
-                          mine: mine,
-                          selected: selected,
+                        painter: SkyPainter(
                           entry: entry,
-                          clock: clock,
-                          star: _star,
-                          faint: _faint,
-                          gold: Brand.goldSoft,
+                          line: _label,
+                          labelStyle: t.labelSmall!.copyWith(
+                              color: _label, fontSize: 9.5, letterSpacing: 1),
+                          monthLabels: months,
+                          currentMonth: now.month,
                         ),
                       ),
                     ),
@@ -352,23 +361,44 @@ class _NightSky extends StatelessWidget {
                       child: FadeTransition(
                         opacity: CurvedAnimation(
                             parent: entry,
-                            curve: const Interval(0.5, 1, curve: Curves.easeOut)),
+                            curve: const Interval(0.45, 1, curve: Curves.easeOut)),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(centerTitle,
                                 style: const TextStyle(
-                                    color: _star,
-                                    fontSize: 32,
+                                    color: Color(0xFFF2F3FF),
+                                    fontSize: 30,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: -0.6)),
+                            const SizedBox(height: 2),
                             Text(centerSubtitle.toUpperCase(),
-                                style: const TextStyle(
-                                    color: _label,
-                                    fontSize: 11,
+                                style: TextStyle(
+                                    color: _label.withValues(alpha: 0.75),
+                                    fontSize: 10,
                                     fontWeight: FontWeight.w600,
-                                    letterSpacing: 1.4)),
+                                    letterSpacing: 1.6)),
                           ],
+                        ),
+                      ),
+                    ),
+                    RepaintBoundary(
+                      child: CustomPaint(
+                        painter: ConstellationPainter(
+                          counts: counts,
+                          mine: mine,
+                          selected: selected,
+                          today: DayRing.indexOfDate(now),
+                          entry: entry,
+                          clock: clock,
+                          select: select,
+                          cool: _cool,
+                          warm: _warm,
+                          gold: Brand.goldSoft,
+                          tagStyle: t.labelMedium!.copyWith(
+                              color: const Color(0xFFF2F3FF),
+                              fontWeight: FontWeight.w600),
+                          selectedLabel: tag,
                         ),
                       ),
                     ),
@@ -378,6 +408,54 @@ class _NightSky extends StatelessWidget {
             }),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Clé de lecture, sous le ciel.
+class _Legend extends StatelessWidget {
+  const _Legend();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
+    // Repère + texte dans un même paragraphe : le texte passe à la ligne
+    // sur les écrans étroits au lieu de déborder.
+    Widget item(Widget marker, String label) => Text.rich(
+          TextSpan(children: [
+            WidgetSpan(
+                alignment: PlaceholderAlignment.middle, child: marker),
+            TextSpan(text: '  $label'),
+          ]),
+          style: t.bodySmall,
+        );
+    Widget dot(Color color) => Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Space.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.translate('constellationLegend'), style: t.bodySmall),
+          const SizedBox(height: Space.xs),
+          Wrap(
+            spacing: Space.l,
+            runSpacing: Space.xs,
+            children: [
+              item(dot(c.secondary), l10n.translate('legendYourDay')),
+              item(Container(width: 12, height: 1, color: c.onSurfaceVariant),
+                  l10n.translate('legendLines')),
+              item(Container(width: 1.5, height: 10, color: c.onSurfaceVariant),
+                  l10n.translate('legendToday')),
+            ],
+          ),
+        ],
       ),
     );
   }

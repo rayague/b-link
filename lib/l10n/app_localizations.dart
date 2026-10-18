@@ -509,6 +509,10 @@ class AppLocalizations {
       'wish_29': '🍰 A virtual slice of cake for you, from someone born on the same day 😋 Happy birthday, and let the party begin! 🎉',
       'otherWishes': 'Other messages',
       'chooseWish': 'Choose your wish',
+      'constellationLegend': 'The further a star is from the centre, the more members were born that day.',
+      'legendYourDay': 'Your day',
+      'legendLines': 'Most celebrated day of each month',
+      'legendToday': 'Today',
     },
     'fr': {
       'relation_default': 'Général',
@@ -1018,6 +1022,10 @@ class AppLocalizations {
       'wish_29': '🍰 Une part de gâteau virtuelle pour toi, de la part de quelqu\'un né le même jour 😋 Joyeux anniversaire, et que la fête commence ! 🎉',
       'otherWishes': 'D\'autres messages',
       'chooseWish': 'Choisissez votre vœu',
+      'constellationLegend': 'Plus une étoile s\'éloigne du centre, plus il y a de membres nés ce jour-là.',
+      'legendYourDay': 'Votre jour',
+      'legendLines': 'Jour le plus fêté de chaque mois',
+      'legendToday': 'Aujourd\'hui',
     },
   };
 

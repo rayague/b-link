@@ -324,9 +324,10 @@ abstract final class AppTheme {
         secondarySelectedColor: c.primary.withValues(alpha: 0.14),
         disabledColor: glass.fill,
         checkmarkColor: c.primary,
-        labelStyle: WidgetStateTextStyle.resolveWith((s) =>
-            text.labelLarge!.copyWith(
-                color: s.contains(WidgetState.disabled)
+        // RawChip résout la couleur du libellé selon l'état (WidgetStateColor).
+        labelStyle: text.labelLarge!.copyWith(
+            color: WidgetStateColor.resolveWith((s) =>
+                s.contains(WidgetState.disabled)
                     ? c.onSurfaceVariant.withValues(alpha: 0.6)
                     : s.contains(WidgetState.selected)
                         ? c.primary

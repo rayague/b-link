@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/directory_service.dart';
 import '../services/safety_service.dart';
+import '../services/wish_service.dart';
 import '../theme/app_theme.dart';
 import 'profile_avatar.dart';
 import 'ui/components.dart';
@@ -16,10 +17,11 @@ typedef TodayTwin = ({String uid, String name, bool showPhoto});
 /// aujourd'hui, à qui l'on peut envoyer un vœu. Rien n'est affiché s'il n'y
 /// en a aucun (ou hors ligne).
 class TodayTwinsSection extends StatefulWidget {
-  const TodayTwinsSection({super.key, this.loader});
+  const TodayTwinsSection({super.key, this.loader, this.wishService});
 
-  /// Remplaçable dans les tests.
+  /// Remplaçables dans les tests.
   final Future<List<TodayTwin>> Function()? loader;
+  final WishService? wishService;
 
   @override
   State<TodayTwinsSection> createState() => _TodayTwinsSectionState();
@@ -87,7 +89,8 @@ class _TodayTwinsSectionState extends State<TodayTwinsSection> {
                         itemCount: twins.length,
                         separatorBuilder: (_, __) =>
                             const SizedBox(width: Space.s),
-                        itemBuilder: (context, i) => _Bubble(twin: twins[i]),
+                        itemBuilder: (context, i) => _Bubble(
+                            twin: twins[i], service: widget.wishService),
                       ),
                     ),
                   ],
@@ -100,7 +103,8 @@ class _TodayTwinsSectionState extends State<TodayTwinsSection> {
 
 class _Bubble extends StatelessWidget {
   final TodayTwin twin;
-  const _Bubble({required this.twin});
+  final WishService? service;
+  const _Bubble({required this.twin, this.service});
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +118,10 @@ class _Bubble extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(Radii.control),
         onTap: () => showWishSheet(context,
-            uid: twin.uid, name: name, showPhoto: twin.showPhoto),
+            uid: twin.uid,
+            name: name,
+            showPhoto: twin.showPhoto,
+            service: service),
         child: Column(
           children: [
             const SizedBox(height: Space.xs),

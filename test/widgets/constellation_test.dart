@@ -84,6 +84,34 @@ void main() {
       expect(s[4], 0);
     });
 
+    test('constellation links the busiest day of each month', () {
+      final counts = List<int>.filled(DayRing.days, 0);
+      counts[DayRing.indexOfKey('01-10')!] = 4;
+      counts[DayRing.indexOfKey('01-20')!] = 9;
+      counts[DayRing.indexOfKey('03-05')!] = 2;
+      expect(brightestPerMonth(counts),
+          [DayRing.indexOfKey('01-20'), DayRing.indexOfKey('03-05')]);
+      expect(brightestPerMonth(List<int>.filled(DayRing.days, 0)), isEmpty);
+    });
+
+    test('date to ring index ignores the year', () {
+      expect(DayRing.indexOfDate(DateTime(2026, 10, 18)),
+          DayRing.indexOfKey('10-18'));
+      expect(DayRing.indexOfDate(DateTime(2024, 2, 29)), 59);
+    });
+
+    test('the silhouette is a smooth closed curve through its points', () {
+      final pts = [
+        for (var i = 0; i < 8; i++)
+          Offset.fromDirection(i * 3.14159 / 4, 100) + const Offset(200, 200),
+      ];
+      final path = smoothClosedPath(pts);
+      final b = path.getBounds();
+      expect(b.width, closeTo(200, 12));
+      expect(b.height, closeTo(200, 12));
+      expect(smoothClosedPath(pts.take(2).toList()).getBounds().isEmpty, isTrue);
+    });
+
     test('a tap on the ring finds its day; the centre finds nothing', () {
       const size = Size(400, 400);
       final top = size.center(Offset.zero) - Offset(0, DayRing.outer(size));
