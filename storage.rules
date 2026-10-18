@@ -4,6 +4,11 @@ rules_version = '2';
 // "Afficher ma photo" publié dans public_profiles/{uid} : si le profil est
 // privé, masqué par la modération ou que la photo n'est pas partagée, elle
 // est illisible pour les autres (aucune URL publique permanente).
+//
+// Ces règles lisent Firestore (firestore.get) : le compte de service de
+// Storage doit avoir le rôle roles/firebaserules.firestoreServiceAgent.
+// La CLI Firebase le propose lors d'un déploiement interactif de règles
+// modifiées ; sans lui, les photos des autres restent illisibles.
 service firebase.storage {
   match /b/{bucket}/o {
     match /profile_photos/{userId}/photo.jpg {
