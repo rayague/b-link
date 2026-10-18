@@ -316,15 +316,26 @@ abstract final class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: control),
         extendedTextStyle: text.labelLarge,
       ),
+      // Puce choisie : teinte légère, liseré et texte en couleur d'action
+      // (lisible en clair comme en sombre).
       chipTheme: ChipThemeData(
         backgroundColor: glass.fill,
-        selectedColor: c.primary,
-        secondarySelectedColor: c.primary,
+        selectedColor: c.primary.withValues(alpha: 0.14),
+        secondarySelectedColor: c.primary.withValues(alpha: 0.14),
         disabledColor: glass.fill,
-        checkmarkColor: c.onPrimary,
-        labelStyle: text.labelLarge?.copyWith(color: c.onSurface),
-        secondaryLabelStyle: text.labelLarge?.copyWith(color: c.onPrimary),
-        side: BorderSide(color: c.outlineVariant),
+        checkmarkColor: c.primary,
+        labelStyle: WidgetStateTextStyle.resolveWith((s) =>
+            text.labelLarge!.copyWith(
+                color: s.contains(WidgetState.disabled)
+                    ? c.onSurfaceVariant.withValues(alpha: 0.6)
+                    : s.contains(WidgetState.selected)
+                        ? c.primary
+                        : c.onSurface)),
+        secondaryLabelStyle: text.labelLarge?.copyWith(color: c.primary),
+        side: WidgetStateBorderSide.resolveWith((s) => BorderSide(
+            color: s.contains(WidgetState.selected)
+                ? c.primary.withValues(alpha: 0.6)
+                : c.outlineVariant)),
         shape: const StadiumBorder(),
         padding: const EdgeInsets.symmetric(horizontal: Space.s, vertical: 6),
         showCheckmark: false,

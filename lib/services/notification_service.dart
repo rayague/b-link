@@ -9,34 +9,34 @@ import '../models/contact.dart';
 import '../utils/birthday.dart';
 import 'reminder_settings.dart';
 
-/// Type de rappel. L'index sert de "slot" dans l'ID de notification : ne pas
-/// réordonner (jour J = 0 et veille = 1 existaient déjà).
-enum ReminderKind { birthdayDay, dayBefore, weekBefore }
-
 /// Un rappel planifié (calcul pur, testable sans plugin).
 class PlannedReminder {
   final int id;
+  final int contactId;
   final DateTime when; // heure locale
-  final ReminderKind kind;
-  const PlannedReminder(this.id, this.when, this.kind);
 
-  bool get isBirthdayDay => kind == ReminderKind.birthdayDay;
+  /// Jours avant l'anniversaire (0 = le jour même).
+  final int daysBefore;
+
+  const PlannedReminder(this.id, this.contactId, this.when, this.daysBefore);
+
+  bool get isBirthdayDay => daysBefore == 0;
 }
 
 /// Rappels d'anniversaire des contacts.
 ///
-/// Stratégie : jusqu'à 3 notifications par contact (une semaine avant si
-/// activé, la veille si activé, et le jour J, à l'heure choisie ; 9h par défaut),
-/// uniquement pour les anniversaires des [windowDays] prochains jours. La
-/// fenêtre est rafraîchie à chaque ouverture de l'app et chaque jour en
-/// arrière-plan (voir background_sync.dart). Le nombre de notifications en
-/// attente reste ainsi borné (iOS : 64 max ; Android : ~500 alarmes).
+/// Stratégie : les rappels choisis dans les réglages (du jour même à un mois
+/// avant, à l'heure choisie ; 9 h par défaut) qui tombent dans les
+/// [windowDays] prochains jours. La fenêtre est rafraîchie à chaque
+/// ouverture de l'app et chaque jour en arrière-plan (voir
+/// background_sync.dart). Seuls les [maxPending] plus proches sont
+/// programmés : iOS n'en garde que 64, Android limite les alarmes.
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  static const int windowDays = 30;
+  static const int windowDays = 35;
   static const String _payloadPrefix = 'contact:';
 
   final FlutterLocalNotificationsPlugin _plugin =
@@ -183,40 +183,87 @@ class NotificationService {
   }
 
   /// IDs de notification : doivent tenir sur 32 bits signés (sinon le plugin
-  /// lève une ArgumentError). 200M * 10 < 2^31.
-  static int notificationId(int contactId, ReminderKind kind) =>
-      (contactId.abs() % 200000000) * 10 + kind.index;
+  /// lève une ArgumentError). 200M * 10 < 2^31. Le dernier chiffre est la
+  /// position du rappel dans [kReminderOffsets] (jour J = 0, veille = 1,
+  /// semaine = 2, comme avant le choix libre).
+  static int notificationId(int contactId, int daysBefore) {
+    final slot = kReminderOffsets.indexOf(daysBefore);
+    if (slot < 0) throw ArgumentError.value(daysBefore, 'daysBefore');
+    return (contactId.abs() % 200000000) * 10 + slot;
+  }
 
-  static const _daysBefore = {
-    ReminderKind.weekBefore: 7,
-    ReminderKind.dayBefore: 1,
-    ReminderKind.birthdayDay: 0,
-  };
+  /// Nombre maximal de rappels programmés à la fois.
+  static int get maxPending =>
+      defaultTargetPlatform == TargetPlatform.iOS ? 60 : 400;
 
-  /// Calcule les rappels d'un contact à partir de [now] selon les
-  /// [settings] (pur, testable).
+  /// Rappels d'un contact à programmer à partir de [now] (pur, testable) :
+  /// ceux des [ReminderSettings.offsets] qui tombent dans la fenêtre.
   static List<PlannedReminder> planFor(Contact contact, DateTime now,
       [ReminderSettings settings = const ReminderSettings()]) {
     final id = contact.id;
     final birthDate = parseBirthDate(contact.date);
     if (id == null || birthDate == null) return const [];
-    if (daysUntilBirthday(birthDate, now) > windowDays) return const [];
-
+    final horizon = now.add(const Duration(days: windowDays));
     final day = nextBirthday(birthDate, now);
-    final kinds = [
-      if (settings.weekBefore) ReminderKind.weekBefore,
-      if (settings.dayBefore) ReminderKind.dayBefore,
-      ReminderKind.birthdayDay,
-    ];
-    return [
-      for (final kind in kinds)
-        PlannedReminder(
-          notificationId(id, kind),
-          DateTime(day.year, day.month, day.day - _daysBefore[kind]!,
-              settings.hour, settings.minute),
-          kind,
+    final plan = <PlannedReminder>[];
+    for (final offset in settings.sortedOffsets) {
+      final at = DateTime(
+          day.year, day.month, day.day - offset, settings.hour, settings.minute);
+      if (at.isAfter(now)) {
+        plan.add(PlannedReminder(notificationId(id, offset), id, at, offset));
+      }
+    }
+    // Dès que le premier rappel d'un anniversaire entre dans la fenêtre,
+    // tous ses rappels sont programmés ensemble : la veille et le jour J ne
+    // dépendent pas du rafraîchissement quotidien (que certains téléphones
+    // bloquent).
+    if (plan.isEmpty || plan.first.when.isAfter(horizon)) return const [];
+    return plan;
+  }
+
+  /// Tous les rappels, du plus proche au plus lointain, limités à [limit].
+  static List<PlannedReminder> planAll(
+      List<Contact> contacts, DateTime now, ReminderSettings settings,
+      {int? limit}) {
+    final all = [
+      for (final c in contacts) ...planFor(c, now, settings),
+    ]..sort((a, b) => a.when.compareTo(b.when));
+    return limit == null || all.length <= limit ? all : all.sublist(0, limit);
+  }
+
+  static const _channel = AndroidNotificationDetails(
+    'birthday_reminders',
+    'Rappels d\'anniversaire',
+    channelDescription: 'Notifications pour les anniversaires à venir',
+    importance: Importance.high,
+    priority: Priority.high,
+  );
+
+  NotificationDetails _details(String body) => NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channel.channelId,
+          _channel.channelName,
+          channelDescription: _channel.channelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+          styleInformation: BigTextStyleInformation(body),
         ),
-    ].where((r) => r.when.isAfter(now)).toList();
+        iOS: const DarwinNotificationDetails(
+            presentAlert: true, presentBadge: true, presentSound: true),
+      );
+
+  Future<void> _schedule(PlannedReminder r, String name, String locale) async {
+    final text = reminderText(name, r.daysBefore, locale);
+    await _plugin.zonedSchedule(
+      r.id,
+      text.title,
+      text.body,
+      tz.TZDateTime(tz.local, r.when.year, r.when.month, r.when.day,
+          r.when.hour, r.when.minute),
+      _details(text.body),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      payload: '$_payloadPrefix${r.contactId}',
+    );
   }
 
   /// Programme les rappels d'un contact (annule d'abord les anciens).
@@ -227,92 +274,151 @@ class NotificationService {
     if (contact.id == null) return;
     await cancelBirthdayReminders(contact.id!);
     final s = settings ?? await ReminderSettings.load();
-
     for (final r in planFor(contact, DateTime.now(), s)) {
-      final text = _text(contact.name, r.kind, locale);
-      await _plugin.zonedSchedule(
-        r.id,
-        text.title,
-        text.body,
-        tz.TZDateTime(tz.local, r.when.year, r.when.month, r.when.day,
-            r.when.hour, r.when.minute),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'birthday_reminders',
-            'Rappels d\'anniversaire',
-            channelDescription: 'Notifications pour les anniversaires à venir',
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
-          iOS: DarwinNotificationDetails(
-              presentAlert: true, presentBadge: true, presentSound: true),
-        ),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        payload: '$_payloadPrefix${contact.id}',
-      );
+      await _schedule(r, contact.name, locale);
     }
   }
 
-  static ({String title, String body}) _text(
-      String name, ReminderKind kind, String locale) {
+  /// Texte d'un rappel [daysBefore] jours avant l'anniversaire de [name].
+  static ({String title, String body}) reminderText(
+      String name, int daysBefore, String locale) {
     final fr = locale == 'fr';
-    if (kind == ReminderKind.weekBefore) {
-      return fr
-          ? (
-              title: '📅 Dans une semaine : anniversaire de $name',
-              body: 'Le moment idéal pour penser à une petite attention 🎁'
-            )
-          : (
-              title: '📅 One week to go: $name\'s birthday',
-              body: 'The perfect time to think of a little something 🎁'
-            );
+    switch (daysBefore) {
+      case 0:
+        return fr
+            ? (
+                title: '🎉 Aujourd\'hui, c\'est l\'anniversaire de $name !',
+                body: 'Quelques mots de vous peuvent illuminer toute sa journée. '
+                    'Touchez pour trouver le message parfait 💛'
+              )
+            : (
+                title: '🎉 Today is $name\'s birthday!',
+                body: 'A few words from you can light up their whole day. '
+                    'Tap to find the perfect message 💛'
+              );
+      case 1:
+        return fr
+            ? (
+                title: '🎂 Demain, c\'est l\'anniversaire de $name',
+                body: 'Préparez-lui un mot doux : ce genre d\'attention '
+                    'ne s\'oublie jamais ✨'
+              )
+            : (
+                title: '🎂 Tomorrow is $name\'s birthday',
+                body: 'Get a sweet message ready: this kind of attention '
+                    'is never forgotten ✨'
+              );
+      case 7:
+        return fr
+            ? (
+                title: '📅 Dans une semaine : anniversaire de $name',
+                body: 'Le moment idéal pour penser à une petite attention 🎁'
+              )
+            : (
+                title: '📅 One week to go: $name\'s birthday',
+                body: 'The perfect time to think of a little something 🎁'
+              );
+      case 14:
+        return fr
+            ? (
+                title: '🗓️ Dans deux semaines : anniversaire de $name',
+                body: 'Assez de temps pour organiser une fête ou commander '
+                    'un cadeau qui fera mouche 🎈'
+              )
+            : (
+                title: '🗓️ Two weeks to go: $name\'s birthday',
+                body: 'Plenty of time to plan a party or order a gift '
+                    'they\'ll love 🎈'
+              );
+      case 30:
+        return fr
+            ? (
+                title: '✨ Dans un mois : anniversaire de $name',
+                body: 'Notez-le : un mois pour imaginer quelque chose '
+                    'd\'inoubliable 💫'
+              )
+            : (
+                title: '✨ One month to go: $name\'s birthday',
+                body: 'Mark it down: a month to dream up something '
+                    'unforgettable 💫'
+              );
+      default:
+        return fr
+            ? (
+                title: '⏳ Dans $daysBefore jours : anniversaire de $name',
+                body: 'Encore un peu de temps pour préparer une jolie '
+                    'surprise 🎁'
+              )
+            : (
+                title: '⏳ $daysBefore days to go: $name\'s birthday',
+                body: 'Still a little time to prepare a lovely surprise 🎁'
+              );
     }
-    if (kind == ReminderKind.birthdayDay) {
-      return fr
-          ? (
-              title: '🎉 Aujourd\'hui, c\'est l\'anniversaire de $name !',
-              body: 'Quelques mots de vous peuvent illuminer toute sa journée. '
-                  'Touchez pour trouver le message parfait 💛'
-            )
-          : (
-              title: '🎉 Today is $name\'s birthday!',
-              body: 'A few words from you can light up their whole day. '
-                  'Tap to find the perfect message 💛'
-            );
-    }
-    return fr
-        ? (
-            title: '🎂 Demain, c\'est l\'anniversaire de $name',
-            body: 'Préparez-lui un mot doux : ce genre d\'attention '
-                'ne s\'oublie jamais ✨'
-          )
-        : (
-            title: '🎂 Tomorrow is $name\'s birthday',
-            body: 'Get a sweet message ready: this kind of attention '
-                'is never forgotten ✨'
-          );
   }
 
   Future<void> cancelBirthdayReminders(int contactId) async {
-    for (final kind in ReminderKind.values) {
-      await _plugin.cancel(notificationId(contactId, kind));
+    for (final offset in kReminderOffsets) {
+      await _plugin.cancel(notificationId(contactId, offset));
     }
   }
 
-  /// Annule tout puis reprogramme la fenêtre. Le `cancelAll` purge aussi les
-  /// rappels de l'ancienne version (11 par contact, autres IDs).
+  /// Annule les rappels en attente puis reprogramme la fenêtre (les
+  /// [maxPending] plus proches). Les notifications déjà affichées restent
+  /// dans le tiroir.
   Future<void> rescheduleAllReminders(
       List<Contact> contacts, String locale) async {
     if (!_initialized) await init(requestPermissions: false);
-    await _plugin.cancelAll();
+    await _plugin.cancelAllPendingNotifications();
     final settings = await ReminderSettings.load();
-    for (final contact in contacts) {
+    final names = {
+      for (final c in contacts)
+        if (c.id != null) c.id!: c.name,
+    };
+    for (final r in planAll(contacts, DateTime.now(), settings,
+        limit: maxPending)) {
       try {
-        await scheduleBirthdayReminders(contact, locale, settings: settings);
+        await _schedule(r, names[r.contactId] ?? '', locale);
       } catch (e) {
-        debugPrint('❌ Rappels non programmés pour ${contact.name}: $e');
+        debugPrint('❌ Rappel non programmé (contact ${r.contactId}): $e');
       }
     }
+  }
+
+  /// Les notifications sont-elles autorisées pour l'app ? (null : inconnu)
+  Future<bool?> notificationsEnabled() async {
+    if (!_initialized) await init(requestPermissions: false);
+    try {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (android != null) return await android.areNotificationsEnabled();
+      final ios = _plugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      if (ios != null) return (await ios.checkPermissions())?.isEnabled;
+    } catch (_) {}
+    return null;
+  }
+
+  /// Redemande l'autorisation (Android 13+, iOS). Renvoie l'état obtenu.
+  Future<bool?> requestPermission() async {
+    if (!_initialized) await init(requestPermissions: false);
+    try {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (android != null) return await android.requestNotificationsPermission();
+      final ios = _plugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      if (ios != null) {
+        return await ios.requestPermissions(alert: true, badge: true, sound: true);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Affiche tout de suite un rappel d'exemple (réglages : « Tester »).
+  Future<void> showTestReminder(String name, String locale) async {
+    if (!_initialized) await init(requestPermissions: false);
+    final text = reminderText(name, 0, locale);
+    await _plugin.show(-4, text.title, text.body, _details(text.body));
   }
 
   Future<void> cancel(int id) async => _plugin.cancel(id);
