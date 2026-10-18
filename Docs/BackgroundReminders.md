@@ -2,12 +2,24 @@
 
 ## Fonctionnement
 
-- `NotificationService.planFor` calcule, pour chaque contact, jusqu'à trois
-  rappels selon les réglages (`ReminderSettings`, accueil > Réglages > Rappels) :
-  une semaine avant (désactivé par défaut), la veille (activé par défaut) et
-  le jour J, à l'heure choisie (9h par défaut). Seuls les anniversaires des
-  30 prochains jours sont programmés : le nombre de notifications en attente
-  reste borné (iOS : 64 maximum ; Android : environ 500 alarmes).
+- `NotificationService.planFor` calcule les rappels d'un contact selon les
+  réglages (`ReminderSettings`, accueil > Réglages > Rappels) : l'heure
+  (9 h par défaut) et n'importe quelle combinaison parmi le jour même, la
+  veille, 2 et 3 jours, 1 et 2 semaines, 1 mois avant (par défaut : la veille
+  et le jour même). Les anciens réglages (veille / semaine) sont migrés.
+- Dès que le premier rappel d'un anniversaire tombe dans les 35 prochains
+  jours, **tous** ses rappels sont programmés ensemble : la veille et le jour J
+  ne dépendent pas du rafraîchissement quotidien, que certains téléphones
+  bloquent.
+- `planAll` ne garde que les rappels les plus proches : 60 sur iOS (le
+  système n'en conserve que 64), 400 sur Android.
+- Reprogrammer annule seulement les rappels en attente
+  (`cancelAllPendingNotifications`) : les notifications déjà affichées
+  restent dans le tiroir.
+- Identifiants : `contactId × 10 + position` dans `kReminderOffsets` (jour J
+  = 0, veille = 1, semaine = 2, comme avant). Ne jamais réordonner cette liste.
+- Les réglages signalent si les notifications sont bloquées pour l'app et
+  proposent une notification d'essai.
 - La fenêtre est reprogrammée à chaque ouverture de l'app
   (`ContactProvider.loadContacts`), à chaque changement de langue ou de
   réglage des rappels, et une fois

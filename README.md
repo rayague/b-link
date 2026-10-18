@@ -1,49 +1,88 @@
 # B-Link
 
 B-Link connecte les personnes qui fêtent leur anniversaire le **même jour**,
-partout dans le monde, et rappelle les anniversaires de vos proches.
+partout dans le monde, et n'oublie jamais ceux de vos proches.
 
-- **Même jour** : un annuaire public (sur la base du volontariat) des
-  personnes nées le même jour que vous, avec les liens de réseaux sociaux
-  qu'elles ont choisi de partager.
-- **Rappels** : une notification la veille et le jour J pour chacun de vos
-  contacts, avec des messages d'anniversaire prêts à copier.
+Application **Flutter** (Android, iOS) et **Firebase** (Auth Google,
+Firestore, Storage, Cloud Functions, Cloud Messaging, Analytics avec
+consentement). Interface en français et en anglais, thèmes clair et sombre.
 
-Application **Flutter** (Android / iOS) avec **Firebase** (Auth Google,
-Firestore, Cloud Functions, Analytics). Interface en français et en anglais.
+## Fonctionnalités
+
+**Vos proches**
+
+- **Contacts et rappels** : notifications à l'heure choisie, du jour même à un
+  mois avant (veille, 2 ou 3 jours, 1 ou 2 semaines, 1 mois, au choix).
+- **Import du carnet** : les contacts qui ont un anniversaire sont cochés
+  d'office ; une date se donne en un geste aux autres.
+- **Messages d'anniversaire** : 154 messages écrits à la main par langue,
+  selon la relation (ami, mère, conjoint…), jamais deux fois le même tant
+  qu'il en reste ; envoi direct sur **WhatsApp**, copie, ou **carte en image**.
+- **Enregistrer dans le téléphone** : la fiche d'un contact ouvre l'éditeur
+  de contacts du système, pré-rempli.
+
+**Vos jumeaux d'anniversaire**
+
+- **Même jour** : annuaire volontaire des personnes nées le même jour (ou la
+  même semaine, le même mois), dans le monde, votre pays ou votre ville.
+- **Aujourd'hui dans le monde** : les membres dont c'est l'anniversaire ;
+  on leur envoie un **vœu** choisi parmi 30 messages (jamais un message que
+  la personne a déjà reçu), notifié par push. Le jour J, votre **mur de vœux**.
+- **Mon jour** : ce que votre date a d'unique (environ 22 millions de
+  personnes la partagent), les **personnalités nées le même jour**
+  (Wikipédia), une carte à partager.
+- **Constellation** : chaque jour de l'année est une étoile, d'autant plus
+  brillante que des membres y sont nés ; jours les plus fêtés, homonymes,
+  prénoms les plus portés.
+- **Rencontres** entre jumeaux d'une même ville, avec conseils de sécurité.
+
+**Confiance**
+
+- Profil privé par défaut ; chaque information publique est choisie une à
+  une ; annuaire réservé aux 16 ans et plus.
+- Signalement et blocage ; masquage automatique après 3 signalements
+  distincts ; écran de modération pour les admins.
+- Statistiques d'utilisation seulement avec consentement, jamais reliées au
+  compte. Suppression du compte depuis l'app ou par le site.
 
 ## Architecture
 
-| Élément | Rôle |
+| Collection | Rôle |
 |---|---|
-| `users/{uid}` | Profil complet, **privé** (propriétaire et admins uniquement). |
-| `users/{uid}/contacts/{id}` | Contacts de l'utilisateur, privés. |
-| `public_profiles/{uid}` | Projection publique : uniquement les champs que l'utilisateur a choisi de montrer. N'existe que si le profil est public (16 ans minimum). |
-| `reports/{id}` | Signalements de profils, lisibles par les admins. |
+| `users/{uid}` | Profil complet, **privé**. Sous-collections `contacts`, `blocks`, `devices` (jetons push). |
+| `public_profiles/{uid}` | Projection publique : seulement les champs que la personne montre (16 ans et plus). |
+| `wishes/{uid}/received/{expéditeur}_{année}` | Vœux reçus : message prédéfini, un par expéditeur et par an, lisibles par le seul destinataire. |
+| `wishes/{uid}` | Numéros des messages déjà reçus dans l'année (pour ne pas les reproposer), écrit par le serveur. |
+| `events/{id}` (+ `attendees`) | Rencontres entre jumeaux d'une même ville. |
+| `reports/{id}`, `moderation/{uid}` | Signalements et décisions de modération. |
+| `app_stats/constellation` | Agrégats anonymes : naissances par jour, prénoms et noms portés par au moins 3 profils. |
 | `admins/{uid}` | Rôles admin, créés côté serveur (`grantAdmin`). |
-| `app_stats/global` | Compteur d'utilisateurs, maintenu par les Cloud Functions. |
 
-Côté app :
+Cloud Functions ([`functions/index.js`](functions/index.js), Node 22) :
+nettoyage à la suppression d'un compte, masquage par signalements, push
+« nouveau jumeau » et « vœu reçu », recalcul de la constellation toutes les
+6 heures.
 
-- `lib/providers/` : état (profil, contacts, langue, thème, authentification).
-- `lib/services/firebase_sync_service.dart` : accès Firestore. Le SDK
-  Firestore gère le cache et la file d'écriture hors ligne.
-- `lib/services/notification_service.dart` : rappels (J-1 et J à 9h, fenêtre
-  glissante de 30 jours), rafraîchis chaque jour par WorkManager
-  (`background_sync.dart`).
-- `lib/services/db_helper.dart` : SQLite local (contacts, banque de messages
-  importée depuis `assets/messages_en.txt` et `assets/messages_fr.txt`).
-- `lib/utils/birthday.dart` : calculs de dates (passage d'année, 29 février).
+Côté app (`lib/`) :
 
-Les règles de sécurité sont dans [`firestore.rules`](firestore.rules) et les
-Cloud Functions dans [`functions/index.js`](functions/index.js) (Node 22).
+| Dossier | Contenu |
+|---|---|
+| `theme/` | Système de design : jetons (grille de 4, rayons, typographie), couleurs du logo, verre dépoli (`Glass`). |
+| `widgets/ui/` | Composants communs : `AppScaffold`, `GlassCard`, feuilles, badges, champs. |
+| `screens/` | Écrans (accueil, contacts, Même jour, Mon jour, constellation, vœux, profil…). |
+| `services/` | Firestore, SQLite (`db_helper.dart`), rappels (`notification_service.dart`), carnet du téléphone, Wikipédia, vœux. |
+| `providers/` | État : profil, contacts, langue, thème, authentification. |
+| `l10n/` | Textes français et anglais (`app_localizations.dart`). |
+
+Règles de sécurité : [`firestore.rules`](firestore.rules),
+[`storage.rules`](storage.rules). Rappels en arrière-plan :
+[`Docs/BackgroundReminders.md`](Docs/BackgroundReminders.md).
 
 ## Prérequis
 
-- Flutter (stable) et Dart 3
+- Flutter 3.47 (Dart 3.13)
 - JDK 17 pour les builds Android (Android Gradle Plugin 9.1)
-- JDK 21 et `firebase-tools` pour les émulateurs et les tests de règles
-- Android SDK avec la plateforme 37 et le NDK demandé par Flutter
+- JDK 21, Node 22 et `firebase-tools` pour les émulateurs et les Cloud Functions
 
 ## Développement
 
@@ -59,24 +98,52 @@ flutter analyze
 flutter test
 ```
 
-Tests des règles Firestore (émulateur, JDK 21) :
+Cloud Functions :
+
+```bash
+cd functions && npm ci && npm test
+```
+
+Règles Firestore et Storage (émulateur, JDK 21) :
 
 ```bash
 cd test_rules && npm ci && npm test
 ```
 
-## Déploiement Firebase
+Tests de fumée sur un appareil branché :
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes,storage,functions,hosting
+flutter test integration_test
 ```
 
-Au premier déploiement de `storage.rules`, la CLI Firebase demande d'autoriser
-Cloud Storage à lire Firestore (règles croisées pour la visibilité des photos) :
-il faut accepter. Le bucket Storage nécessite le forfait Blaze.
+## Déploiement
 
-Le premier `super_admin` se crée hors de l'app (console Firebase ou script
-Admin SDK) ; les suivants via la fonction `grantAdmin`. Aucun identifiant ne
-doit jamais être stocké dans le dépôt.
+Le script vérifie d'abord les règles sur l'émulateur, puis déploie règles,
+index, Storage, Functions et site :
 
-Documentation complémentaire : dossier [`Docs/`](Docs/).
+```bash
+scripts/deploy_prod.sh b-link-3b2d5
+```
+
+- Forfait **Blaze** obligatoire (Storage, Cloud Functions, tâche planifiée).
+- Au premier déploiement de `storage.rules`, accepter que Storage lise
+  Firestore (visibilité des photos).
+- Règles, index, Functions et app doivent être déployés ensemble.
+- Le premier `super_admin` se crée hors de l'app (console Firebase ou script
+  Admin SDK), les suivants avec `grantAdmin`. Aucun identifiant dans le dépôt.
+
+Builds de publication : [`Docs/Android.md`](Docs/Android.md),
+[`Docs/iOS.md`](Docs/iOS.md), [`Docs/RELEASE.md`](Docs/RELEASE.md).
+
+## Reste à faire avant la publication
+
+- **Connexion Google** : ajouter les empreintes SHA-1 (debug et release) de
+  l'app Android dans la console Firebase, puis re-télécharger
+  `google-services.json` (aujourd'hui sans client OAuth) et
+  `GoogleService-Info.plist` ; renseigner ensuite l'identifiant client web
+  dans l'app. Sur iOS, la connexion Apple est exigée par l'App Store.
+- Compléter `hosting/privacy.html` et `hosting/delete-account.html` (nom de
+  l'éditeur, adresse de contact) et retirer le bandeau « Brouillon ».
+- Clé de signature Android dans les secrets GitHub (`Docs/Android.md`).
+- Changer le mot de passe admin exposé dans l'historique du dépôt.
+- Tester sur de vrais téléphones Android et iPhone.
