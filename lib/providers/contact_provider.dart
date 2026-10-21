@@ -95,6 +95,14 @@ class ContactProvider extends ChangeNotifier {
   static String _dedupKey(Contact c) =>
       '${c.name.trim().toLowerCase()}|${c.date.split('T').first}';
 
+  /// Deux fiches locales strictement identiques (nom, date, relation,
+  /// téléphone) : la seconde est un doublon (double import, ancien bug).
+  static String _exactKey(Contact c) => [
+        _dedupKey(c),
+        c.relation.toUpperCase(),
+        (c.phone ?? '').replaceAll(RegExp(r'[^0-9+]'), ''),
+      ].join('|');
+
   /// Synchronisation avec Firebase : fusion par UUID (voir [planMerge]).
   Future<void> _syncWithFirebase() async {
     if (_firebaseSync == null || !_firebaseSync!.isUserAuthenticated) return;
@@ -106,6 +114,10 @@ class ContactProvider extends ChangeNotifier {
       final remote = await _firebaseSync!.getAllContacts();
       final plan = planMerge(_contacts, remote);
 
+      for (final dup in plan.deleteLocal) {
+        await _db.deleteContact(dup.id!);
+        await _notif.cancelBirthdayReminders(dup.id!);
+      }
       for (final entry in plan.adoptUuid.entries) {
         await _db.setContactUuid(entry.key, entry.value);
       }
@@ -118,7 +130,9 @@ class ContactProvider extends ChangeNotifier {
       for (final contact in plan.upload) {
         await _firebaseSync!.saveContact(contact);
       }
-      if (plan.adoptUuid.isNotEmpty || plan.insertLocally.isNotEmpty) {
+      if (plan.adoptUuid.isNotEmpty ||
+          plan.insertLocally.isNotEmpty ||
+          plan.deleteLocal.isNotEmpty) {
         _contacts = await _db.getContacts();
       }
       debugPrint('✅ Synchronisation Firebase terminée');
@@ -140,10 +154,30 @@ class ContactProvider extends ChangeNotifier {
   /// - Identique à un contact local déjà associé : vrai doublon, supprimé.
   /// - Sinon : nouveau contact, inséré localement.
   /// - Les contacts locaux absents de Firebase y sont envoyés.
-  static ContactMergePlan planMerge(List<Contact> local, List<Contact> remote) {
+  /// - Les doublons exacts sont fusionnés : fiches locales identiques (voir
+  ///   [_exactKey]) et contacts distants identiques entre eux.
+  static ContactMergePlan planMerge(
+      List<Contact> allLocal, List<Contact> remote) {
     final remoteUuids = {for (final r in remote) r.uuid};
-    final localUuids = {for (final l in local) l.uuid};
     final plan = ContactMergePlan();
+
+    // Doublons locaux : on garde la fiche la plus ancienne.
+    final local = <Contact>[];
+    final seen = <String>{};
+    final sorted = [...allLocal]
+      ..sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+    for (final l in sorted) {
+      if (l.id != null && !seen.add(_exactKey(l))) {
+        plan.deleteLocal.add(l);
+        if (l.uuid != null && remoteUuids.contains(l.uuid)) {
+          plan.deleteRemote.add(l.uuid!);
+        }
+      } else {
+        local.add(l);
+      }
+    }
+    final deletedUuids = {for (final d in plan.deleteLocal) d.uuid};
+    final localUuids = {for (final l in local) l.uuid};
     // Contacts locaux déjà associés à un document distant (par UUID ou
     // adoption) : clé de dédoublonnage -> contact.
     final claimed = <int?>{
@@ -155,11 +189,21 @@ class ContactProvider extends ChangeNotifier {
       byKey.putIfAbsent(_dedupKey(l), () => l);
     }
 
+    final inserted = <String>{};
     for (final r in remote) {
-      if (r.uuid == null || localUuids.contains(r.uuid)) continue;
+      if (r.uuid == null ||
+          localUuids.contains(r.uuid) ||
+          deletedUuids.contains(r.uuid)) {
+        continue;
+      }
       final twin = byKey[_dedupKey(r)];
       if (twin == null) {
-        plan.insertLocally.add(r);
+        // Plusieurs documents distants identiques : un seul est gardé.
+        if (inserted.add(_dedupKey(r))) {
+          plan.insertLocally.add(r);
+        } else {
+          plan.deleteRemote.add(r.uuid!);
+        }
       } else if (claimed.contains(twin.id)) {
         plan.deleteRemote.add(r.uuid!);
       } else {
@@ -236,6 +280,19 @@ class ContactProvider extends ChangeNotifier {
   }
 
   Future<void> deleteContact(int id) async {
+    await _deleteOne(id);
+    await _refresh();
+  }
+
+  /// Supprime plusieurs contacts (sélection multiple) : une seule relecture.
+  Future<void> deleteContacts(Iterable<int> ids) async {
+    for (final id in ids.toList()) {
+      await _deleteOne(id);
+    }
+    await _refresh();
+  }
+
+  Future<void> _deleteOne(int id) async {
     final contact = byId(id);
     await _db.deleteContact(id);
     unawaited(ContactPhotoStore().delete(contact?.imageUri));
@@ -249,8 +306,6 @@ class ContactProvider extends ChangeNotifier {
         _firebaseSync!.isUserAuthenticated) {
       unawaited(_firebaseSync!.deleteContact(uuid));
     }
-
-    await _refresh();
   }
 
   /// Relit les contacts locaux après une modification, sans l'écran de
@@ -330,4 +385,6 @@ class ContactMergePlan {
   final List<Contact> insertLocally = [];
   /// Contacts locaux à envoyer à Firebase.
   final List<Contact> upload = [];
+  /// Doublons locaux exacts à supprimer.
+  final List<Contact> deleteLocal = [];
 }

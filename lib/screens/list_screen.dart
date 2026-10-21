@@ -31,6 +31,68 @@ class _ListScreenState extends State<ListScreen> {
   /// suppression (un Dismissible balayé ne doit plus être affiché).
   final Set<int> _dismissed = {};
 
+  /// Sélection multiple (appui long) pour supprimer plusieurs contacts.
+  final Set<int> _selected = {};
+  bool get _selecting => _selected.isNotEmpty;
+
+  void _toggle(Contact c) {
+    if (c.id == null) return;
+    setState(() => _selected.contains(c.id)
+        ? _selected.remove(c.id)
+        : _selected.add(c.id!));
+  }
+
+  Future<void> _deleteSelected() async {
+    final l10n = AppLocalizations.of(context);
+    final provider = context.read<ContactProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final count = _selected.length;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final c = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          icon: Icon(Icons.delete_outline_rounded, color: c.error, size: 32),
+          title: Text(
+              l10n
+                  .translate('deleteContactsTitle')
+                  .replaceAll('{count}', '$count'),
+              textAlign: TextAlign.center),
+          content: Text(l10n.translate('deleteContactsBody'),
+              textAlign: TextAlign.center),
+          actions: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: c.error, foregroundColor: c.onError),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n.translate('delete')),
+                ),
+                const SizedBox(height: Space.s),
+                TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(l10n.translate('cancel'))),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+    if (ok != true || !mounted) return;
+    final ids = _selected.toList();
+    setState(() {
+      _dismissed.addAll(ids);
+      _selected.clear();
+    });
+    await provider.deleteContacts(ids);
+    messenger.showSnackBar(SnackBar(
+        content: Text(l10n
+            .translate('contactsDeleted')
+            .replaceAll('{count}', '${ids.length}'))));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -114,116 +176,180 @@ class _ListScreenState extends State<ListScreen> {
       for (final c in prov.contacts)
         if (!_dismissed.contains(c.id) &&
             (q.isEmpty ||
-            c.name.toLowerCase().contains(q) ||
-            relationLabel(l10n, c.relation).toLowerCase().contains(q)))
-          (c, parseBirthDate(c.date) == null
-              ? null
-              : daysUntilBirthday(parseBirthDate(c.date)!, now)),
+                c.name.toLowerCase().contains(q) ||
+                relationLabel(l10n, c.relation).toLowerCase().contains(q)))
+          (
+            c,
+            parseBirthDate(c.date) == null
+                ? null
+                : daysUntilBirthday(parseBirthDate(c.date)!, now)
+          ),
     ]..sort((a, b) => (a.$2 ?? 999).compareTo(b.$2 ?? 999));
 
     final padding = AppScaffold.pagePadding(context, bottom: 96);
-    return AppScaffold(
-      title: Text(l10n.translate('myContacts')),
-      actions: [
-        IconButton(
-          tooltip: l10n.translate('importContacts'),
-          icon: const Icon(Icons.contacts_outlined),
-          onPressed: () => Navigator.of(context).pushNamed('/import'),
-        ),
-      ],
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAdd,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(l10n.translate('add')),
-      ),
-      body: RefreshIndicator(
-        edgeOffset: padding.top,
-        onRefresh: () => prov.loadContacts(
-            locale: context.read<LocaleProvider>().locale.languageCode),
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                  padding.left, padding.top, padding.right, Space.m),
-              sliver: SliverToBoxAdapter(
-                child: TextField(
-                  controller: _search,
-                  onChanged: (v) => setState(() => _query = v),
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: l10n.translate('searchContact'),
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: _query.isEmpty
-                        ? null
-                        : IconButton(
-                            icon: const Icon(Icons.close_rounded),
-                            onPressed: () {
-                              _search.clear();
-                              setState(() => _query = '');
-                            },
-                          ),
+    final c = Theme.of(context).colorScheme;
+    // Un contact supprimé ailleurs ne reste pas sélectionné.
+    _selected.removeWhere((id) => prov.byId(id) == null);
+    return PopScope(
+      // Retour : quitte d'abord la sélection.
+      canPop: !_selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(_selected.clear);
+      },
+      child: AppScaffold(
+        title: Text(_selecting
+            ? l10n
+                .translate('selectedCount')
+                .replaceAll('{count}', '${_selected.length}')
+            : l10n.translate('myContacts')),
+        leading: _selecting
+            ? IconButton(
+                tooltip: l10n.translate('cancel'),
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => setState(_selected.clear),
+              )
+            : null,
+        actions: _selecting
+            ? [
+                IconButton(
+                  tooltip: l10n.translate('selectAll'),
+                  icon: const Icon(Icons.select_all_rounded),
+                  onPressed: () => setState(() => _selected.addAll([
+                        for (final (contact, _) in rows)
+                          if (contact.id != null) contact.id!,
+                      ])),
+                ),
+                IconButton(
+                  tooltip: l10n.translate('delete'),
+                  icon: Icon(Icons.delete_outline_rounded, color: c.error),
+                  onPressed: _deleteSelected,
+                ),
+              ]
+            : [
+                IconButton(
+                  tooltip: l10n.translate('importContacts'),
+                  icon: const Icon(Icons.contacts_outlined),
+                  onPressed: () => Navigator.of(context).pushNamed('/import'),
+                ),
+              ],
+        floatingActionButton: _selecting
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: _showAdd,
+                icon: const Icon(Icons.add_rounded),
+                label: Text(l10n.translate('add')),
+              ),
+        body: RefreshIndicator(
+          edgeOffset: padding.top,
+          onRefresh: () => prov.loadContacts(
+              locale: context.read<LocaleProvider>().locale.languageCode),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                    padding.left, padding.top, padding.right, Space.m),
+                sliver: SliverToBoxAdapter(
+                  child: TextField(
+                    controller: _search,
+                    onChanged: (v) => setState(() => _query = v),
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: l10n.translate('searchContact'),
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.close_rounded),
+                              onPressed: () {
+                                _search.clear();
+                                setState(() => _query = '');
+                              },
+                            ),
+                    ),
                   ),
                 ),
               ),
-            ),
-            if (rows.isEmpty && !prov.loading)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: q.isEmpty
-                      ? EmptyState(
-                          icon: Icons.people_outline_rounded,
-                          title: l10n.translate('noContact'),
-                          message: l10n.translate('pressToAdd'),
-                          action: Column(
-                            children: [
-                              FilledButton.icon(
-                                onPressed: () =>
-                                    Navigator.of(context).pushNamed('/import'),
-                                icon: const Icon(Icons.contacts_outlined),
-                                label: Text(l10n.translate('importContacts')),
-                              ),
-                              const SizedBox(height: Space.s),
-                              TextButton.icon(
-                                onPressed: _showAdd,
-                                icon: const Icon(Icons.add_rounded),
-                                label: Text(l10n.translate('addContactAction')),
-                              ),
-                            ],
+              if (rows.length > 1 && !_selecting && q.isEmpty)
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                      padding.left + Space.xs, 0, padding.right, Space.s),
+                  sliver: SliverToBoxAdapter(
+                    child: Text(l10n.translate('longPressToSelect'),
+                        style: Theme.of(context).textTheme.bodySmall),
+                  ),
+                ),
+              if (rows.isEmpty && !prov.loading)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: q.isEmpty
+                        ? EmptyState(
+                            icon: Icons.people_outline_rounded,
+                            title: l10n.translate('noContact'),
+                            message: l10n.translate('pressToAdd'),
+                            action: Column(
+                              children: [
+                                FilledButton.icon(
+                                  onPressed: () => Navigator.of(context)
+                                      .pushNamed('/import'),
+                                  icon: const Icon(Icons.contacts_outlined),
+                                  label: Text(l10n.translate('importContacts')),
+                                ),
+                                const SizedBox(height: Space.s),
+                                TextButton.icon(
+                                  onPressed: _showAdd,
+                                  icon: const Icon(Icons.add_rounded),
+                                  label:
+                                      Text(l10n.translate('addContactAction')),
+                                ),
+                              ],
+                            ),
+                          )
+                        : EmptyState(
+                            icon: Icons.search_off_rounded,
+                            title: l10n.translate('noResults'),
+                            message: l10n.translate('tryAnotherSearch'),
                           ),
-                        )
-                      : EmptyState(
-                          icon: Icons.search_off_rounded,
-                          title: l10n.translate('noResults'),
-                          message: l10n.translate('tryAnotherSearch'),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                      padding.left, 0, padding.right, padding.bottom),
+                  sliver: SliverList.separated(
+                    itemCount: rows.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: Space.s),
+                    itemBuilder: (context, i) {
+                      final (contact, days) = rows[i];
+                      return Dismissible(
+                        key: ValueKey(contact.id ?? contact.uuid ?? i),
+                        direction: _selecting
+                            ? DismissDirection.none
+                            : DismissDirection.endToStart,
+                        confirmDismiss: (_) => _confirmDelete(contact),
+                        onDismissed: (_) {
+                          setState(() => _dismissed.add(contact.id!));
+                          prov.deleteContact(contact.id!);
+                        },
+                        background: _DeleteBackground(),
+                        child: _ContactTile(
+                          contact: contact,
+                          days: days,
+                          selected: _selected.contains(contact.id),
+                          onTap: _selecting
+                              ? () => _toggle(contact)
+                              : () => Navigator.of(context)
+                                  .pushNamed('/detail', arguments: contact),
+                          onLongPress: () => _toggle(contact),
                         ),
+                      );
+                    },
+                  ),
                 ),
-              )
-            else
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(
-                    padding.left, 0, padding.right, padding.bottom),
-                sliver: SliverList.separated(
-                  itemCount: rows.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: Space.s),
-                  itemBuilder: (context, i) {
-                    final (contact, days) = rows[i];
-                    return Dismissible(
-                      key: ValueKey(contact.id ?? contact.uuid ?? i),
-                      direction: DismissDirection.endToStart,
-                      confirmDismiss: (_) => _confirmDelete(contact),
-                      onDismissed: (_) {
-                        setState(() => _dismissed.add(contact.id!));
-                        prov.deleteContact(contact.id!);
-                      },
-                      background: _DeleteBackground(),
-                      child: _ContactTile(contact: contact, days: days),
-                    );
-                  },
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -233,19 +359,47 @@ class _ListScreenState extends State<ListScreen> {
 class _ContactTile extends StatelessWidget {
   final Contact contact;
   final int? days;
-  const _ContactTile({required this.contact, required this.days});
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+  const _ContactTile({
+    required this.contact,
+    required this.days,
+    required this.selected,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
     final birth = parseBirthDate(contact.date);
     return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: Space.m, vertical: Space.m),
-      onTap: () => Navigator.of(context).pushNamed('/detail', arguments: contact),
+      padding:
+          const EdgeInsets.symmetric(horizontal: Space.m, vertical: Space.m),
+      tint: selected ? c.primary : null,
+      onTap: onTap,
+      onLongPress: onLongPress,
       child: Row(
         children: [
-          ContactAvatar(name: contact.name, imagePath: contact.imageUri),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            transitionBuilder: (child, a) =>
+                ScaleTransition(scale: a, child: child),
+            child: selected
+                ? CircleAvatar(
+                    key: const ValueKey('check'),
+                    radius: 22,
+                    backgroundColor: c.primary,
+                    child: Icon(Icons.check_rounded, color: c.onPrimary),
+                  )
+                : ContactAvatar(
+                    key: const ValueKey('avatar'),
+                    name: contact.name,
+                    imagePath: contact.imageUri),
+          ),
           const SizedBox(width: Space.m),
           Expanded(
             child: Column(

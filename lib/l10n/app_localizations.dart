@@ -527,6 +527,12 @@ class AppLocalizations {
       'accountZoneDesc': 'Signing out keeps your data. Deleting your account erases it for good.',
       'logoutTitle': 'Sign out?',
       'deleteAccountTitle': 'Delete your account?',
+      'deleteContactsTitle': 'Delete {count} contacts?',
+      'deleteContactsBody': 'Their reminders will be cancelled. This cannot be undone.',
+      'contactsDeleted': '{count} contacts deleted',
+      'selectedCount': '{count} selected',
+      'selectAll': 'Select all',
+      'longPressToSelect': 'Tip: long-press a contact to select several.',
     },
     'fr': {
       'relation_default': 'Général',
@@ -1054,6 +1060,12 @@ class AppLocalizations {
       'accountZoneDesc': 'La déconnexion conserve vos données. La suppression du compte les efface définitivement.',
       'logoutTitle': 'Se déconnecter ?',
       'deleteAccountTitle': 'Supprimer votre compte ?',
+      'deleteContactsTitle': 'Supprimer {count} contacts ?',
+      'deleteContactsBody': 'Leurs rappels seront annulés. Cette action est irréversible.',
+      'contactsDeleted': '{count} contacts supprimés',
+      'selectedCount': '{count} sélectionné(s)',
+      'selectAll': 'Tout sélectionner',
+      'longPressToSelect': 'Astuce : appui long sur un contact pour en sélectionner plusieurs.',
     },
   };
 

@@ -74,5 +74,33 @@ void main() {
       final plan = ContactProvider.planMerge([_c('Eve', id: 5, uuid: 'e')], []);
       expect(plan.upload.single.uuid, 'e');
     });
+
+    test('identical local contacts are merged into the oldest one', () {
+      // 8 fiches « hj » identiques (double import, ancien bug).
+      final local = [
+        for (var i = 1; i <= 8; i++) _c('hj', id: i, uuid: 'u$i'),
+      ];
+      final remote = [for (var i = 1; i <= 8; i++) _c('hj', uuid: 'u$i')];
+      final plan = ContactProvider.planMerge(local, remote);
+      expect(plan.deleteLocal.map((c) => c.id), [2, 3, 4, 5, 6, 7, 8]);
+      expect(plan.deleteRemote, ['u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8']);
+      expect(plan.insertLocally, isEmpty);
+      expect(plan.upload, isEmpty);
+    });
+
+    test('identical remote documents are inserted only once', () {
+      final plan = ContactProvider.planMerge(
+          [], [_c('hj', uuid: 'a'), _c('hj', uuid: 'b'), _c('hj', uuid: 'c')]);
+      expect(plan.insertLocally.single.uuid, 'a');
+      expect(plan.deleteRemote, ['b', 'c']);
+    });
+
+    test('same name and date but another relation is not a duplicate', () {
+      final plan = ContactProvider.planMerge([
+        _c('Sam', id: 1, uuid: 'a'),
+        Contact(id: 2, uuid: 'b', name: 'Sam', date: '1990-05-01', relation: 'brother'),
+      ], []);
+      expect(plan.deleteLocal, isEmpty);
+    });
   });
 }
