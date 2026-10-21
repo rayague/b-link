@@ -1,0 +1,208 @@
+# Messages d'anniversaire en français.
+# Format : relation|texte. {name} est remplacé par le prénom du contact.
+# Règle d'écriture : ne jamais supposer le genre de la personne qui écrit
+# (pas de « je suis fier / heureuse »), seulement celui de la personne fêtée.
+
+# --- Messages génériques ---
+default|Joyeux anniversaire {name} ! Aujourd'hui, on fête le jour où le monde est devenu un peu plus lumineux. Que cette nouvelle année t'apporte autant de bonheur que tu en sèmes autour de toi.
+default|Bon anniversaire ! Que chaque jour de cette nouvelle année ait le goût d'un matin d'été : doux, plein de promesses et baigné de lumière.
+default|Joyeux anniversaire {name} ! Je te souhaite des rires qui font mal aux joues, des rêves qui prennent vie et des gens qui t'aiment exactement comme tu es.
+default|Il y a des personnes qui rendent la vie plus belle simplement en existant. Tu en fais partie. Joyeux anniversaire !
+default|Une bougie de plus, et toujours cette étincelle unique dans ton regard. Que ta journée soit aussi merveilleuse que toi. Bon anniversaire !
+default|Que cette année t'offre ce qui ne s'emballe pas : la paix du cœur, des souvenirs inoubliables et des surprises qui font battre le cœur. Joyeux anniversaire {name} !
+default|Aujourd'hui, savoure chaque instant, chaque message, chaque sourire. Tu mérites qu'on te célèbre comme la personne précieuse que tu es. Bon anniversaire !
+default|Joyeux anniversaire ! Que la vie te serre fort dans ses bras cette année, et qu'elle ne te lâche plus jamais la main.
+default|Pour ton anniversaire, je te souhaite tout ce qui fait briller les yeux : de l'amour, de l'audace, de la douceur et des lendemains qui chantent. Bon anniversaire {name} !
+default|Le temps passe, mais certaines lumières ne faiblissent jamais. La tienne en fait partie. Joyeux anniversaire, et que cette année soit la plus belle de toutes !
+
+# --- Fils ---
+son|Mon fils, le jour où tu es né, mon cœur a appris une nouvelle façon de battre. Depuis, chaque année à tes côtés est un cadeau. Joyeux anniversaire, mon trésor.
+son|Joyeux anniversaire {name} ! Tu as grandi, mais pour moi tu resteras toujours ce petit garçon qui serrait mon doigt de toute la force de sa main. Je t'aime infiniment.
+son|Mon garçon, si tu savais la fierté qui m'envahit quand je te regarde devenir l'homme que tu es. Que cette année t'apporte le courage de tous tes rêves. Joyeux anniversaire !
+son|Il n'existe pas de mots assez grands pour dire combien je t'aime, alors je te le redis simplement : je t'aime, mon fils. Joyeux anniversaire, et que la vie te sourie toujours.
+son|Bon anniversaire mon fils ! Où que la vie t'emmène, souviens-toi qu'il y aura toujours ici un cœur qui t'attend, qui croit en toi et qui t'aime sans condition.
+son|Joyeux anniversaire mon champion ! Continue de rire fort, de rêver grand et d'aimer sans compter. Le monde a besoin de garçons comme toi.
+son|Mon fils, tu es la plus belle page de mon histoire. Que cette nouvelle année soit remplie de victoires, de rencontres lumineuses et de paix. Joyeux anniversaire.
+
+# --- Fille ---
+daughter|Ma fille, le jour de ta naissance, le soleil s'est levé deux fois : une fois dans le ciel, et une fois dans mon cœur. Joyeux anniversaire, ma merveille.
+daughter|Joyeux anniversaire {name} ! Tu es ma plus belle fierté, ma plus douce lumière et la preuve que les miracles existent. Je t'aime à l'infini.
+daughter|Ma chérie, regarde-toi : forte, belle, pleine de rêves. Je te souhaite une année à ton image, éclatante et libre. Joyeux anniversaire.
+daughter|Il y a des années, je t'ai tenue dans mes bras pour la première fois. Depuis, mon cœur ne cesse de s'émerveiller. Joyeux anniversaire ma fille.
+daughter|Bon anniversaire ma fille ! Que la vie t'offre des amitiés sincères, un amour qui te respecte et des matins qui te donnent envie de danser.
+daughter|Ma princesse, tu as grandi trop vite, mais chaque étape de ta vie a été un bonheur à contempler. Que cette année soit la plus belle jusqu'ici. Joyeux anniversaire.
+daughter|Ma fille, n'oublie jamais à quel point tu es précieuse. Où que tu ailles, mon amour te suivra comme une étoile. Joyeux anniversaire.
+
+# --- Maman ---
+mother|Maman, tu m'as donné la vie, puis tu m'as appris à l'aimer. Aujourd'hui, c'est à mon tour de te dire merci, du fond du cœur. Joyeux anniversaire, ma maman chérie.
+mother|Joyeux anniversaire maman ! Tes bras ont été mon premier refuge, ta voix ma première chanson. Je t'aime plus que tous les mots du monde.
+mother|Maman, tu es la plus belle preuve que les anges existent, même sans ailes. Que cette année te rende un peu de tout l'amour que tu donnes. Bon anniversaire.
+mother|Il y a mille façons de dire « je t'aime ». Toi, tu me les as toutes apprises. Joyeux anniversaire maman.
+mother|Joyeux anniversaire à la femme la plus forte et la plus tendre que je connaisse. Maman, tu es ma boussole, mon refuge et mon plus beau modèle.
+mother|Maman, aujourd'hui c'est à toi de te reposer, de te laisser chouchouter et de recevoir tout l'amour du monde. Bon anniversaire, mon cœur t'appartient.
+mother|Le temps peut bien passer, ma main cherchera toujours la tienne. Merci d'être ma maman. Joyeux anniversaire, je t'aime infiniment.
+
+# --- Papa ---
+father|Papa, tu as été mon premier héros, et tu l'es toujours. Merci pour ta force tranquille et ton amour sans bruit. Joyeux anniversaire.
+father|Joyeux anniversaire papa ! Sur tes épaules, j'ai vu le monde d'en haut. Grâce à toi, j'ai appris à ne jamais avoir peur d'y avancer.
+father|Papa, certaines personnes parlent d'amour ; toi, tu l'as toujours montré. Que cette année te rende tout ce que tu as donné. Bon anniversaire.
+father|Bon anniversaire papa ! Merci pour chaque conseil, chaque silence rassurant et chaque fois où tu as cru en moi avant que j'y croie moi-même.
+father|Joyeux anniversaire au plus grand des papas. Tu es mon repère, ma fierté et mon exemple. Je t'aime, même si je ne te le dis pas assez souvent.
+father|Papa, que cette nouvelle année t'apporte la santé, la sérénité et des bonheurs simples, comme ceux que tu as su m'offrir. Joyeux anniversaire.
+father|À l'homme qui m'a appris à marcher, à tomber et à me relever : joyeux anniversaire papa. Je t'aime de tout mon cœur.
+
+# --- Frère ---
+brother|Joyeux anniversaire mon frère ! On a grandi côte à côte, entre disputes et fous rires, et aujourd'hui je sais une chose : je ne t'échangerais pour rien au monde.
+brother|Frérot, tu es mon allié de toujours, mon complice et parfois mon garde du corps. Que cette année soit aussi grande que ton cœur. Bon anniversaire !
+brother|Joyeux anniversaire {name} ! Avoir un frère comme toi, c'est recevoir un ami pour la vie, offert dès la naissance.
+brother|Mon frère, quoi qu'il arrive, tu pourras toujours compter sur moi, comme j'ai toujours pu compter sur toi. Joyeux anniversaire.
+brother|Bon anniversaire frérot ! Je te souhaite des aventures, des réussites, de l'amour et plein de souvenirs à me raconter.
+brother|Les années passent, mais nos souvenirs d'enfance restent intacts dans mon cœur. Joyeux anniversaire mon frère, tu comptes énormément pour moi.
+
+# --- Sœur ---
+sister|Joyeux anniversaire ma sœur ! Tu es ma confidente, ma complice et mon plus beau souvenir d'enfance. La vie est tellement plus douce avec toi.
+sister|Sœurette, on a partagé les secrets, les rires et les chamailleries. Aujourd'hui, je partage avec toi tout mon amour. Bon anniversaire.
+sister|Joyeux anniversaire {name} ! Une sœur, c'est un morceau d'enfance qu'on garde pour toujours. Merci d'être la mienne.
+sister|Ma sœur, tu illumines chaque pièce où tu entres. Que cette année te rende un peu de la lumière que tu donnes. Bon anniversaire.
+sister|Bon anniversaire ma sœur adorée ! Je te souhaite un cœur léger, des rêves réalisés et un amour qui te traite comme la reine que tu es.
+sister|Quoi qu'il arrive, tu auras toujours ici une épaule, une oreille et un cœur pour toi. Joyeux anniversaire ma sœur, je t'aime.
+
+# --- Mari ---
+husband|Mon amour, de toutes les années que la vie m'a offertes, celles à tes côtés sont les plus belles. Joyeux anniversaire à l'homme qui fait battre mon cœur.
+husband|Joyeux anniversaire {name}. Si je devais tout recommencer, je te choisirais encore, et encore, et encore.
+husband|Mon mari, mon complice, mon refuge : merci de rendre ma vie si douce. Que cette année soit aussi belle que l'amour que tu me donnes. Bon anniversaire.
+husband|Chaque matin près de toi est une promesse tenue. Joyeux anniversaire mon amour, je t'aime plus qu'hier et bien moins que demain.
+husband|Bon anniversaire mon amour ! Que cette journée te ressemble : généreuse, rassurante et pleine de tendresse. Ma vie a un sens plus joli depuis que tu en fais partie.
+husband|Tu es ma maison, quel que soit l'endroit où nous sommes. Joyeux anniversaire à l'homme de ma vie.
+husband|Joyeux anniversaire mon cœur. Je te souhaite une année de rires, de projets fous et de soirées blottis l'un contre l'autre.
+
+# --- Épouse ---
+wife|Mon amour, tu es le plus beau chapitre de ma vie, celui que je relis chaque jour avec le même émerveillement. Joyeux anniversaire à la femme que j'aime.
+wife|Joyeux anniversaire {name}. Ton sourire est ma lumière préférée, ta voix ma musique préférée, et toi, mon plus bel endroit au monde.
+wife|Ma femme, ma complice, mon âme sœur : merci d'illuminer mes jours et d'apaiser mes nuits. Que cette année soit aussi magnifique que toi. Bon anniversaire.
+wife|Si l'amour avait un visage, il aurait le tien. Joyeux anniversaire mon amour, je t'aime plus que les mots ne savent le dire.
+wife|Bon anniversaire ma chérie ! Chaque année à tes côtés me rappelle la chance immense que j'ai. Tu es mon plus beau oui.
+wife|Tu rends les jours ordinaires extraordinaires. Joyeux anniversaire à la femme de ma vie, aujourd'hui et pour toujours.
+wife|Mon amour, que cette journée soit douce comme ta tendresse et lumineuse comme ton regard. Je t'aime, aujourd'hui plus que jamais.
+
+# --- Petit ami ---
+boyfriend|Joyeux anniversaire mon cœur. Depuis que tu es entré dans ma vie, même les jours gris ont un parfum de soleil.
+boyfriend|Mon amour, tu es la plus belle surprise que la vie m'ait faite. Que ton anniversaire soit aussi merveilleux que tout ce que tu m'apportes.
+boyfriend|Joyeux anniversaire {name} ! J'aime ton rire, ta façon de me regarder et la personne que je deviens à tes côtés.
+boyfriend|Bon anniversaire mon chéri ! J'ai hâte d'écrire avec toi encore mille pages de notre histoire.
+boyfriend|Tu es mon endroit préféré au monde. Joyeux anniversaire mon amour : je te souhaite tout le bonheur que tu mérites, et même un peu plus.
+boyfriend|Si je le pouvais, je t'offrirais les étoiles. En attendant, je t'offre mon cœur, tout entier. Joyeux anniversaire mon amour.
+boyfriend|Joyeux anniversaire à celui qui fait battre mon cœur un peu plus vite chaque jour. Je t'aime.
+
+# --- Petite amie ---
+girlfriend|Joyeux anniversaire ma chérie. Depuis que tu es là, ma vie a pris des couleurs que je ne connaissais pas.
+girlfriend|Mon amour, ton sourire est la plus belle chose que mes yeux aient vue. Que ton anniversaire soit aussi lumineux que toi.
+girlfriend|Joyeux anniversaire {name} ! Tu es ma plus belle rencontre, mon plus doux hasard et ma plus évidente certitude.
+girlfriend|Bon anniversaire ma belle ! Si le bonheur avait un prénom, ce serait le tien.
+girlfriend|Chaque jour avec toi ressemble à un premier rendez-vous : mon cœur bat toujours aussi fort. Joyeux anniversaire mon amour.
+girlfriend|Je te souhaite une année aussi belle que toi, c'est-à-dire absolument merveilleuse. Joyeux anniversaire ma chérie, je t'aime.
+girlfriend|Tu es mon rêve devenu réalité. Joyeux anniversaire à celle qui illumine ma vie.
+
+# --- Ami(e) ---
+friend|Joyeux anniversaire {name} ! Une année de plus, et ton sens de l'humour n'a pas pris une ride. Le reste, on n'en parle pas 😄
+friend|Bon anniversaire ! J'ai voulu compter tes bougies, mais j'ai dû appeler les pompiers en renfort 🔥🎂
+friend|Joyeux anniversaire ! Je voulais t'offrir quelque chose d'unique et d'irremplaçable... puis j'ai réalisé que tu m'avais déjà. Quelle chance tu as 😏
+friend|Bon anniversaire {name} ! Ne t'inquiète pas pour ton âge : tant que tu ris encore à mes blagues nulles, tu restes jeune dans ma tête.
+friend|Joyeux anniversaire ! Ce soir, on fête ça comme des ados. Demain, on s'en remettra comme des adultes : lentement 😅
+friend|Bon anniversaire ! Merci d'être la personne qui connaît toutes mes bêtises... et qui reste quand même. Ça, c'est de l'amitié 🤝
+friend|Joyeux anniversaire ! Tu ne vieillis pas, tu passes en édition collector : rare, précieuse, et de plus en plus chère à mon cœur 💛
+friend|Bon anniversaire {name} ! Je te souhaite autant de bonheur que j'ai de photos gênantes de toi en réserve. Autant dire : énormément 📸
+
+# --- Meilleur(e) ami(e) ---
+bestfriend|Joyeux anniversaire à mon binôme officiel ! Partenaire de fous rires, de mauvaises idées et de très bonnes histoires à ne jamais raconter à nos parents 🤫
+bestfriend|Bon anniversaire {name} ! Si un jour on finit en maison de retraite, je réserve déjà la chambre à côté. Et le fauteuil près de la fenêtre, c'est le mien 😄
+bestfriend|Joyeux anniversaire ! Tu connais tous mes secrets, alors je n'ai pas vraiment le choix : il faut que je t'aime pour toujours 😇
+bestfriend|Bon anniversaire ! On a vieilli ensemble, on a mûri ensemble... enfin, surtout vieilli 😂 Je t'adore.
+bestfriend|Joyeux anniversaire à la personne qui comprend mes messages sans ponctuation, mes regards en pleine réunion et mes silences gênants. Un génie incompris 🧠
+bestfriend|Bon anniversaire {name} ! Merci d'être mon témoin de vie, mon complice de crimes (légaux) et ma personne préférée pour dire des bêtises.
+bestfriend|Joyeux anniversaire ! Je t'offrirais bien la lune, mais tu serais capable d'aller la décrocher sans moi... alors je t'offre ma présence. C'est presque pareil, non ? 🌙
+bestfriend|Tu es la famille que mon cœur a choisie, et la seule personne qui a le droit de me dire que j'ai tort. Une fois par an. Aujourd'hui. Profites-en. Joyeux anniversaire ! 😄
+
+# --- Cousin(e) ---
+cousin|Joyeux anniversaire {name} ! Des souvenirs d'enfance aux fous rires des fêtes de famille, tu as toujours été une belle lumière dans ma vie.
+cousin|Bon anniversaire ! Je te souhaite une année pleine de bonheur, de réussite et de moments qui font du bien au cœur.
+cousin|Joyeux anniversaire ! La famille, ce sont aussi ces liens précieux qui traversent le temps, comme le nôtre.
+cousin|Bon anniversaire {name} ! Que la vie t'offre de belles surprises, et que notre prochaine réunion de famille soit en ton honneur.
+cousin|Joyeux anniversaire ! Merci pour toutes ces années de complicité. Je te souhaite le meilleur, aujourd'hui et toujours.
+
+# --- Oncle ---
+uncle|Joyeux anniversaire tonton ! Merci pour ta bonne humeur, tes histoires et ta façon unique de rendre chaque réunion de famille plus joyeuse.
+uncle|Bon anniversaire {name} ! Que cette année t'apporte la santé, la sérénité et beaucoup de beaux moments en famille.
+uncle|Tonton, tu as toujours été là avec un conseil, un sourire ou une blague au bon moment. Joyeux anniversaire, avec toute mon affection.
+uncle|Joyeux anniversaire à mon oncle préféré ! Que ta journée soit aussi chaleureuse que ton cœur.
+uncle|Bon anniversaire tonton ! Merci d'être cette présence rassurante et bienveillante. Je t'embrasse fort.
+
+# --- Tante ---
+auntie|Joyeux anniversaire tata ! Ta tendresse a toujours été un refuge et ton rire une fête. Je t'aime fort.
+auntie|Bon anniversaire {name} ! Que cette année te rende toute la douceur que tu offres si généreusement autour de toi.
+auntie|Tata, tu es un peu ma deuxième maman, mon amie et ma confidente. Joyeux anniversaire, avec tout mon amour.
+auntie|Joyeux anniversaire à ma tante préférée ! Je te souhaite une journée magique et une année pleine de bonheur.
+auntie|Bon anniversaire tata ! Merci pour chaque câlin, chaque conseil et chaque moment partagé. Tu comptes énormément pour moi.
+
+# --- Neveu ---
+nephew|Joyeux anniversaire mon neveu ! Te voir grandir est un vrai bonheur, et j'ai hâte de découvrir tout ce que la vie te réserve.
+nephew|Bon anniversaire {name} ! Garde ta curiosité, ton énergie et ton grand cœur : ce sont tes plus beaux trésors.
+nephew|Joyeux anniversaire ! Que cette nouvelle année soit remplie d'aventures, de réussites et d'éclats de rire.
+nephew|Mon neveu, tu rends notre famille plus joyeuse. Profite de ta journée, tu le mérites tellement. Bon anniversaire !
+nephew|Bon anniversaire ! Où que tes rêves t'emmènent, sache que tu as ici une famille qui croit en toi.
+
+# --- Nièce ---
+niece|Joyeux anniversaire ma nièce ! Ton sourire illumine chaque réunion de famille, ne le perds jamais.
+niece|Bon anniversaire {name} ! Je te souhaite une année aussi pétillante et lumineuse que toi.
+niece|Ma nièce adorée, te voir grandir est un émerveillement de chaque instant. Joyeux anniversaire, avec tout mon amour.
+niece|Joyeux anniversaire ! Que tous tes rêves, même les plus fous, trouvent le chemin de la réalité.
+niece|Bon anniversaire ma nièce ! Reste curieuse, courageuse et rayonnante : le monde t'attend.
+
+# --- Grand-mère ---
+grand-mother|Mamie, ta maison sent le bonheur et tes bras ont le pouvoir de tout réparer. Joyeux anniversaire, je t'aime de tout mon cœur.
+grand-mother|Joyeux anniversaire grand-mère ! Merci pour tes histoires, ta patience infinie et cet amour qui ne compte jamais.
+grand-mother|Mamie, tu es la racine de notre famille et la douceur de nos souvenirs. Que cette année t'apporte santé et sérénité. Bon anniversaire.
+grand-mother|Bon anniversaire mamie ! Chaque ride de ton visage raconte une histoire d'amour, et j'ai la chance d'en faire partie.
+grand-mother|Joyeux anniversaire à la plus merveilleuse des mamies ! Je t'envoie mille baisers et toute ma tendresse.
+grand-mother|Mamie, aucun cadeau ne pourra jamais égaler tout ce que tu m'as donné. Merci d'être toi. Joyeux anniversaire.
+
+# --- Grand-père ---
+grand-father|Papi, tes mains ont construit notre famille et ton cœur la tient unie. Joyeux anniversaire, avec toute mon admiration.
+grand-father|Joyeux anniversaire grand-père ! Merci pour ta sagesse, tes histoires d'autrefois et ton regard plein de bienveillance.
+grand-father|Bon anniversaire papi ! Que cette année t'apporte la santé, la paix et beaucoup de moments précieux en famille.
+grand-father|Papi, tu m'as appris que la vraie richesse se mesure en souvenirs et en amour. Joyeux anniversaire, je t'aime.
+grand-father|Joyeux anniversaire au meilleur des papis ! Ta présence est un cadeau que je chéris chaque jour.
+grand-father|Papi, chaque moment passé avec toi est un trésor que je garde précieusement. Bon anniversaire, et mille fois merci.
+
+# --- Petit-fils ---
+grand-son|Joyeux anniversaire mon petit-fils ! Tu es la joie de mes journées et la fierté de toute la famille.
+grand-son|Bon anniversaire {name} ! Te voir grandir est l'un des plus beaux bonheurs de ma vie. Je t'embrasse très fort.
+grand-son|Mon petit-fils chéri, que cette année t'apporte des rires, des découvertes et des rêves plein la tête. Joyeux anniversaire.
+grand-son|Joyeux anniversaire ! Tu as illuminé nos vies dès ton premier jour, et tu continues chaque jour un peu plus.
+grand-son|Bon anniversaire mon grand ! N'oublie jamais combien tu es aimé, aujourd'hui et pour toujours.
+
+# --- Petite-fille ---
+grand-daughter|Joyeux anniversaire ma petite-fille ! Tu es un rayon de soleil qui réchauffe toute la famille.
+grand-daughter|Bon anniversaire {name} ! Ton rire est ma musique préférée. Je t'embrasse de tout mon cœur.
+grand-daughter|Ma petite-fille adorée, que cette année soit pleine de magie, de rêves et de belles réussites. Joyeux anniversaire.
+grand-daughter|Joyeux anniversaire ! Te voir devenir la personne merveilleuse que tu es est un bonheur immense.
+grand-daughter|Bon anniversaire ma chérie ! N'oublie jamais combien tu es aimée, aujourd'hui et pour toujours.
+
+# --- Parrain ---
+god-father|Joyeux anniversaire parrain ! Merci de veiller sur moi depuis toujours, comme un phare discret et rassurant.
+god-father|Bon anniversaire {name} ! Avoir un parrain comme toi est une chance que je mesure chaque année un peu plus.
+god-father|Parrain, merci pour ta confiance, tes conseils et ton affection. Je te souhaite une année magnifique. Joyeux anniversaire.
+god-father|Joyeux anniversaire au meilleur des parrains ! Que ta journée soit aussi généreuse que toi.
+
+# --- Marraine ---
+god-mother|Joyeux anniversaire marraine ! Ta tendresse et ta bienveillance m'accompagnent depuis toujours.
+god-mother|Bon anniversaire {name} ! Avoir une marraine comme toi, c'est avoir une bonne étoile pour la vie.
+god-mother|Marraine, merci pour ton amour, ta présence et tous ces moments précieux. Joyeux anniversaire, je t'embrasse fort.
+god-mother|Joyeux anniversaire à la plus merveilleuse des marraines ! Que cette année te comble de bonheur.
+
+# --- Voisin(e) (vouvoiement) ---
+neighbor|Joyeux anniversaire ! C'est un vrai bonheur de vous avoir tout près de chez moi : votre gentillesse rend le quotidien plus agréable.
+neighbor|Bon anniversaire {name} ! Je vous souhaite une journée lumineuse et une année pleine de joie et de santé.
+neighbor|Joyeux anniversaire ! Merci pour votre bonne humeur et vos sourires qui égaient tout le quartier.
+neighbor|Je vous souhaite un très bel anniversaire, au milieu des personnes que vous aimez.
+neighbor|Bon anniversaire ! Que cette nouvelle année vous apporte sérénité, santé et de belles surprises.

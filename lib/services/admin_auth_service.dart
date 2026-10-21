@@ -1,61 +1,16 @@
 import 'package:flutter/foundation.dart';
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/admin_user.dart';
 
-/// Service d'authentification admin avec mot de passe hashé
+/// Service d'administration (lecture seule + gestion de statut).
+///
+/// La création de comptes administrateurs est réalisée côté serveur
+/// (compte Firebase Auth + document `admins/{uid}` créé via Cloud Function).
+/// Aucun identifiant ni mot de passe n'est stocké/hashé côté client.
 class AdminAuthService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  /// Hash un mot de passe avec SHA-256
-  String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final hash = sha256.convert(bytes);
-    return hash.toString();
-  }
-
-  /// Vérifie si un utilisateur est admin et si le mot de passe est correct
-  Future<AdminUser?> authenticateAdmin(String email, String password) async {
-    try {
-      // Récupérer l'admin par email
-      final querySnapshot = await _firestore
-          .collection('admins')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-
-      if (querySnapshot.docs.isEmpty) {
-        return null; // Aucun admin trouvé avec cet email
-      }
-
-      final adminData = querySnapshot.docs.first.data();
-      final admin = AdminUser.fromMap(adminData);
-
-      // Vérifier si l'admin est actif
-      if (!admin.isActive) {
-        return null; // Admin désactivé
-      }
-
-      // Vérifier le mot de passe
-      final passwordHash = _hashPassword(password);
-      if (passwordHash != admin.passwordHash) {
-        return null; // Mot de passe incorrect
-      }
-
-      // Mettre à jour la date de dernière connexion
-      await _firestore.collection('admins').doc(admin.uid).update({
-        'lastLogin': DateTime.now().toIso8601String(),
-      });
-
-      return admin;
-    } catch (e) {
-      debugPrint('Erreur authentification admin: $e');
-      return null;
-    }
-  }
 
   /// Vérifie si l'utilisateur Firebase Auth actuel est admin
   Future<bool> isCurrentUserAdmin() async {
@@ -92,97 +47,6 @@ class AdminAuthService {
     }
   }
 
-  /// Crée le premier admin (super_admin)
-  /// ⚠️ CETTE FONCTION NE DOIT ÊTRE APPELÉE QU'UNE SEULE FOIS!
-  Future<void> createFirstAdmin() async {
-    try {
-      const email = 'rayague03@gmail.com';
-      const password = 'Admin@BLink2025!'; // Mot de passe permanent
-      const role = 'super_admin';
-
-      // Créer le compte Firebase Auth (pour pouvoir se connecter normalement)
-      UserCredential userCredential;
-      try {
-        userCredential = await _auth.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-      } catch (e) {
-        // Si le compte existe déjà, se connecter pour récupérer l'UID
-        debugPrint('⚠️ Compte existe déjà, tentative de connexion...');
-        userCredential = await _auth.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-      }
-
-      final uid = userCredential.user!.uid;
-      final passwordHash = _hashPassword(password);
-
-      // Créer le document admin dans Firestore
-      final admin = AdminUser(
-        uid: uid,
-        email: email,
-        passwordHash: passwordHash,
-        role: role,
-        createdAt: DateTime.now(),
-        isActive: true,
-      );
-
-      await _firestore.collection('admins').doc(uid).set(admin.toMap());
-
-      debugPrint('✅ Premier admin créé avec succès!');
-      debugPrint('Email: $email');
-      debugPrint('Password: $password');
-      debugPrint('UID: $uid');
-      debugPrint('Hash: $passwordHash');
-    } catch (e) {
-      debugPrint('❌ Erreur création admin: $e');
-      rethrow;
-    }
-  }
-
-  /// Crée un nouvel admin
-  Future<void> createAdmin({
-    required String email,
-    required String password,
-    String role = 'admin',
-  }) async {
-    try {
-      // Seul un super_admin peut créer d'autres admins
-      final currentAdmin = await getAdminUser(_auth.currentUser!.uid);
-      if (currentAdmin?.role != 'super_admin') {
-        throw Exception('Seul un super_admin peut créer des admins');
-      }
-
-      // Créer le compte Firebase Auth
-      final userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      final uid = userCredential.user!.uid;
-      final passwordHash = _hashPassword(password);
-
-      // Créer le document admin
-      final admin = AdminUser(
-        uid: uid,
-        email: email,
-        passwordHash: passwordHash,
-        role: role,
-        createdAt: DateTime.now(),
-        isActive: true,
-      );
-
-      await _firestore.collection('admins').doc(uid).set(admin.toMap());
-
-      debugPrint('✅ Admin créé: $email');
-    } catch (e) {
-      debugPrint('❌ Erreur création admin: $e');
-      rethrow;
-    }
-  }
-
   /// Désactive un admin (ne supprime pas les données)
   Future<void> deactivateAdmin(String uid) async {
     try {
@@ -205,22 +69,6 @@ class AdminAuthService {
       debugPrint('✅ Admin réactivé');
     } catch (e) {
       debugPrint('❌ Erreur réactivation admin: $e');
-      rethrow;
-    }
-  }
-
-  /// Change le mot de passe d'un admin
-  Future<void> changeAdminPassword(String uid, String newPassword) async {
-    try {
-      final passwordHash = _hashPassword(newPassword);
-
-      await _firestore.collection('admins').doc(uid).update({
-        'passwordHash': passwordHash,
-      });
-
-      debugPrint('✅ Mot de passe admin changé');
-    } catch (e) {
-      debugPrint('❌ Erreur changement mot de passe: $e');
       rethrow;
     }
   }

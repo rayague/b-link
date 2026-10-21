@@ -33,7 +33,7 @@ class ConnectivityService {
 
     // Écouter les changements
     _connectivity.onConnectivityChanged
-        .listen((ConnectivityResult result) {
+        .listen((List<ConnectivityResult> result) {
       final connected = _isOnline(result);
       if (_isConnected != connected) {
         _isConnected = connected;
@@ -48,9 +48,10 @@ class ConnectivityService {
     });
   }
 
-  /// Déterminer si un résultat de connectivité signifie "en ligne"
-  bool _isOnline(ConnectivityResult result) {
-    return result != ConnectivityResult.none;
+  /// En ligne si au moins une interface (wifi, mobile, ethernet, vpn...) est
+  /// active. Depuis connectivity_plus 6, plusieurs peuvent l'être à la fois.
+  bool _isOnline(List<ConnectivityResult> result) {
+    return result.any((r) => r != ConnectivityResult.none);
   }
 
   /// Nettoyer les ressources

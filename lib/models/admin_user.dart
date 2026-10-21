@@ -1,19 +1,23 @@
-/// Modèle pour un utilisateur administrateur
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+/// Modèle pour un utilisateur administrateur.
+///
+/// Les admins sont créés côté serveur (Cloud Function `grantAdmin`), qui écrit
+/// les dates sous forme de `Timestamp` Firestore. Aucun mot de passe n'est
+/// stocké : l'authentification passe par Firebase Auth.
 class AdminUser {
   final String uid;
   final String email;
-  final String passwordHash; // Mot de passe hashé (SHA-256)
   final String role; // 'super_admin' ou 'admin'
-  final DateTime createdAt;
+  final DateTime? createdAt;
   final DateTime? lastLogin;
   final bool isActive; // Pour désactiver un admin sans le supprimer
 
   AdminUser({
     required this.uid,
     required this.email,
-    required this.passwordHash,
     this.role = 'admin',
-    required this.createdAt,
+    this.createdAt,
     this.lastLogin,
     this.isActive = true,
   });
@@ -22,9 +26,8 @@ class AdminUser {
     return {
       'uid': uid,
       'email': email,
-      'passwordHash': passwordHash,
       'role': role,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
       'lastLogin': lastLogin?.toIso8601String(),
       'isActive': isActive,
     };
@@ -32,14 +35,21 @@ class AdminUser {
 
   factory AdminUser.fromMap(Map<String, dynamic> map) {
     return AdminUser(
-      uid: map['uid'] ?? '',
-      email: map['email'] ?? '',
-      passwordHash: map['passwordHash'] ?? '',
-      role: map['role'] ?? 'admin',
-      createdAt: DateTime.parse(map['createdAt']),
-      lastLogin:
-          map['lastLogin'] != null ? DateTime.parse(map['lastLogin']) : null,
-      isActive: map['isActive'] ?? true,
+      uid: map['uid'] as String? ?? '',
+      email: map['email'] as String? ?? '',
+      role: map['role'] as String? ?? 'admin',
+      createdAt: _parseDate(map['createdAt']),
+      lastLogin: _parseDate(map['lastLogin']),
+      isActive: map['isActive'] as bool? ?? true,
     );
+  }
+
+  /// Accepte un `Timestamp` (écrit par le serveur), une chaîne ISO 8601
+  /// (écrite par le client) ou `null`.
+  static DateTime? _parseDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 }

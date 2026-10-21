@@ -1,53 +1,331 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+// API v1 (onCall(data, context), firestore.document().onCreate) : depuis
+// firebase-functions v6, l'import racine expose l'API v2.
+const functions = require('firebase-functions/v1');
+// firebase-admin v14 n'expose plus que l'API modulaire.
+const { initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getMessaging } = require('firebase-admin/messaging');
+const { getStorage } = require('firebase-admin/storage');
+const { shouldAutoHide, REPORT_THRESHOLD } = require('./moderation');
+const { shouldNotifyTwin, twinMessage, wishMessage, usedWishes, INVALID_TOKEN_CODES } = require('./twins');
+const { aggregate } = require('./constellation');
 
-admin.initializeApp();
-const db = admin.firestore();
-// Compatibility: some emulator environments may not expose FieldValue the same way,
-// so resolve FieldValue and Timestamp from the admin SDK and fall back safely.
-const { FieldValue, Timestamp } = require('firebase-admin').firestore || {};
+initializeApp();
+const db = getFirestore();
 
-// Allowed keys that clients may set
-const ALLOWED_KEYS = [
-  'displayName', 'name', 'birthDate', 'birthDayKey', 'photoUrl',
-  'isPublic', 'visibility', 'updatedAt', 'createdAt', 'lastSyncedAt'
-];
+const serverTimestamp = () => FieldValue.serverTimestamp();
 
-// Remove server-only fields and normalize timestamps/fields on create
-exports.onProfileCreate = functions.firestore
-  .document('profiles/{userId}')
+/**
+ * Grant (or update) an admin role for a given Firebase Auth uid.
+ *
+ * Security:
+ * - Only an existing, active `super_admin` can call this function.
+ * - The document id is always the target uid (`admins/{uid}`).
+ *
+ * Bootstrap of the FIRST super_admin must be done out-of-band (Firebase
+ * console or admin SDK script), because no admin exists yet to authorize
+ * the call. Never seed credentials from the client app.
+ */
+exports.grantAdmin = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Authentication required.'
+    );
+  }
+
+  const callerDoc = await db.collection('admins').doc(context.auth.uid).get();
+  const caller = callerDoc.exists ? callerDoc.data() : null;
+  if (!caller || caller.role !== 'super_admin' || caller.isActive === false) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Only an active super_admin can grant admin access.'
+    );
+  }
+
+  const uid = typeof data.uid === 'string' ? data.uid.trim() : '';
+  if (!uid) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'A target `uid` is required.'
+    );
+  }
+
+  const role = data.role === 'super_admin' ? 'super_admin' : 'admin';
+  let email = typeof data.email === 'string' ? data.email : '';
+  if (!email) {
+    try {
+      const userRecord = await getAuth().getUser(uid);
+      email = userRecord.email || '';
+    } catch (_) {
+      email = '';
+    }
+  }
+
+  await db.collection('admins').doc(uid).set(
+    {
+      uid,
+      email,
+      role,
+      isActive: true,
+      createdAt: serverTimestamp(),
+      lastLogin: null,
+    },
+    { merge: true }
+  );
+
+  return { success: true, uid, role };
+});
+
+/**
+ * Maintain the global user counter server-side.
+ * Replaces the previous client-side write to `app_stats/global`.
+ */
+exports.onUserCreated = functions.firestore
+  .document('users/{userId}')
+  .onCreate(async () => {
+    const statsRef = db.collection('app_stats').doc('global');
+    await statsRef.set(
+      {
+        totalUsers: FieldValue.increment(1),
+        lastUpdated: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return null;
+  });
+
+/**
+ * Keep the global user counter accurate when a profile is removed.
+ */
+exports.onUserDeleted = functions.firestore
+  .document('users/{userId}')
+  .onDelete(async () => {
+    await db.collection('app_stats').doc('global').set(
+      {
+        totalUsers: FieldValue.increment(-1),
+        lastUpdated: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return null;
+  });
+
+/**
+ * Safety net for account deletion: when a Firebase Auth account is deleted
+ * (from the app, the console or the Admin SDK), remove all of its data,
+ * including sub-collections the client may not have cleaned up.
+ */
+exports.onAuthUserDeleted = functions.auth.user().onDelete(async (user) => {
+  await db.recursiveDelete(db.collection('users').doc(user.uid));
+  await db.collection('public_profiles').doc(user.uid).delete();
+  await db.collection('moderation').doc(user.uid).delete();
+  await db.collection('admins').doc(user.uid).delete();
+  // Rencontres organisées (participations supprimées par onEventDeleted) et
+  // participations aux rencontres des autres (compteur décrémenté).
+  const myEvents = await db.collection('events').where('creatorUid', '==', user.uid).get();
+  await Promise.all(myEvents.docs.map((d) => d.ref.delete()));
+  const joined = await db.collectionGroup('attendees').where('uid', '==', user.uid).get();
+  for (const a of joined.docs) {
+    const eventRef = a.ref.parent.parent;
+    await db.runTransaction(async (tx) => {
+      const ev = await tx.get(eventRef);
+      tx.delete(a.ref);
+      if (ev.exists) tx.update(eventRef, { attendeeCount: FieldValue.increment(-1) });
+    });
+  }
+  // Photo de profil (storage.rules : profile_photos/{uid}/photo.jpg).
+  await getStorage()
+    .bucket()
+    .file(`profile_photos/${user.uid}/photo.jpg`)
+    .delete({ ignoreNotFound: true });
+  // Vœux reçus, et vœux envoyés aux autres (ils portent l'identifiant).
+  await db.recursiveDelete(db.collection('wishes').doc(user.uid));
+  const sent = await db.collectionGroup('received').where('fromUid', '==', user.uid).get();
+  await Promise.all(sent.docs.map((d) => d.ref.delete()));
+  // Signalements reçus et envoyés : ils contiennent l'identifiant de la
+  // personne (voir hosting/delete-account.html).
+  for (const field of ['reportedUid', 'reporterUid']) {
+    const reports = await db.collection('reports').where(field, '==', user.uid).get();
+    await Promise.all(reports.docs.map((d) => d.ref.delete()));
+  }
+  return null;
+});
+
+
+/**
+ * Masque automatiquement un profil de l'annuaire quand assez de personnes
+ * différentes l'ont signalé (voir moderation.js). La décision est écrite
+ * dans moderation/{uid} : les règles Firestore empêchent alors toute
+ * republication par le client. Un admin peut la confirmer ou la lever
+ * depuis l'écran "Signalements".
+ */
+exports.onReportCreated = functions.firestore
+  .document('reports/{reportId}')
+  .onCreate(async (snap) => {
+    const reportedUid = snap.get('reportedUid');
+    if (typeof reportedUid !== 'string' || !reportedUid) return null;
+
+    const reports = await db
+      .collection('reports')
+      .where('reportedUid', '==', reportedUid)
+      .get();
+    const reporters = reports.docs.map((d) => d.get('reporterUid'));
+
+    const modRef = db.collection('moderation').doc(reportedUid);
+    await db.runTransaction(async (tx) => {
+      const existing = await tx.get(modRef);
+      if (!shouldAutoHide(reporters, existing.exists ? existing.data() : null)) {
+        return;
+      }
+      tx.set(modRef, {
+        hidden: true,
+        reason: 'auto_reports',
+        reportCount: new Set(reporters.filter(Boolean)).size,
+        threshold: REPORT_THRESHOLD,
+        decidedAt: serverTimestamp(),
+      });
+      tx.delete(db.collection('public_profiles').doc(reportedUid));
+    });
+    return null;
+  });
+
+/**
+ * "Nouveau jumeau d'anniversaire" : quand un profil apparaît dans l'annuaire
+ * public, prévient par notification push les utilisateurs nés le même jour
+ * (règles dans twins.js : au plus une fois par jour et par personne,
+ * désactivable). Une même personne n'est annoncée qu'une seule fois, même si
+ * elle repasse son profil de privé à public.
+ */
+exports.onPublicProfileCreated = functions.firestore
+  .document('public_profiles/{uid}')
   .onCreate(async (snap, context) => {
-    const data = snap.data() || {};
-    const userId = context.params.userId;
+    const newUid = context.params.uid;
+    const profile = snap.data() || {};
+    const birthDayKey = profile.birthDayKey;
+    if (typeof birthDayKey !== 'string') return null;
 
-    const sanitized = {};
-    // Copy only allowed keys
-    for (const k of ALLOWED_KEYS) {
-      if (Object.prototype.hasOwnProperty.call(data, k)) sanitized[k] = data[k];
+    // Annonce unique par personne.
+    const newUserRef = db.collection('users').doc(newUid);
+    const firstAnnouncement = await db.runTransaction(async (tx) => {
+      const doc = await tx.get(newUserRef);
+      if (doc.exists && doc.get('twinAnnouncedAt')) return false;
+      tx.set(newUserRef, { twinAnnouncedAt: serverTimestamp() }, { merge: true });
+      return true;
+    });
+    if (!firstAnnouncement) return null;
+
+    const publicName = profile.publicName ? profile.name : null;
+    const now = Date.now();
+    const twins = await db
+      .collection('users')
+      .where('birthDayKey', '==', birthDayKey)
+      .get();
+
+    for (const twinDoc of twins.docs) {
+      const recipient = { uid: twinDoc.id, ...twinDoc.data() };
+      if (!shouldNotifyTwin(recipient, newUid, now)) continue;
+
+      const devices = await twinDoc.ref.collection('devices').get();
+      if (devices.empty) continue;
+
+      // Un message par langue d'appareil.
+      const byLang = {};
+      for (const d of devices.docs) {
+        (byLang[d.get('locale') === 'fr' ? 'fr' : 'en'] ||= []).push(d.id);
+      }
+      let delivered = false;
+      for (const [lang, tokens] of Object.entries(byLang)) {
+        const res = await getMessaging().sendEachForMulticast({
+          tokens,
+          notification: twinMessage(lang, publicName),
+          data: { type: 'new_twin' },
+          android: { priority: 'high' },
+        });
+        res.responses.forEach((r, i) => {
+          if (r.success) delivered = true;
+          else if (r.error && INVALID_TOKEN_CODES.has(r.error.code)) {
+            // Jeton expiré ou app désinstallée : on nettoie.
+            twinDoc.ref.collection('devices').doc(tokens[i]).delete().catch(() => {});
+          }
+        });
+      }
+      if (delivered) {
+        await twinDoc.ref.set({ lastTwinNotifiedAt: serverTimestamp() }, { merge: true });
+      }
     }
+    return null;
+  });
 
-    // Enforce server fields
-    // Use FieldValue.serverTimestamp when available (preferred). Otherwise fall back to a Timestamp.
-    const now = (FieldValue && typeof FieldValue.serverTimestamp === 'function')
-      ? FieldValue.serverTimestamp()
-      : (Timestamp && typeof Timestamp.now === 'function' ? Timestamp.now() : null);
-    if (!sanitized.createdAt) sanitized.createdAt = now;
-    sanitized.lastNormalizedAt = now;
+/**
+ * Rencontre supprimée : ses participations (sous-collection) aussi.
+ */
+exports.onEventDeleted = functions.firestore
+  .document('events/{eventId}')
+  .onDelete(async (snap) => {
+    await db.recursiveDelete(snap.ref.collection('attendees'));
+    return null;
+  });
 
-    // Ensure forbidden fields removed if present (best-effort)
-    // If client tried to set isAdmin/role/admin, remove them and log via a metadata field
-    const forbidden = ['isAdmin', 'role', 'admin'];
-    let hadForbidden = false;
-    for (const f of forbidden) {
-      if (Object.prototype.hasOwnProperty.call(data, f)) hadForbidden = true;
+/**
+ * Statistiques anonymes de l'annuaire (`app_stats/constellation`) : nombre
+ * de naissances par jour, prénoms et noms les plus partagés. Recalculées
+ * toutes les 6 heures plutôt qu'à chaque inscription (un compteur unique
+ * serait un point de contention). Coût : une lecture par profil public et
+ * par exécution, limitée aux champs utiles.
+ */
+exports.refreshConstellation = functions.pubsub
+  .schedule('every 6 hours')
+  .onRun(async () => {
+    const snap = await db
+      .collection('public_profiles')
+      .select('birthDayKey', 'name', 'publicName', 'isPublic')
+      .get();
+    const stats = aggregate(snap.docs.map((d) => d.data()));
+    await db
+      .collection('app_stats')
+      .doc('constellation')
+      .set({ ...stats, updatedAt: serverTimestamp() });
+    functions.logger.info('constellation', { total: stats.total });
+  });
+
+/**
+ * Vœu d'anniversaire reçu : notification push au destinataire, dans la
+ * langue de chacun de ses appareils.
+ */
+exports.onWishCreated = functions.firestore
+  .document('wishes/{toUid}/received/{wishId}')
+  .onCreate(async (snap, context) => {
+    const toUid = context.params.toUid;
+    const wish = snap.data() || {};
+    // Messages déjà reçus : l'app n'en propose plus d'identiques.
+    if (Number.isInteger(wish.wish) && Number.isInteger(wish.year)) {
+      const usedRef = db.collection('wishes').doc(toUid);
+      await db.runTransaction(async (tx) => {
+        const doc = await tx.get(usedRef);
+        tx.set(usedRef, usedWishes(doc.exists ? doc.data() : null, wish.wish, wish.year));
+      });
     }
-    if (hadForbidden) {
-      sanitized._clientTampered = true;
-      sanitized._clientTamperedAt = now;
+    const userRef = db.collection('users').doc(toUid);
+    const devices = await userRef.collection('devices').get();
+    if (devices.empty) return null;
+    const byLang = {};
+    for (const d of devices.docs) {
+      (byLang[d.get('locale') === 'fr' ? 'fr' : 'en'] ||= []).push(d.id);
     }
-
-    // Merge sanitized data back to document (merge to avoid removing server fields set by other systems)
-    await snap.ref.set(sanitized, { merge: true });
-    // Optionally write an audit log (omitted to keep this function small)
+    for (const [lang, tokens] of Object.entries(byLang)) {
+      const res = await getMessaging().sendEachForMulticast({
+        tokens,
+        notification: wishMessage(lang, wish.fromName),
+        data: { type: 'wish' },
+        android: { priority: 'high' },
+      });
+      res.responses.forEach((r, i) => {
+        if (!r.success && r.error && INVALID_TOKEN_CODES.has(r.error.code)) {
+          userRef.collection('devices').doc(tokens[i]).delete().catch(() => {});
+        }
+      });
+    }
     return null;
   });

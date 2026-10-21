@@ -1,17 +1,28 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Lit google-services.json (version déclarée dans settings.gradle.kts).
+    id("com.google.gms.google-services")
 }
 
-// Apply the Google Services plugin to enable reading google-services.json.
-// In Groovy Gradle you would add "apply plugin: 'com.google.gms.google-services'",
-// in Kotlin DSL we use the plugin id here as well if the classpath is available.
-apply(plugin = "com.google.gms.google-services")
+// Load release signing config from android/key.properties (git-ignored).
+// If the file is absent (e.g. CI or fresh checkout), release falls back to
+// the debug signing config so the build still succeeds.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val hasReleaseSigning = keystorePropertiesFile.exists()
+if (hasReleaseSigning) {
+    FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
+}
 
 android {
-    namespace = "com.example.b_link"
+    namespace = "com.rayague.b_link"
+    // Version recommandée par Flutter / AGP.
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,10 +31,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
         // Enable core library desugaring (required by flutter_local_notifications v19+)
         isCoreLibraryDesugaringEnabled = true
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
     defaultConfig {
@@ -37,12 +44,33 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String?
+                keyPassword = keystoreProperties["keyPassword"] as String?
+                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = keystoreProperties["storePassword"] as String?
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Use the release keystore when configured, otherwise fall back to
+            // debug signing so local/CI builds keep working.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 }
 

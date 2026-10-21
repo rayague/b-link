@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>B Link</string>
+	<string>B-Link</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -45,5 +45,23 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Rafraîchissement quotidien des rappels (WorkManager / BGTaskScheduler). -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.rayague.b-link.reminders-refresh</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>remote-notification</string>
+	</array>
+	<!-- RGPD : Analytics désactivé jusqu'au consentement. -->
+	<key>FIREBASE_ANALYTICS_COLLECTION_ENABLED</key>
+	<false/>
+	<key>NSContactsUsageDescription</key>
+	<string>B-Link reads your contacts' birthdays so you can import them and get reminders.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>B-Link uses the photo you choose as your profile picture or a contact's picture.</string>
 </dict>
 </plist>

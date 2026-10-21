@@ -79,20 +79,7 @@ class AdminService {
     return _authService.adminStatusStream(uid);
   }
 
-  // Méthodes dépréciées - Utilisez AdminAuthService directement
-  @Deprecated('Utilisez AdminAuthService.createAdmin() à la place')
-  Future<void> createAdmin({
-    required String email,
-    required String password,
-    String role = 'admin',
-  }) async {
-    await _authService.createAdmin(
-      email: email,
-      password: password,
-      role: role,
-    );
-  }
-
+  /// Désactive un admin (déprécié - préfère la gestion via Cloud Function)
   @Deprecated('Utilisez AdminAuthService.deactivateAdmin() à la place')
   Future<void> revokeAdmin(String uid) async {
     await _authService.deactivateAdmin(uid);
