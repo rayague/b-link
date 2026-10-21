@@ -80,11 +80,11 @@ class ZodiacContent {
       planet: {'fr': 'Mars ♂', 'en': 'Mars ♂'},
       period: {'fr': '21 mars - 19 avril', 'en': 'March 21 - April 19'},
       description: {
-        'fr': "Dynamique, courageux et impulsif. Vous aimez relever les défis et êtes toujours prêt pour l'aventure.",
-        'en': 'Dynamic, brave and impulsive. You love a challenge and are always ready for an adventure.',
+        'fr': "L'élan, le courage et la franchise. Vous ouvrez la voie et donnez aux autres l'envie d'oser.",
+        'en': 'Drive, courage and honesty. You lead the way and make others want to dare.',
       },
       traits: {
-        'fr': ['Courageux', 'Énergique', 'Déterminé', 'Confiant', 'Passionné', 'Leader'],
+        'fr': ['Courage', 'Énergie', 'Détermination', 'Confiance', 'Passion', 'Leadership'],
         'en': ['Brave', 'Energetic', 'Determined', 'Confident', 'Passionate', 'Leader'],
       },
       quotes: {
@@ -111,11 +111,11 @@ class ZodiacContent {
       planet: {'fr': 'Vénus ♀', 'en': 'Venus ♀'},
       period: {'fr': '20 avril - 20 mai', 'en': 'April 20 - May 20'},
       description: {
-        'fr': 'Stable, patient et sensuel. Vous appréciez les plaisirs de la vie et la sécurité.',
-        'en': "Steady, patient and sensual. You enjoy life's pleasures and value security.",
+        'fr': 'La douceur, la patience et le goût des belles choses. Vous construisez ce qui dure.',
+        'en': 'Gentleness, patience and a love of beautiful things. You build what lasts.',
       },
       traits: {
-        'fr': ['Fiable', 'Patient', 'Pratique', 'Dévoué', 'Responsable', 'Stable'],
+        'fr': ['Fiabilité', 'Patience', 'Sens pratique', 'Dévouement', 'Responsabilité', 'Stabilité'],
         'en': ['Reliable', 'Patient', 'Practical', 'Devoted', 'Responsible', 'Steady'],
       },
       quotes: {
@@ -142,11 +142,11 @@ class ZodiacContent {
       planet: {'fr': 'Mercure ☿', 'en': 'Mercury ☿'},
       period: {'fr': '21 mai - 20 juin', 'en': 'May 21 - June 20'},
       description: {
-        'fr': 'Curieux, adaptable et communicatif. Vous excellez dans la communication et adorez apprendre.',
-        'en': 'Curious, adaptable and talkative. You shine at communicating and love to learn.',
+        'fr': "La curiosité, l'esprit et les mots justes. Avec vous, chaque conversation devient une aventure.",
+        'en': 'Curiosity, wit and the right words. With you, every conversation becomes an adventure.',
       },
       traits: {
-        'fr': ['Adaptable', 'Curieux', 'Communicatif', 'Intelligent', 'Sociable', 'Vif'],
+        'fr': ['Adaptabilité', 'Curiosité', 'Communication', 'Intelligence', 'Sociabilité', 'Vivacité'],
         'en': ['Adaptable', 'Curious', 'Communicative', 'Clever', 'Sociable', 'Quick-witted'],
       },
       quotes: {
@@ -173,11 +173,11 @@ class ZodiacContent {
       planet: {'fr': 'Lune ☽', 'en': 'Moon ☽'},
       period: {'fr': '21 juin - 22 juillet', 'en': 'June 21 - July 22'},
       description: {
-        'fr': 'Émotif, protecteur et intuitif. Vous êtes profondément attaché à votre famille et vos proches.',
-        'en': 'Emotional, protective and intuitive. You are deeply attached to your family and loved ones.',
+        'fr': "La tendresse, l'intuition et la loyauté. Auprès de vous, chacun se sent chez soi.",
+        'en': 'Tenderness, intuition and loyalty. Around you, everyone feels at home.',
       },
       traits: {
-        'fr': ['Intuitif', 'Protecteur', 'Loyal', 'Empathique', 'Imaginatif', 'Sensible'],
+        'fr': ['Intuition', 'Protection', 'Loyauté', 'Empathie', 'Imagination', 'Sensibilité'],
         'en': ['Intuitive', 'Protective', 'Loyal', 'Empathetic', 'Imaginative', 'Sensitive'],
       },
       quotes: {
@@ -204,17 +204,17 @@ class ZodiacContent {
       planet: {'fr': 'Soleil ☉', 'en': 'Sun ☉'},
       period: {'fr': '23 juillet - 22 août', 'en': 'July 23 - August 22'},
       description: {
-        'fr': "Charismatique, généreux et confiant. Vous aimez être au centre de l'attention et inspirer les autres.",
-        'en': 'Charismatic, generous and confident. You love the spotlight and inspiring others.',
+        'fr': 'La générosité, le charisme et un cœur immense. Vous rayonnez et faites briller les autres.',
+        'en': 'Generosity, charisma and a huge heart. You shine, and you make others shine.',
       },
       traits: {
-        'fr': ['Créatif', 'Généreux', 'Chaleureux', 'Charismatique', 'Confiant', 'Loyal'],
+        'fr': ['Créativité', 'Générosité', 'Chaleur', 'Charisme', 'Confiance', 'Loyauté'],
         'en': ['Creative', 'Generous', 'Warm', 'Charismatic', 'Confident', 'Loyal'],
       },
       quotes: {
         'fr': [
           'Votre générosité et votre chaleur illuminent la vie des autres.',
-          "Vous êtes fait pour briller. N'ayez pas peur de prendre votre place.",
+          "Vous avez tout pour briller. N'ayez pas peur de prendre votre place.",
           'Votre confiance naturelle inspire ceux qui vous entourent.',
           "Restez fidèle à vous-même, c'est votre plus grande force.",
         ],
@@ -235,18 +235,18 @@ class ZodiacContent {
       planet: {'fr': 'Mercure ☿', 'en': 'Mercury ☿'},
       period: {'fr': '23 août - 22 septembre', 'en': 'August 23 - September 22'},
       description: {
-        'fr': 'Analytique, méthodique et réservé. Vous recherchez la perfection dans tout ce que vous faites.',
-        'en': 'Analytical, methodical and reserved. You strive for perfection in everything you do.',
+        'fr': "L'attention, la précision et le dévouement. Vous rendez le monde plus juste, détail après détail.",
+        'en': 'Attention, precision and devotion. You make the world more right, one detail at a time.',
       },
       traits: {
-        'fr': ['Pratique', 'Analytique', 'Travailleur', 'Fiable', 'Précis', 'Modeste'],
+        'fr': ['Sens pratique', 'Analyse', 'Ardeur au travail', 'Fiabilité', 'Précision', 'Modestie'],
         'en': ['Practical', 'Analytical', 'Hard-working', 'Reliable', 'Precise', 'Modest'],
       },
       quotes: {
         'fr': [
           "Votre attention aux détails crée l'excellence dans tout ce que vous faites.",
           "Votre désir d'aider les autres rend le monde meilleur.",
-          'La perfection est un voyage, pas une destination. Soyez patient avec vous-même.',
+          'La perfection est un voyage, pas une destination. Accordez-vous de la douceur.',
           "Votre esprit analytique résout les problèmes que d'autres ne voient même pas.",
         ],
         'en': [
@@ -266,11 +266,11 @@ class ZodiacContent {
       planet: {'fr': 'Vénus ♀', 'en': 'Venus ♀'},
       period: {'fr': '23 septembre - 22 octobre', 'en': 'September 23 - October 22'},
       description: {
-        'fr': "Social, équilibré et juste. Vous recherchez l'harmonie dans vos relations et votre environnement.",
-        'en': 'Sociable, balanced and fair. You seek harmony in your relationships and surroundings.',
+        'fr': "L'harmonie, l'élégance et le sens de la justice. Vous savez rapprocher les gens.",
+        'en': 'Harmony, elegance and a sense of justice. You know how to bring people together.',
       },
       traits: {
-        'fr': ['Diplomate', 'Juste', 'Sociable', 'Coopératif', 'Gracieux', 'Équilibré'],
+        'fr': ['Diplomatie', 'Justice', 'Sociabilité', 'Coopération', 'Grâce', 'Équilibre'],
         'en': ['Diplomatic', 'Fair', 'Sociable', 'Cooperative', 'Graceful', 'Balanced'],
       },
       quotes: {
@@ -278,7 +278,7 @@ class ZodiacContent {
           "Votre quête d'harmonie apporte la paix dans votre entourage.",
           'Votre sens de la justice fait de vous un défenseur naturel.',
           'La beauté que vous créez et appréciez enrichit le monde.',
-          "Trouver l'équilibre est un art, et vous êtes un artiste.",
+          "Trouver l'équilibre est un art, et c'est le vôtre.",
         ],
         'en': [
           'Your search for harmony brings peace to those around you.',
@@ -297,11 +297,11 @@ class ZodiacContent {
       planet: {'fr': 'Pluton ♇', 'en': 'Pluto ♇'},
       period: {'fr': '23 octobre - 21 novembre', 'en': 'October 23 - November 21'},
       description: {
-        'fr': 'Passionné, intense et mystérieux. Vous vivez vos émotions profondément et avec intensité.',
-        'en': 'Passionate, intense and mysterious. You feel your emotions deeply and intensely.',
+        'fr': 'La profondeur, l’intensité et une loyauté absolue. Vous vivez tout pleinement.',
+        'en': 'Depth, intensity and absolute loyalty. You live everything fully.',
       },
       traits: {
-        'fr': ['Passionné', 'Déterminé', 'Brave', 'Loyal', 'Perspicace', 'Magnétique'],
+        'fr': ['Passion', 'Détermination', 'Bravoure', 'Loyauté', 'Perspicacité', 'Magnétisme'],
         'en': ['Passionate', 'Determined', 'Brave', 'Loyal', 'Perceptive', 'Magnetic'],
       },
       quotes: {
@@ -328,11 +328,11 @@ class ZodiacContent {
       planet: {'fr': 'Jupiter ♃', 'en': 'Jupiter ♃'},
       period: {'fr': '22 novembre - 21 décembre', 'en': 'November 22 - December 21'},
       description: {
-        'fr': 'Aventurier, optimiste et libre. Vous aimez explorer et découvrir de nouveaux horizons.',
-        'en': 'Adventurous, optimistic and free. You love exploring and discovering new horizons.',
+        'fr': "L'optimisme, la liberté et la soif de découvrir. Avec vous, l'horizon s'élargit.",
+        'en': 'Optimism, freedom and a thirst for discovery. With you, the horizon widens.',
       },
       traits: {
-        'fr': ['Optimiste', 'Aventureux', 'Honnête', 'Généreux', 'Philosophe', 'Libre'],
+        'fr': ['Optimisme', "Goût de l'aventure", 'Honnêteté', 'Générosité', 'Sagesse', 'Liberté'],
         'en': ['Optimistic', 'Adventurous', 'Honest', 'Generous', 'Philosophical', 'Free-spirited'],
       },
       quotes: {
@@ -359,19 +359,19 @@ class ZodiacContent {
       planet: {'fr': 'Saturne ♄', 'en': 'Saturn ♄'},
       period: {'fr': '22 décembre - 19 janvier', 'en': 'December 22 - January 19'},
       description: {
-        'fr': 'Ambitieux, discipliné et responsable. Vous travaillez dur pour atteindre vos objectifs.',
-        'en': 'Ambitious, disciplined and responsible. You work hard to reach your goals.',
+        'fr': 'La détermination, la sagesse et la constance. Vous gravissez vos sommets pas à pas.',
+        'en': 'Determination, wisdom and constancy. You climb your summits step by step.',
       },
       traits: {
-        'fr': ['Responsable', 'Discipliné', 'Ambitieux', 'Pratique', 'Sage', 'Persévérant'],
+        'fr': ['Responsabilité', 'Discipline', 'Ambition', 'Sens pratique', 'Sagesse', 'Persévérance'],
         'en': ['Responsible', 'Disciplined', 'Ambitious', 'Practical', 'Wise', 'Persistent'],
       },
       quotes: {
         'fr': [
-          'Votre discipline et votre détermination garantissent votre succès.',
+          'Votre discipline et votre détermination vous mènent loin.',
           "Vous construisez des fondations solides pour l'avenir.",
           "Votre sagesse vient de l'expérience et de la réflexion.",
-          'Le chemin vers le sommet est long, mais vous êtes fait pour y arriver.',
+          'Le chemin vers le sommet est long, mais vous avez tout pour y arriver.',
         ],
         'en': [
           'Your discipline and determination pave the way to success.',
@@ -390,11 +390,11 @@ class ZodiacContent {
       planet: {'fr': 'Uranus ♅', 'en': 'Uranus ♅'},
       period: {'fr': '20 janvier - 18 février', 'en': 'January 20 - February 18'},
       description: {
-        'fr': 'Original, humaniste et indépendant. Vous aimez penser différemment et aider les autres.',
-        'en': 'Original, humanitarian and independent. You love thinking differently and helping others.',
+        'fr': "L'originalité, l'humanisme et la liberté. Vous imaginez demain avant tout le monde.",
+        'en': 'Originality, humanism and freedom. You imagine tomorrow before anyone else.',
       },
       traits: {
-        'fr': ['Original', 'Indépendant', 'Humaniste', 'Intellectuel', 'Progressiste', 'Visionnaire'],
+        'fr': ['Originalité', 'Indépendance', 'Humanisme', 'Curiosité intellectuelle', 'Esprit de progrès', 'Vision'],
         'en': ['Original', 'Independent', 'Humanitarian', 'Intellectual', 'Progressive', 'Visionary'],
       },
       quotes: {
@@ -421,11 +421,11 @@ class ZodiacContent {
       planet: {'fr': 'Neptune ♆', 'en': 'Neptune ♆'},
       period: {'fr': '19 février - 20 mars', 'en': 'February 19 - March 20'},
       description: {
-        'fr': 'Empathique, artiste et rêveur. Vous êtes sensible et créatif avec une grande imagination.',
-        'en': 'Empathetic, artistic and dreamy. You are sensitive and creative, with a vivid imagination.',
+        'fr': "L'empathie, l'imagination et une douceur infinie. Vous ressentez le monde comme personne.",
+        'en': 'Empathy, imagination and endless gentleness. You feel the world like no one else.',
       },
       traits: {
-        'fr': ['Compatissant', 'Artiste', 'Intuitif', 'Doux', 'Sage', 'Musical'],
+        'fr': ['Compassion', 'Sens artistique', 'Intuition', 'Douceur', 'Sagesse', 'Musicalité'],
         'en': ['Compassionate', 'Artistic', 'Intuitive', 'Gentle', 'Wise', 'Musical'],
       },
       quotes: {
