@@ -137,8 +137,9 @@ class GlassCard extends StatelessWidget {
   }
 }
 
-/// Barre d'application en verre : le contenu défile dessous, flouté.
-class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
+/// Barre d'application en verre. Transparente en haut de page ; dès que le
+/// contenu passe dessous, un verre dépoli apparaît en fondu et le floute.
+class GlassAppBar extends StatefulWidget implements PreferredSizeWidget {
   final Widget? title;
   final List<Widget>? actions;
   final Widget? leading;
@@ -156,26 +157,72 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
+  State<GlassAppBar> createState() => _GlassAppBarState();
+}
+
+class _GlassAppBarState extends State<GlassAppBar> {
+  ScrollNotificationObserverState? _observer;
+  bool _scrolledUnder = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _observer?.removeListener(_onScroll);
+    _observer = ScrollNotificationObserver.maybeOf(context);
+    _observer?.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _observer?.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  void _onScroll(ScrollNotification n) {
+    // Seule la liste principale de la page compte (pas un carrousel).
+    if (n is! ScrollUpdateNotification || n.depth != 0) return;
+    if (n.metrics.axis != Axis.vertical) return;
+    final under = n.metrics.extentBefore > 0;
+    if (under != _scrolledUnder) setState(() => _scrolledUnder = under);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final g = Glass.of(context);
     final c = Theme.of(context).colorScheme;
     return AppBar(
-      title: title,
-      actions: actions == null
+      title: widget.title,
+      actions: widget.actions == null
           ? null
-          : [...actions!, const SizedBox(width: Space.xs)],
-      leading: leading,
-      automaticallyImplyLeading: automaticallyImplyLeading,
-      flexibleSpace: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: g.blur, sigmaY: g.blur),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: g.fillStrong.withValues(alpha: 0.82),
-              border: Border(
-                bottom: BorderSide(
-                    color: c.outlineVariant.withValues(alpha: 0.5)),
-              ),
+          : [...widget.actions!, const SizedBox(width: Space.xs)],
+      leading: widget.leading,
+      automaticallyImplyLeading: widget.automaticallyImplyLeading,
+      // SizedBox.expand : sans enfant, le fond prendrait une hauteur nulle.
+      flexibleSpace: SizedBox.expand(
+        child: AnimatedOpacity(
+          opacity: _scrolledUnder ? 1 : 0,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          child: ClipRect(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: g.blur, sigmaY: g.blur),
+                  child: const SizedBox.expand(),
+                ),
+                // Teinte posée à part : même si le flou n'est pas rendu
+                // (certains GPU), le texte du dessous reste masqué.
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: g.bar,
+                    border: Border(
+                      bottom: BorderSide(
+                          color: c.outlineVariant.withValues(alpha: 0.5)),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -245,7 +292,7 @@ class AppScaffold extends StatelessWidget {
                       sigmaY: Glass.of(context).blur),
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Glass.of(context).fillStrong.withValues(alpha: 0.8),
+                      color: Glass.of(context).bar,
                       border: Border(
                           top: BorderSide(
                               color: Theme.of(context)

@@ -52,8 +52,12 @@ class Glass extends ThemeExtension<Glass> {
   /// Remplissage translucide des surfaces.
   final Color fill;
 
-  /// Remplissage plus opaque (feuilles, barres) pour la lisibilité.
+  /// Remplissage presque opaque des surfaces posées sur le contenu
+  /// (feuilles, dialogues, menus) : lisibles même sans flou.
   final Color fillStrong;
+
+  /// Barre du haut quand le contenu passe dessous.
+  final Color bar;
 
   /// Liseré de 1 px qui dessine le bord du verre.
   final Color border;
@@ -72,6 +76,7 @@ class Glass extends ThemeExtension<Glass> {
   const Glass({
     required this.fill,
     required this.fillStrong,
+    required this.bar,
     required this.border,
     required this.highlight,
     required this.backdrop,
@@ -82,7 +87,8 @@ class Glass extends ThemeExtension<Glass> {
 
   static const light = Glass(
     fill: Color(0x9EFFFFFF), // 62 %
-    fillStrong: Color(0xDBFAFAF8), // 86 %
+    fillStrong: Color(0xF5FAFAF8), // 96 %
+    bar: Color(0xE0F4F3EF), // 88 %
     border: Color(0xBFFFFFFF),
     highlight: Color(0x66FFFFFF),
     backdrop: Color(0xFFF2F1EC),
@@ -92,7 +98,8 @@ class Glass extends ThemeExtension<Glass> {
 
   static const dark = Glass(
     fill: Color(0x12FFFFFF), // 7 %
-    fillStrong: Color(0xD9171A26),
+    fillStrong: Color(0xF5181B27),
+    bar: Color(0xE00F121B),
     border: Color(0x1FFFFFFF),
     highlight: Color(0x0FFFFFFF),
     backdrop: Color(0xFF0E1018),
@@ -107,6 +114,7 @@ class Glass extends ThemeExtension<Glass> {
   Glass copyWith({
     Color? fill,
     Color? fillStrong,
+    Color? bar,
     Color? border,
     Color? highlight,
     Color? backdrop,
@@ -117,6 +125,7 @@ class Glass extends ThemeExtension<Glass> {
       Glass(
         fill: fill ?? this.fill,
         fillStrong: fillStrong ?? this.fillStrong,
+        bar: bar ?? this.bar,
         border: border ?? this.border,
         highlight: highlight ?? this.highlight,
         backdrop: backdrop ?? this.backdrop,
@@ -131,6 +140,7 @@ class Glass extends ThemeExtension<Glass> {
     return Glass(
       fill: Color.lerp(fill, other.fill, t)!,
       fillStrong: Color.lerp(fillStrong, other.fillStrong, t)!,
+      bar: Color.lerp(bar, other.bar, t)!,
       border: Color.lerp(border, other.border, t)!,
       highlight: Color.lerp(highlight, other.highlight, t)!,
       backdrop: Color.lerp(backdrop, other.backdrop, t)!,
