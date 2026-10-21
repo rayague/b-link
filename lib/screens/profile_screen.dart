@@ -2,8 +2,6 @@ import 'package:country_picker/country_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../l10n/zodiac_content.dart';
@@ -12,10 +10,7 @@ import '../providers/profile_provider.dart';
 import '../services/admin_service.dart';
 import '../services/analytics_service.dart';
 import '../services/photo_service.dart';
-import '../services/safety_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/account_actions.dart' as account;
-import '../utils/app_links.dart';
 import '../utils/birthday_labels.dart';
 import '../utils/zodiac.dart';
 import '../widgets/birth_insights_widget.dart';
@@ -25,10 +20,11 @@ import '../widgets/ui/country_sheet.dart';
 import '../widgets/ui/components.dart';
 import '../widgets/ui/glass.dart';
 import 'admin_stats_screen.dart';
+import 'settings_screen.dart';
 import '../widgets/ui/birth_date_picker.dart';
 
-/// Profil de l'utilisateur : informations, confidentialité, réseaux,
-/// réglages et compte.
+/// Profil de l'utilisateur : identité, confidentialité, réseaux et signe.
+/// Les réglages et le compte sont dans [SettingsScreen].
 class ProfileScreen extends StatefulWidget {
   static const routeName = '/profile';
   const ProfileScreen({super.key});
@@ -257,62 +253,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  /// Liste des profils bloqués, avec déblocage.
-  Future<void> _showBlocked() {
-    final l10n = AppLocalizations.of(context);
-    final safety = SafetyService();
-    return showGlassSheet<void>(
-      context,
-      builder: (sheet) => StatefulBuilder(
-        builder: (sheet, setSheet) => FutureBuilder<List<BlockedProfile>>(
-          future: safety.blockedProfiles(),
-          builder: (_, snap) {
-            if (snap.connectionState != ConnectionState.done) {
-              return const Padding(
-                padding: EdgeInsets.all(Space.xxl),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            final blocked = snap.data ?? const <BlockedProfile>[];
-            return Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(Space.page, 0, Space.page, Space.l),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(l10n.translate('blockedProfiles'),
-                      style: Theme.of(sheet).textTheme.titleLarge),
-                  const SizedBox(height: Space.s),
-                  if (blocked.isEmpty)
-                    EmptyState(
-                        icon: Icons.block_outlined,
-                        title: l10n.translate('noBlockedProfiles'))
-                  else
-                    for (final b in blocked)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: InitialsAvatar(
-                            name: b.name ?? '?', size: 40),
-                        title: Text(
-                            b.name ?? l10n.translate('anonymousProfile')),
-                        trailing: TextButton(
-                          onPressed: () async {
-                            await safety.unblock(b.uid);
-                            setSheet(() {}); // recharge la liste
-                          },
-                          child: Text(l10n.translate('unblock')),
-                        ),
-                      ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
   Future<void> _addSocialLink() async {
     final l10n = AppLocalizations.of(context);
     final result = await showGlassSheet<(String, String)>(
@@ -349,6 +289,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 )
               : const SizedBox.shrink(),
         ),
+        if (!_editing)
+          IconButton(
+            tooltip: l10n.translate('settings'),
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () =>
+                Navigator.of(context).pushNamed(SettingsScreen.routeName),
+          ),
         if (_editing) ...[
           TextButton(
               onPressed: _saving ? null : _cancelEdit,
@@ -372,6 +319,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: Icons.visibility_off_outlined,
                 text: l10n.translate('profileHiddenByModeration'),
                 tone: Tone.danger,
+              ),
+            ],
+            if (!_editing) ...[
+              const SizedBox(height: Space.m),
+              GlassCard(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: Space.m, vertical: Space.s),
+                child: ActionRow(
+                  icon: Icons.mark_email_unread_outlined,
+                  title: l10n.translate('myWishes'),
+                  subtitle: l10n.translate('myWishesDesc'),
+                  tone: Tone.accent,
+                  onTap: () => Navigator.of(context).pushNamed('/wishes'),
+                ),
               ),
             ],
             SectionHeader(l10n.translate('personalInfo')),
@@ -429,10 +390,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _birthCountry.text.isEmpty ? null : _birthCountry.text,
                 ),
               ],
-              SectionHeader(l10n.translate('settings')),
-              _settingsCard(),
-              SectionHeader(l10n.translate('account')),
-              _accountCard(profile),
             ],
           ],
         ),
@@ -752,93 +709,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: Space.m),
           Text(ZodiacContent.description(sign, lang),
               style: t.bodyMedium?.copyWith(color: c.onSurfaceVariant)),
-        ],
-      ),
-    );
-  }
-
-  Widget _settingsCard() {
-    final l10n = AppLocalizations.of(context);
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: Space.m, vertical: Space.s),
-      child: Column(
-        children: [
-          // RGPD : consentement aux statistiques, réversible à tout moment.
-          ActionRow(
-            icon: Icons.insights_outlined,
-            title: l10n.translate('analyticsSetting'),
-            subtitle: l10n.translate('analyticsSettingDesc'),
-            tone: Tone.neutral,
-            trailing: Switch(
-              value: AnalyticsService().consent == true,
-              onChanged: (granted) async {
-                await AnalyticsService().setConsent(granted);
-                if (mounted) setState(() {});
-              },
-            ),
-          ),
-          const CardDivider(),
-          ActionRow(
-            icon: Icons.block_outlined,
-            title: l10n.translate('blockedProfiles'),
-            subtitle: l10n.translate('blockedProfilesDesc'),
-            tone: Tone.neutral,
-            onTap: _showBlocked,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _accountCard(UserProfile? profile) {
-    final l10n = AppLocalizations.of(context);
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: Space.m, vertical: Space.s),
-      child: Column(
-        children: [
-          ActionRow(
-            icon: Icons.mark_email_unread_outlined,
-            title: l10n.translate('myWishes'),
-            subtitle: l10n.translate('myWishesDesc'),
-            tone: Tone.accent,
-            onTap: () => Navigator.of(context).pushNamed('/wishes'),
-          ),
-          const CardDivider(),
-          ActionRow(
-            icon: Icons.ios_share_rounded,
-            title: l10n.translate('recommendApp'),
-            subtitle: l10n.translate('recommendAppDesc'),
-            onTap: () => SharePlus.instance.share(ShareParams(
-              text: profile == null
-                  ? l10n.translate('shareDefaultText')
-                  : l10n
-                      .translate('shareProfileText')
-                      .replaceAll('{name}', profile.name),
-            )),
-          ),
-          const CardDivider(),
-          ActionRow(
-            icon: Icons.privacy_tip_outlined,
-            title: l10n.translate('privacyPolicy'),
-            tone: Tone.neutral,
-            onTap: () => launchUrl(Uri.parse(AppLinks.privacy),
-                mode: LaunchMode.externalApplication),
-          ),
-          const CardDivider(),
-          ActionRow(
-            icon: Icons.logout_rounded,
-            title: l10n.translate('logout'),
-            tone: Tone.neutral,
-            onTap: () => account.signOut(context),
-          ),
-          const CardDivider(),
-          ActionRow(
-            icon: Icons.delete_outline_rounded,
-            title: l10n.translate('deleteAccount'),
-            subtitle: l10n.translate('deleteAccountDesc'),
-            tone: Tone.danger,
-            onTap: () => account.deleteAccount(context),
-          ),
         ],
       ),
     );

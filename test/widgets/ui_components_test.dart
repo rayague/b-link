@@ -72,7 +72,7 @@ void main() {
     await tester.enterText(find.byType(TextFormField).first, '  Léa Bernard ');
     await tester.tap(find.text('Sélectionner une date'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('OK').last); // valide le calendrier
+    await tester.tap(find.text('Confirmer')); // valide les roues
     await tester.pumpAndSettle();
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
@@ -82,8 +82,8 @@ void main() {
     expect(saved!.relation, 'FRIEND');
     expect(saved!.phone, isNull);
     final now = DateTime.now();
-    expect(saved!.date,
-        startsWith('${now.year - 25}-${now.month.toString().padLeft(2, '0')}'));
+    // Sans date initiale, les roues partent du 1er janvier, 25 ans plus tôt.
+    expect(saved!.date, '${now.year - 25}-01-01');
   });
 
   testWidgets('contact form keeps an old lowercase relation', (tester) async {

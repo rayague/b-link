@@ -5,11 +5,8 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../models/contact.dart';
 import '../providers/contact_provider.dart';
-import '../providers/locale_provider.dart';
 import '../providers/profile_provider.dart';
-import '../providers/theme_provider.dart';
 import '../services/analytics_service.dart';
-import '../services/messaging_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/birthday.dart';
 import '../utils/birthday_labels.dart';
@@ -17,10 +14,10 @@ import '../utils/relations.dart';
 import '../widgets/contact_avatar.dart';
 import '../widgets/message_sheet.dart';
 import '../widgets/offline_banner.dart';
-import '../widgets/reminder_settings_section.dart';
 import '../widgets/today_twins_section.dart';
 import '../widgets/ui/components.dart';
 import '../widgets/ui/glass.dart';
+import 'settings_screen.dart';
 
 /// Accueil : l'anniversaire du jour (ou le prochain), les suivants, et
 /// l'accès aux autres espaces.
@@ -72,11 +69,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         IconButton(
           tooltip: l10n.translate('settings'),
-          icon: const Icon(Icons.tune_rounded),
-          onPressed: () => showGlassSheet<void>(
-            context,
-            builder: (_) => const SettingsSheet(),
-          ),
+          icon: const Icon(Icons.settings_outlined),
+          onPressed: () =>
+              Navigator.of(context).pushNamed(SettingsScreen.routeName),
         ),
       ],
       body: Column(
@@ -432,70 +427,4 @@ class _ExploreGrid extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Réglages : apparence, langue, rappels.
-class SettingsSheet extends StatelessWidget {
-  const SettingsSheet({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final themeProv = context.watch<ThemeProvider>();
-    final lang = context.watch<LocaleProvider>().locale.languageCode;
-    final l10n = AppLocalizations.of(context);
-    final t = Theme.of(context).textTheme;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(
-          Space.page, Space.s, Space.page, Space.l),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(l10n.translate('settings'), style: t.titleLarge),
-          const SizedBox(height: Space.xl),
-          Text(l10n.translate('appearance'), style: t.titleSmall),
-          const SizedBox(height: Space.s),
-          SegmentedButton<ThemeMode>(
-            segments: [
-              ButtonSegment(
-                  value: ThemeMode.light,
-                  icon: const Icon(Icons.light_mode_outlined, size: 18),
-                  label: Text(l10n.translate('light'))),
-              ButtonSegment(
-                  value: ThemeMode.dark,
-                  icon: const Icon(Icons.dark_mode_outlined, size: 18),
-                  label: Text(l10n.translate('dark'))),
-              ButtonSegment(
-                  value: ThemeMode.system,
-                  icon: const Icon(Icons.brightness_auto_outlined, size: 18),
-                  label: Text(l10n.translate('system'))),
-            ],
-            selected: {themeProv.mode},
-            onSelectionChanged: (s) => themeProv.setMode(s.first),
-          ),
-          const SizedBox(height: Space.xl),
-          Text(l10n.translate('changeLanguage'), style: t.titleSmall),
-          const SizedBox(height: Space.s),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'fr', label: Text('Français')),
-              ButtonSegment(value: 'en', label: Text('English')),
-            ],
-            selected: {lang},
-            onSelectionChanged: (s) => changeAppLocale(context, s.first),
-          ),
-          const SizedBox(height: Space.xl),
-          const ReminderSettingsSection(),
-        ],
-      ),
-    );
-  }
-}
-
-/// Change la langue et reprogramme les rappels pour qu'ils soient rédigés
-/// dans la nouvelle langue.
-void changeAppLocale(BuildContext context, String languageCode) {
-  context.read<LocaleProvider>().setLocale(Locale(languageCode));
-  context.read<ContactProvider>().rescheduleAllReminders(languageCode);
-  MessagingService().updateLocale(languageCode);
 }

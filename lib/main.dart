@@ -23,6 +23,7 @@ import 'screens/list_screen.dart';
 import 'screens/contact_detail_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/profile_registration_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/same_day_screen.dart';
 import 'screens/zodiac_screen.dart';
 import 'screens/meetups_screen.dart';
@@ -107,6 +108,7 @@ class _App extends StatelessWidget {
         '/list': (_) => const ListScreen(),
         '/detail': (_) => const ContactDetailScreen(),
         ProfileScreen.routeName: (_) => const ProfileScreen(),
+        SettingsScreen.routeName: (_) => const SettingsScreen(),
         ZodiacScreen.routeName: (_) => const ZodiacScreen(),
         MeetupsScreen.routeName: (_) => const MeetupsScreen(),
         ImportContactsScreen.routeName: (_) => const ImportContactsScreen(),

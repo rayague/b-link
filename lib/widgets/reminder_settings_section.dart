@@ -117,9 +117,7 @@ class _ReminderSettingsSectionState extends State<ReminderSettingsSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(l10n.translate('remindersTitle'), style: t.titleSmall),
         if (_allowed == false) ...[
-          const SizedBox(height: Space.s),
           NoticeCard(
             icon: Icons.notifications_off_outlined,
             tone: Tone.danger,

@@ -9,30 +9,56 @@ import '../services/messaging_service.dart';
 import '../services/photo_service.dart';
 import '../services/safety_service.dart';
 
-/// Actions de compte partagées par les écrans (menu, profil).
+/// Actions de compte (écran Réglages).
 
-Future<bool> _confirm(BuildContext context, String message,
-    {required String action, bool destructive = false}) async {
+/// Demande confirmation avant une action de compte. Les actions
+/// irréversibles ont un bouton rouge plein.
+Future<bool> _confirm(BuildContext context,
+    {required IconData icon,
+    required String title,
+    required String message,
+    required String action,
+    bool destructive = false}) async {
   final loc = AppLocalizations.of(context);
   final ok = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      content: Text(message),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text(loc.translate('cancel')),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          style: destructive
-              ? TextButton.styleFrom(
-                  foregroundColor: Theme.of(ctx).colorScheme.error)
-              : null,
-          child: Text(action),
-        ),
-      ],
-    ),
+    builder: (ctx) {
+      final c = Theme.of(ctx).colorScheme;
+      return AlertDialog(
+        icon: Icon(icon, color: c.error, size: 32),
+        title: Text(title, textAlign: TextAlign.center),
+        content: Text(message, textAlign: TextAlign.center),
+        // Boutons empilés sur toute la largeur : l'action d'abord, en rouge.
+        actions: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              destructive
+                  ? FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: FilledButton.styleFrom(
+                          backgroundColor: c.error,
+                          foregroundColor: c.onError),
+                      child: Text(action),
+                    )
+                  : OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: OutlinedButton.styleFrom(
+                          foregroundColor: c.error,
+                          side: BorderSide(
+                              color: c.error.withValues(alpha: 0.6))),
+                      child: Text(action),
+                    ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(loc.translate('cancel')),
+              ),
+            ],
+          ),
+        ],
+      );
+    },
   );
   return ok ?? false;
 }
@@ -50,7 +76,10 @@ Future<void> _clearLocalAndExit(BuildContext context) async {
 
 Future<void> signOut(BuildContext context) async {
   final loc = AppLocalizations.of(context);
-  if (!await _confirm(context, loc.translate('logoutConfirm'),
+  if (!await _confirm(context,
+      icon: Icons.logout_rounded,
+      title: loc.translate('logoutTitle'),
+      message: loc.translate('logoutConfirm'),
       action: loc.translate('logout'))) {
     return;
   }
@@ -71,8 +100,12 @@ Future<void> signOut(BuildContext context) async {
 /// compte Auth, puis nettoyage local.
 Future<void> deleteAccount(BuildContext context) async {
   final loc = AppLocalizations.of(context);
-  if (!await _confirm(context, loc.translate('deleteAccountConfirm'),
-      action: loc.translate('deleteAccount'), destructive: true)) {
+  if (!await _confirm(context,
+      icon: Icons.delete_forever_outlined,
+      title: loc.translate('deleteAccountTitle'),
+      message: loc.translate('deleteAccountConfirm'),
+      action: loc.translate('deleteAccount'),
+      destructive: true)) {
     return;
   }
   if (!context.mounted) return;
