@@ -15,6 +15,7 @@ import '../utils/zodiac.dart';
 import '../widgets/social_links_widget.dart';
 import '../widgets/ui/components.dart';
 import '../widgets/ui/glass.dart';
+import '../widgets/ui/birth_date_picker.dart';
 
 /// Création du profil après la première connexion : la date de naissance
 /// est indispensable (rappels, annuaire « Même jour »).
@@ -191,13 +192,8 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                         : fullDateLabel(l10n, _birthDate!),
                     placeholder: l10n.translate('selectDate'),
                     onTap: () async {
-                      final d = await showDatePicker(
-                        context: context,
-                        initialDate: _birthDate ?? DateTime(1995, 1, 1),
-                        firstDate: DateTime(1900),
-                        lastDate: DateTime.now(),
-                        initialEntryMode: DatePickerEntryMode.calendarOnly,
-                      );
+                      final d = await showBirthDatePicker(context,
+                          initial: _birthDate);
                       if (d != null) {
                         setState(() {
                           _birthDate = d;

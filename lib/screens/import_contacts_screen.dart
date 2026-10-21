@@ -13,6 +13,7 @@ import '../utils/birthday.dart';
 import '../utils/birthday_labels.dart';
 import '../widgets/ui/components.dart';
 import '../widgets/ui/glass.dart';
+import '../widgets/ui/birth_date_picker.dart';
 
 /// Import des contacts du téléphone : ceux qui ont un anniversaire sont
 /// cochés d'office, les autres peuvent recevoir une date en un geste.
@@ -81,14 +82,7 @@ class _ImportContactsScreenState extends State<ImportContactsScreen> {
   }
 
   Future<void> _setDate(PhoneContact c) async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(now.year - 25, now.month, now.day),
-      firstDate: DateTime(1900),
-      lastDate: now,
-      initialEntryMode: DatePickerEntryMode.calendarOnly,
-    );
+    final picked = await showBirthDatePicker(context, allowUnknownYear: true);
     if (picked == null) return;
     setState(() {
       final i = _candidates.indexWhere((x) => x.id == c.id);

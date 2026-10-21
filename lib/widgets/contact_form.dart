@@ -8,6 +8,7 @@ import '../utils/birthday.dart';
 import '../utils/birthday_labels.dart';
 import '../utils/relations.dart';
 import 'contact_avatar.dart';
+import 'ui/birth_date_picker.dart';
 import 'ui/components.dart';
 
 /// Formulaire d'un contact (ajout et modification) : photo, nom, date de
@@ -52,19 +53,8 @@ class _ContactFormState extends State<ContactForm> {
   }
 
   Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      // Année inconnue (contact importé) : on part d'une année plausible.
-      initialDate: _birth != null && hasBirthYear(_birth!)
-          ? _birth!
-          : DateTime(now.year - 25, _birth?.month ?? now.month,
-              _birth?.day ?? now.day),
-      firstDate: DateTime(1900),
-      // Une date de naissance n'est jamais dans le futur.
-      lastDate: now,
-      initialEntryMode: DatePickerEntryMode.calendarOnly,
-    );
+    final picked = await showBirthDatePicker(context,
+        initial: _birth, allowUnknownYear: true);
     if (picked != null) {
       setState(() {
         _birth = picked;

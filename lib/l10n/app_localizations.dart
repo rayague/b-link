@@ -513,6 +513,11 @@ class AppLocalizations {
       'legendYourDay': 'Your day',
       'legendLines': 'Most celebrated day of each month',
       'legendToday': 'Today',
+      'unknownYear': 'Unknown year',
+      'dateInFuture': 'This date is in the future',
+      'pickerDay': 'Day',
+      'pickerMonth': 'Month',
+      'pickerYear': 'Year',
     },
     'fr': {
       'relation_default': 'Général',
@@ -1026,6 +1031,11 @@ class AppLocalizations {
       'legendYourDay': 'Votre jour',
       'legendLines': 'Jour le plus fêté de chaque mois',
       'legendToday': 'Aujourd\'hui',
+      'unknownYear': 'Année inconnue',
+      'dateInFuture': 'Cette date est dans le futur',
+      'pickerDay': 'Jour',
+      'pickerMonth': 'Mois',
+      'pickerYear': 'Année',
     },
   };
 

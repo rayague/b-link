@@ -24,6 +24,7 @@ import '../widgets/social_links_widget.dart';
 import '../widgets/ui/components.dart';
 import '../widgets/ui/glass.dart';
 import 'admin_stats_screen.dart';
+import '../widgets/ui/birth_date_picker.dart';
 
 /// Profil de l'utilisateur : informations, confidentialité, réseaux,
 /// réglages et compte.
@@ -581,13 +582,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             value: _birthDate == null ? null : fullDateLabel(l10n, _birthDate!),
             placeholder: l10n.translate('selectDate'),
             onTap: () async {
-              final d = await showDatePicker(
-                context: context,
-                initialDate: _birthDate ?? DateTime(2000),
-                firstDate: DateTime(1900),
-                lastDate: DateTime.now(),
-                initialEntryMode: DatePickerEntryMode.calendarOnly,
-              );
+              final d =
+                  await showBirthDatePicker(context, initial: _birthDate);
               if (d != null) setState(() => _birthDate = d);
             },
           ),
