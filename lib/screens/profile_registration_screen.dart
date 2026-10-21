@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 import '../utils/birthday_labels.dart';
 import '../utils/zodiac.dart';
 import '../widgets/social_links_widget.dart';
+import '../widgets/ui/country_sheet.dart';
 import '../widgets/ui/components.dart';
 import '../widgets/ui/glass.dart';
 import '../widgets/ui/birth_date_picker.dart';
@@ -241,17 +242,14 @@ class _ProfileRegistrationScreenState extends State<ProfileRegistrationScreen> {
                     label: l10n.translate('countryOfResidence'),
                     icon: Icons.flag_outlined,
                     leading: country == null ? null : Text(country.flagEmoji),
-                    value: country == null
-                        ? null
-                        : CountryLocalizations.of(context)
-                                ?.countryName(countryCode: country.countryCode) ??
-                            country.name,
+                    value:
+                        country == null ? null : countryLabel(context, country),
                     placeholder: l10n.translate('chooseCountry'),
-                    onTap: () => showCountryPicker(
-                      context: context,
-                      onSelect: (c) =>
-                          setState(() => _countryCode = c.countryCode),
-                    ),
+                    onTap: () async {
+                      final c = await showCountrySheet(context,
+                          selected: _countryCode);
+                      if (c != null) setState(() => _countryCode = c.countryCode);
+                    },
                   ),
                   const SizedBox(height: Space.m),
                   TextFormField(

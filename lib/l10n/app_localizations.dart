@@ -518,6 +518,9 @@ class AppLocalizations {
       'pickerDay': 'Day',
       'pickerMonth': 'Month',
       'pickerYear': 'Year',
+      'searchCountry': 'Search for a country',
+      'noCountryFound': 'No country found',
+      'clear': 'Clear',
     },
     'fr': {
       'relation_default': 'Général',
@@ -1036,6 +1039,9 @@ class AppLocalizations {
       'pickerDay': 'Jour',
       'pickerMonth': 'Mois',
       'pickerYear': 'Année',
+      'searchCountry': 'Rechercher un pays',
+      'noCountryFound': 'Aucun pays trouvé',
+      'clear': 'Effacer',
     },
   };
 

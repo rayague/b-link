@@ -21,6 +21,7 @@ import '../utils/zodiac.dart';
 import '../widgets/birth_insights_widget.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/social_links_widget.dart';
+import '../widgets/ui/country_sheet.dart';
 import '../widgets/ui/components.dart';
 import '../widgets/ui/glass.dart';
 import 'admin_stats_screen.dart';
@@ -541,9 +542,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         InfoRow(
             icon: Icons.flag_outlined,
             label: l10n.translate('countryOfResidence'),
-            value: CountryLocalizations.of(context)
-                    ?.countryName(countryCode: country.countryCode) ??
-                country.name),
+            value: countryLabel(context, country)),
     ];
     return GlassCard(
       padding:
@@ -609,12 +608,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 prefixIcon: const Icon(Icons.place_outlined)),
           ),
           const SizedBox(height: Space.m),
-          TextFormField(
-            controller: _birthCountry,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-                labelText: l10n.translate('birthCountry'),
-                prefixIcon: const Icon(Icons.public_rounded)),
+          // Choisi dans la liste (nom enregistré dans la langue de l'app).
+          PickerField(
+            label: l10n.translate('birthCountry'),
+            icon: Icons.public_rounded,
+            value: _birthCountry.text.trim().isEmpty
+                ? null
+                : _birthCountry.text.trim(),
+            placeholder: l10n.translate('chooseCountry'),
+            onTap: () async {
+              final c = await showCountrySheet(context);
+              if (c != null && context.mounted) {
+                setState(() => _birthCountry.text = countryLabel(context, c));
+              }
+            },
           ),
           const SizedBox(height: Space.m),
           TextFormField(
@@ -629,16 +636,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label: l10n.translate('countryOfResidence'),
             icon: Icons.flag_outlined,
             leading: country == null ? null : Text(country.flagEmoji),
-            value: country == null
-                ? null
-                : CountryLocalizations.of(context)
-                        ?.countryName(countryCode: country.countryCode) ??
-                    country.name,
+            value: country == null ? null : countryLabel(context, country),
             placeholder: l10n.translate('chooseCountry'),
-            onTap: () => showCountryPicker(
-              context: context,
-              onSelect: (c) => setState(() => _countryCode = c.countryCode),
-            ),
+            onTap: () async {
+              final c = await showCountrySheet(context, selected: _countryCode);
+              if (c != null) setState(() => _countryCode = c.countryCode);
+            },
           ),
         ],
       ),
