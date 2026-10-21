@@ -56,6 +56,19 @@ void main() {
       expect(p.toPublicJson().containsKey('countryCode'), isFalse);
     });
 
+    test('region follows the shown country (continent filter)', () {
+      final p = _profile()..countryCode = 'BJ';
+      expect(p.toPublicJson().containsKey('region'), isFalse);
+      p.publicCountry = true;
+      expect(p.toPublicJson()['region'], 'AF');
+      p.countryCode = 'FR';
+      expect(p.toPublicJson()['region'], 'EU');
+      p.countryCode = 'BR';
+      expect(p.toPublicJson()['region'], 'SA');
+      p.countryCode = 'AQ'; // Antarctique : pas de région
+      expect(p.toPublicJson().containsKey('region'), isFalse);
+    });
+
     test('birth time is only shared together with the birth date', () {
       final p = _profile()..publicBirthTime = true;
       expect(p.toPublicJson().containsKey('birthTime'), isFalse);
@@ -68,7 +81,7 @@ void main() {
         'publicName', 'publicBirthDate', 'publicBirthTime', 'publicBirthPlace',
         'publicBirthCountry', 'publicBirthCity', 'publicSocials',
         'publicZodiac', 'updatedAt', 'countryCode', 'publicCountry',
-        'publicPhoto', 'cityKey',
+        'publicPhoto', 'cityKey', 'region',
       };
       final p = _profile(
           publicName: true, publicBirthDate: true, publicSocials: true)

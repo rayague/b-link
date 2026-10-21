@@ -294,6 +294,21 @@ test('un jeton avec des champs ou une langue inattendus est refusé', async () =
   await assertFails(setDoc(doc(google('bob'), 'users/bob/devices/t'), { platform: 'android', locale: 'fr', extra: 1 }));
 });
 
+test('une région connue est acceptée, une valeur libre est refusée', async () => {
+  await assertSucceeds(setDoc(doc(google('bob'), 'public_profiles/bob'),
+    publicProfile('bob', { countryCode: 'BJ', publicCountry: true, region: 'AF' })));
+  await assertFails(setDoc(doc(google('bob'), 'public_profiles/bob'),
+    publicProfile('bob', { countryCode: 'BJ', publicCountry: true, region: 'Afrique' })));
+});
+
+test('requête mois + région paginée autorisée', async () => {
+  const q = query(collection(google('bob'), 'public_profiles'),
+    where('region', '==', 'AF'),
+    where('birthDayKey', '>=', '10-01'), where('birthDayKey', '<=', '10-31'),
+    orderBy('birthDayKey'), limit(50));
+  await assertSucceeds(getDocs(q));
+});
+
 // ---------- filtre "Ma ville" ----------
 
 test('une clé de ville normalisée est acceptée, un format libre est refusé', async () => {

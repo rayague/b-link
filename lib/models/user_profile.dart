@@ -1,4 +1,5 @@
 import '../utils/city.dart';
+import '../utils/regions.dart';
 import 'dart:convert';
 
 class UserProfile {
@@ -228,6 +229,9 @@ class UserProfile {
     put(publicZodiac, 'zodiac', zodiac);
     put(publicCountry && isValidCountryCode(countryCode), 'countryCode',
         countryCode);
+    // Filtre par continent : seulement si le pays est montré.
+    put(publicCountry && isValidCountryCode(countryCode), 'region',
+        regionOf(countryCode));
     // Filtre "Ma ville" : uniquement si la ville actuelle est partagée.
     put(publicBirthCity, 'cityKey', cityKey(countryCode, birthCity));
     if (publicSocials && socialLinks != null && socialLinks!.isNotEmpty) {

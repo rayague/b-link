@@ -72,11 +72,15 @@ service cloud.firestore {
              'socialLinks', 'isPublic', 'publicName', 'publicBirthDate',
              'publicBirthTime', 'publicBirthPlace', 'publicBirthCountry',
              'publicBirthCity', 'publicSocials', 'publicZodiac', 'updatedAt',
-             'countryCode', 'publicCountry', 'publicPhoto', 'cityKey'
+             'countryCode', 'publicCountry', 'publicPhoto', 'cityKey',
+             'region'
            ])
         // Pays de résidence : code ISO 3166-1 alpha-2 (filtre "Mon pays").
         && (!('countryCode' in request.resource.data)
             || request.resource.data.countryCode.matches('^[A-Z]{2}$'))
+        // Région du monde, déduite du pays (filtre par continent).
+        && (!('region' in request.resource.data)
+            || request.resource.data.region in ['AF', 'AS', 'EU', 'NA', 'SA', 'OC'])
         // Ville : "PAYS:ville normalisée" (filtre "Ma ville").
         && (!('cityKey' in request.resource.data)
             || request.resource.data.cityKey.matches('^[A-Z]{2}:[a-z0-9 ]{1,80}$'))

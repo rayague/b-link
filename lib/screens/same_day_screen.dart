@@ -15,9 +15,11 @@ import '../theme/app_theme.dart';
 import '../utils/app_links.dart';
 import '../utils/birthday_labels.dart';
 import '../utils/city.dart';
+import '../utils/regions.dart';
 import '../widgets/message_sheet.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/ui/components.dart';
+import '../widgets/ui/country_sheet.dart';
 import '../widgets/ui/glass.dart';
 import 'meetups_screen.dart';
 import 'public_profile_screen.dart';
@@ -31,8 +33,9 @@ class SameDayScreen extends StatefulWidget {
   State<SameDayScreen> createState() => _SameDayScreenState();
 }
 
-/// Portée de l'annuaire : monde entier, mon pays, ma ville.
-enum _Scope { world, country, city }
+/// Portée de l'annuaire : monde entier, mon pays, ma ville, ou un pays ou
+/// un continent choisi.
+enum _Scope { world, country, city, otherCountry, region }
 
 class _SameDayScreenState extends State<SameDayScreen> {
   final _scroll = ScrollController();
@@ -41,6 +44,10 @@ class _SameDayScreenState extends State<SameDayScreen> {
   bool _hasMore = true;
   DirectoryPeriod _period = DirectoryPeriod.day;
   _Scope _scope = _Scope.world;
+
+  /// Code du pays ou du continent choisi ([_Scope.otherCountry],
+  /// [_Scope.region]).
+  String? _scopeCode;
   DocumentSnapshot? _last;
   Set<String> _blocked = {};
 
@@ -68,11 +75,19 @@ class _SameDayScreenState extends State<SameDayScreen> {
 
   UserProfile? get _me => context.read<ProfileProvider>().profile;
 
-  Query<Map<String, dynamic>> _query(UserProfile me) => DirectoryService().query(
+  Query<Map<String, dynamic>> _query(UserProfile me) =>
+      DirectoryService().query(
         me.birthDate,
         _period,
-        countryCode: _scope == _Scope.country ? me.countryCode : null,
-        cityKey: _scope == _Scope.city ? cityKey(me.countryCode, me.birthCity) : null,
+        countryCode: switch (_scope) {
+          _Scope.country => me.countryCode,
+          _Scope.otherCountry => _scopeCode,
+          _ => null,
+        },
+        cityKey: _scope == _Scope.city
+            ? cityKey(me.countryCode, me.birthCity)
+            : null,
+        region: _scope == _Scope.region ? _scopeCode : null,
       );
 
   /// On ne se compte pas soi-même, ni les profils bloqués.
@@ -81,7 +96,8 @@ class _SameDayScreenState extends State<SameDayScreen> {
     final myUid = FirebaseAuth.instance.currentUser?.uid;
     return [
       for (final d in docs)
-        if (d.id != myUid && !_blocked.contains(d.id)) {...d.data(), 'uid': d.id},
+        if (d.id != myUid && !_blocked.contains(d.id))
+          {...d.data(), 'uid': d.id},
     ];
   }
 
@@ -139,10 +155,22 @@ class _SameDayScreenState extends State<SameDayScreen> {
     }
   }
 
-  void _setFilters({DirectoryPeriod? period, _Scope? scope}) {
+  void _setFilters({DirectoryPeriod? period, _Scope? scope, String? code}) {
     _period = period ?? _period;
-    _scope = scope ?? _scope;
+    if (scope != null) {
+      _scope = scope;
+      _scopeCode = code;
+    }
     _load();
+  }
+
+  /// Continent ou pays au choix.
+  Future<void> _chooseArea() async {
+    final picked = await showGlassSheet<(_Scope, String)>(
+      context,
+      builder: (_) => _AreaSheet(scope: _scope, code: _scopeCode),
+    );
+    if (picked != null) _setFilters(scope: picked.$1, code: picked.$2);
   }
 
   /// Invite des proches nés à la même date : le seul moyen de remplir
@@ -200,15 +228,18 @@ class _SameDayScreenState extends State<SameDayScreen> {
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
                   padding.left, padding.top, padding.right, Space.m),
-              sliver: SliverToBoxAdapter(child: _Header(
+              sliver: SliverToBoxAdapter(
+                  child: _Header(
                 me: me,
                 count: _items.length,
                 hasMore: _hasMore && _items.isNotEmpty,
                 loading: _loading && _items.isEmpty,
                 period: _period,
                 scope: _scope,
+                scopeCode: _scopeCode,
                 onPeriod: (p) => _setFilters(period: p),
                 onScope: (s) => _setFilters(scope: s),
+                onChooseArea: _chooseArea,
               )),
             ),
             if (_loading && _items.isEmpty)
@@ -252,8 +283,9 @@ class _SameDayScreenState extends State<SameDayScreen> {
                     final name = _flag(it['publicName'])
                         ? (it['name'] as String? ?? '')
                         : '';
-                    final shown =
-                        name.isEmpty ? l10n.translate('anonymousProfile') : name;
+                    final shown = name.isEmpty
+                        ? l10n.translate('anonymousProfile')
+                        : name;
                     final place = _flag(it['publicBirthPlace'])
                         ? (it['birthplace'] as String? ?? '')
                         : '';
@@ -263,7 +295,8 @@ class _SameDayScreenState extends State<SameDayScreen> {
                       uid: it['uid'] as String?,
                       name: shown,
                       subtitle: [
-                        if (_period != DirectoryPeriod.day && birthDayKey != null)
+                        if (_period != DirectoryPeriod.day &&
+                            birthDayKey != null)
                           _dayLabel(l10n, birthDayKey),
                         if (place.isNotEmpty) place,
                       ].join(' · '),
@@ -273,8 +306,7 @@ class _SameDayScreenState extends State<SameDayScreen> {
                       onMessage: name.isEmpty
                           ? null
                           : () => showBirthdayMessageSheet(context,
-                              name: name.split(' ').first,
-                              relation: 'default'),
+                              name: name.split(' ').first, relation: 'default'),
                     );
                   },
                 ),
@@ -302,8 +334,10 @@ class _Header extends StatelessWidget {
   final bool loading;
   final DirectoryPeriod period;
   final _Scope scope;
+  final String? scopeCode;
   final ValueChanged<DirectoryPeriod> onPeriod;
   final ValueChanged<_Scope> onScope;
+  final VoidCallback onChooseArea;
 
   const _Header({
     required this.me,
@@ -312,8 +346,10 @@ class _Header extends StatelessWidget {
     required this.loading,
     required this.period,
     required this.scope,
+    required this.scopeCode,
     required this.onPeriod,
     required this.onScope,
+    required this.onChooseArea,
   });
 
   @override
@@ -325,6 +361,20 @@ class _Header extends StatelessWidget {
     final hasCity = cityKey(me?.countryCode, me?.birthCity) != null;
     final flag =
         hasCountry ? Country.tryParse(me!.countryCode!)?.flagEmoji : null;
+
+    // Libellé du pays ou du continent choisi : (emoji, nom).
+    final (String, String)? picked = switch (scope) {
+      _Scope.otherCountry when scopeCode != null => switch (
+            Country.tryParse(scopeCode!)) {
+          final c? => (c.flagEmoji, countryLabel(context, c)),
+          null => null,
+        },
+      _Scope.region when scopeCode != null => (
+          regionEmoji(scopeCode!),
+          l10n.translate('region${scopeCode!}')
+        ),
+      _ => null,
+    };
 
     Widget scopeChip(_Scope s, String label, bool enabled, {Widget? avatar}) =>
         ChoiceChip(
@@ -384,9 +434,28 @@ class _Header extends StatelessWidget {
               scopeChip(_Scope.country, l10n.translate('myCountry'), hasCountry,
                   avatar: flag == null ? null : Text(flag)),
               scopeChip(_Scope.city, l10n.translate('myCity'), hasCity),
+              // Pays ou continent choisi : retirable d'un geste.
+              if (picked != null)
+                InputChip(
+                  avatar: Text(picked.$1),
+                  label: Text(picked.$2),
+                  selected: true,
+                  onPressed: onChooseArea,
+                  onDeleted: () => onScope(_Scope.world),
+                  deleteButtonTooltipMessage: l10n.translate('clear'),
+                )
+              else
+                ActionChip(
+                  avatar: const Icon(Icons.travel_explore_rounded, size: 18),
+                  label: Text(l10n.translate('otherArea')),
+                  onPressed: onChooseArea,
+                ),
             ],
           ),
-          if (!hasCountry || !hasCity) ...[
+          if (picked != null) ...[
+            const SizedBox(height: Space.s),
+            Text(l10n.translate('areaFilterHint'), style: t.bodySmall),
+          ] else if (!hasCountry || !hasCity) ...[
             const SizedBox(height: Space.s),
             Text(
               l10n.translate(hasCountry ? 'setCityHint' : 'setCountryHint'),
@@ -401,7 +470,8 @@ class _Header extends StatelessWidget {
             title: l10n.translate('meetupsButton'),
             subtitle: l10n.translate('meetupsRowDesc'),
             tone: Tone.accent,
-            onTap: () => Navigator.of(context).pushNamed(MeetupsScreen.routeName),
+            onTap: () =>
+                Navigator.of(context).pushNamed(MeetupsScreen.routeName),
           ),
         ],
       ),
@@ -464,6 +534,72 @@ class _TwinTile extends StatelessWidget {
             )
           else
             const SizedBox(width: Space.m),
+        ],
+      ),
+    );
+  }
+}
+
+/// Emoji de globe tourné vers le continent.
+String regionEmoji(String region) => switch (region) {
+      'NA' || 'SA' => '🌎',
+      'AS' || 'OC' => '🌏',
+      _ => '🌍',
+    };
+
+/// Choix d'un continent ou d'un pays pour filtrer l'annuaire.
+class _AreaSheet extends StatelessWidget {
+  final _Scope scope;
+  final String? code;
+  const _AreaSheet({required this.scope, this.code});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final t = Theme.of(context).textTheme;
+    final country = scope == _Scope.otherCountry && code != null
+        ? Country.tryParse(code!)
+        : null;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(Space.page, 0, Space.page, Space.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.translate('whereToLook'), style: t.titleLarge),
+          const SizedBox(height: Space.xs),
+          Text(l10n.translate('areaFilterHint'), style: t.bodySmall),
+          const SizedBox(height: Space.l),
+          Text(l10n.translate('continent'), style: t.titleSmall),
+          const SizedBox(height: Space.s),
+          Wrap(
+            spacing: Space.s,
+            runSpacing: Space.s,
+            children: [
+              for (final r in kRegions)
+                ChoiceChip(
+                  avatar: Text(regionEmoji(r)),
+                  label: Text(l10n.translate('region$r')),
+                  selected: scope == _Scope.region && code == r,
+                  onSelected: (_) =>
+                      Navigator.of(context).pop((_Scope.region, r)),
+                ),
+            ],
+          ),
+          const SizedBox(height: Space.xl),
+          PickerField(
+            label: l10n.translate('country'),
+            icon: Icons.flag_outlined,
+            leading: country == null ? null : Text(country.flagEmoji),
+            value: country == null ? null : countryLabel(context, country),
+            placeholder: l10n.translate('chooseCountry'),
+            onTap: () async {
+              final navigator = Navigator.of(context);
+              final c = await showCountrySheet(context, selected: code);
+              if (c != null) {
+                navigator.pop((_Scope.otherCountry, c.countryCode));
+              }
+            },
+          ),
         ],
       ),
     );

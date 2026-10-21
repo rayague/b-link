@@ -8,9 +8,9 @@ enum DirectoryPeriod { day, week, month }
 /// Requêtes sur l'annuaire `public_profiles`.
 ///
 /// Tout repose sur `birthDayKey` (MM-DD) : égalité pour le jour, `whereIn`
-/// pour la semaine, plage de chaînes pour le mois. Le filtre pays ajoute une
-/// égalité sur `countryCode` (index composite dans firestore.indexes.json
-/// pour le cas du mois).
+/// pour la semaine, plage de chaînes pour le mois. Les filtres pays, région
+/// et ville ajoutent une égalité (index composites dans
+/// firestore.indexes.json pour le cas du mois).
 class DirectoryService {
   /// Doit rester <= à la limite imposée par firestore.rules.
   static const int pageSize = 50;
@@ -32,18 +32,22 @@ class DirectoryService {
   }
 
   /// [cityKey] ("PAYS:ville", voir utils/city.dart) restreint à une ville ;
-  /// sinon [countryCode] restreint à un pays ; sinon le monde entier.
+  /// sinon [countryCode] restreint à un pays ; sinon [region] (voir
+  /// utils/regions.dart) à un continent ; sinon le monde entier.
   Query<Map<String, dynamic>> query(
     DateTime birthDate,
     DirectoryPeriod period, {
     String? countryCode,
     String? cityKey,
+    String? region,
   }) {
     Query<Map<String, dynamic>> q = _db.collection('public_profiles');
     if (cityKey != null) {
       q = q.where('cityKey', isEqualTo: cityKey);
     } else if (countryCode != null) {
       q = q.where('countryCode', isEqualTo: countryCode);
+    } else if (region != null) {
+      q = q.where('region', isEqualTo: region);
     }
     switch (period) {
       case DirectoryPeriod.day:
